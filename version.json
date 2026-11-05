@@ -1,9 +1,9 @@
 {
   "app_name": "PetersWorld",
   "version": "1.0.0",
-  "build": 2,
-  "timestamp": "2026-11-05T13:22:28.371672+00:00",
-  "git_hash": "dev-local",
+  "build": 3,
+  "timestamp": "2026-11-05T13:22:38.708686+00:00",
+  "git_hash": "27760ef",
   "features": [
     "Cross-platform WebAssembly 3D Planet Engine",
     "Interactieve satelliet- en landmark-simulatie",
