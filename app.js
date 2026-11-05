@@ -1,1132 +1,1075 @@
 /**
- * ==============================================================================
- * PetersWorld - WebAssembly 3D Planet Engine & Auto-Version Manager
- * ==============================================================================
+ * PetersWorld – Global Flight Radar
+ * WebAssembly-aangedreven 3D wereldbol met live vluchten.
+ * Versie: 1.1.0
  */
 
-// ------------------------------------------------------------------------------
-// 1. Configuratie & State
-// ------------------------------------------------------------------------------
-const APP_CONFIG = {
-  appName: 'PetersWorld',
-  defaultVersion: '1.0.0',
-  defaultBuild: 1,
-  pollIntervalMs: 30000, // Controleer elke 30 seconden op updates
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+//  CONFIGURATIE
+// ═══════════════════════════════════════════════════════
+const CFG = {
   wasmFile: 'petersworld.wasm',
-  versionFile: 'version.json'
+  versionFile: 'version.json',
+  pollMs: 30_000,
+  flightCount: 120,         // aantal gesimuleerde vluchten
+  globeRadius: 180,
 };
 
-const state = {
+// ═══════════════════════════════════════════════════════
+//  VLUCHTEN DATABASE  –  echte routes, luchthavens & airlines
+// ═══════════════════════════════════════════════════════
+const AIRPORTS = [
+  // Europa
+  { code:'AMS', name:'Amsterdam Schiphol',       lat: 52.31, lon:  4.76, hub:true  },
+  { code:'LHR', name:'London Heathrow',           lat: 51.47, lon: -0.46, hub:true  },
+  { code:'CDG', name:'Paris Charles de Gaulle',   lat: 49.01, lon:  2.55, hub:true  },
+  { code:'FRA', name:'Frankfurt Main',            lat: 50.03, lon:  8.57, hub:true  },
+  { code:'MAD', name:'Madrid Barajas',            lat: 40.47, lon: -3.57, hub:false },
+  { code:'FCO', name:'Rome Fiumicino',            lat: 41.80, lon: 12.25, hub:false },
+  { code:'ARN', name:'Stockholm Arlanda',         lat: 59.65, lon: 17.93, hub:false },
+  { code:'ZRH', name:'Zürich Airport',            lat: 47.46, lon:  8.55, hub:false },
+  { code:'BRU', name:'Brussels Airport',          lat: 50.90, lon:  4.48, hub:false },
+  { code:'VIE', name:'Vienna International',      lat: 48.11, lon: 16.57, hub:false },
+  // Noord-Amerika
+  { code:'JFK', name:'New York JFK',              lat: 40.64, lon:-73.78, hub:true  },
+  { code:'LAX', name:'Los Angeles International', lat: 33.94, lon:-118.40, hub:true },
+  { code:'ORD', name:"Chicago O'Hare",            lat: 41.98, lon:-87.90, hub:true  },
+  { code:'ATL', name:'Atlanta Hartsfield',        lat: 33.64, lon:-84.43, hub:false },
+  { code:'DFW', name:'Dallas Fort Worth',         lat: 32.90, lon:-97.04, hub:false },
+  { code:'YYZ', name:'Toronto Pearson',           lat: 43.68, lon:-79.63, hub:false },
+  { code:'MIA', name:'Miami International',       lat: 25.80, lon:-80.28, hub:false },
+  { code:'SFO', name:'San Francisco International',lat:37.62, lon:-122.38, hub:false},
+  // Azië & Midden-Oosten
+  { code:'DXB', name:'Dubai International',       lat: 25.25, lon: 55.36, hub:true  },
+  { code:'HND', name:'Tokyo Haneda',              lat: 35.55, lon:139.78, hub:true  },
+  { code:'PEK', name:'Beijing Capital',           lat: 40.08, lon:116.58, hub:true  },
+  { code:'SIN', name:'Singapore Changi',          lat:  1.36, lon:103.99, hub:true  },
+  { code:'HKG', name:'Hong Kong International',   lat: 22.31, lon:113.91, hub:false },
+  { code:'BOM', name:'Mumbai Chhatrapati Shivaji', lat:19.09, lon: 72.87, hub:false },
+  { code:'ICN', name:'Seoul Incheon',             lat: 37.46, lon:126.44, hub:false },
+  { code:'BKK', name:'Bangkok Suvarnabhumi',      lat: 13.69, lon:100.75, hub:false },
+  { code:'DOH', name:'Doha Hamad',                lat: 25.27, lon: 51.61, hub:false },
+  // Oceanie & Afrika & Zuid-Amerika
+  { code:'SYD', name:'Sydney Kingsford Smith',    lat:-33.95, lon:151.18, hub:true  },
+  { code:'MEL', name:'Melbourne Tullamarine',     lat:-37.67, lon:144.84, hub:false },
+  { code:'JNB', name:'Johannesburg OR Tambo',     lat:-26.14, lon: 28.24, hub:false },
+  { code:'NBO', name:'Nairobi Jomo Kenyatta',     lat: -1.32, lon: 36.93, hub:false },
+  { code:'CAI', name:'Cairo International',       lat: 30.12, lon: 31.41, hub:false },
+  { code:'GRU', name:'São Paulo Guarulhos',       lat:-23.43, lon:-46.47, hub:false },
+  { code:'BOG', name:'Bogotá El Dorado',          lat:  4.70, lon:-74.14, hub:false },
+  { code:'LIM', name:'Lima Jorge Chávez',         lat:-12.02, lon:-77.11, hub:false },
+  { code:'MEX', name:'Mexico City NAICM',         lat: 19.43, lon:-99.07, hub:false },
+];
+
+const AIRLINES = [
+  { code:'KLM',  name:'KLM Royal Dutch Airlines',   color:'#00a1de', types:['Boeing 737','Boeing 777','Airbus A330'] },
+  { code:'DLH',  name:'Lufthansa',                   color:'#f9ba00', types:['Airbus A320','Airbus A350','Boeing 747'] },
+  { code:'BAW',  name:'British Airways',             color:'#075aaa', types:['Boeing 777','Airbus A380','Boeing 787'] },
+  { code:'AFR',  name:'Air France',                  color:'#002157', types:['Airbus A320','Airbus A380','Boeing 777'] },
+  { code:'UAE',  name:'Emirates',                    color:'#c8102e', types:['Boeing 777','Airbus A380'] },
+  { code:'UAL',  name:'United Airlines',             color:'#005daa', types:['Boeing 737','Boeing 777','Boeing 787'] },
+  { code:'AAL',  name:'American Airlines',           color:'#c8102e', types:['Boeing 737','Boeing 777','Airbus A321'] },
+  { code:'DAL',  name:'Delta Air Lines',             color:'#9d1f26', types:['Boeing 737','Airbus A330','Boeing 767'] },
+  { code:'ANA',  name:'All Nippon Airways',          color:'#13448f', types:['Boeing 787','Boeing 777','Airbus A380'] },
+  { code:'SIA',  name:'Singapore Airlines',          color:'#172e69', types:['Airbus A350','Airbus A380','Boeing 777'] },
+  { code:'QFA',  name:'Qantas',                      color:'#e8111a', types:['Boeing 737','Airbus A380','Boeing 787'] },
+  { code:'TKA',  name:'Turkish Airlines',            color:'#c70000', types:['Boeing 737','Airbus A330','Boeing 777'] },
+  { code:'RYR',  name:'Ryanair',                     color:'#073590', types:['Boeing 737'] },
+  { code:'EZY',  name:'easyJet',                     color:'#ff6600', types:['Airbus A319','Airbus A320'] },
+  { code:'TUI',  name:'TUI Airways',                 color:'#c0022b', types:['Boeing 737','Boeing 767'] },
+];
+
+// ═══════════════════════════════════════════════════════
+//  VLUCHT GENERATOR  –  willekeurige maar realistische routes
+// ═══════════════════════════════════════════════════════
+function seededRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xFFFFFFFF; };
+}
+
+function generateFlights(count) {
+  const rng = seededRng(0xDEADBEEF);
+  const flights = [];
+
+  const flightNumFor = (al, idx) =>
+    `${al.code}${String(Math.floor(rng() * 9000) + 1000).padStart(4,'0')}`;
+
+  for (let i = 0; i < count; i++) {
+    const originIdx  = Math.floor(rng() * AIRPORTS.length);
+    let   destIdx    = Math.floor(rng() * AIRPORTS.length);
+    while (destIdx === originIdx) destIdx = Math.floor(rng() * AIRPORTS.length);
+
+    const airline = AIRLINES[Math.floor(rng() * AIRLINES.length)];
+    const aircraft = airline.types[Math.floor(rng() * airline.types.length)];
+
+    const o = AIRPORTS[originIdx];
+    const d = AIRPORTS[destIdx];
+
+    // Groote-cirkelbogen berekenen voor het pad
+    const gcArc = computeGreatCircleArc(o.lat, o.lon, d.lat, d.lon, 48);
+
+    // Hoogte in meters (realistisch: 9000-12500m)
+    const altitude = 9000 + Math.floor(rng() * 3500);
+    // Snelheid in km/h (800-960 afhankelijk van vliegtuigtype)
+    const speedKmh = 800 + Math.floor(rng() * 160);
+    // Vluchtduur (uur)
+    const distKm = haversineKm(o.lat, o.lon, d.lat, d.lon);
+    const durationH = distKm / speedKmh;
+    // Willekeurig startpunt in de vlucht (0-1)
+    const startProgress = rng();
+
+    flights.push({
+      id: i,
+      callsign: `${airline.code}${Math.floor(rng() * 9000) + 1000}`,
+      airline,
+      aircraft,
+      origin: o,
+      dest: d,
+      altitude,
+      speedKmh,
+      durationH,
+      progress: startProgress,       // 0 = vertrek, 1 = aankomst
+      progressRate: 1 / (durationH * 3600 * 60), // per simulatiems bij 1×
+      arc: gcArc,
+      color: airline.color,
+      hovered: false,
+      selected: false,
+      // Trail: array van recente posities
+      trail: [],
+      trailMaxLen: 20,
+    });
+  }
+
+  return flights;
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function computeGreatCircleArc(lat1, lon1, lat2, lon2, steps) {
+  // SLERP op de eenheidsssfeer voor een correcte groote-cirkelroute
+  const toXYZ = (la, lo) => {
+    const φ = la * Math.PI / 180, λ = lo * Math.PI / 180;
+    return [Math.cos(φ)*Math.sin(λ), -Math.sin(φ), Math.cos(φ)*Math.cos(λ)];
+  };
+  const toLaLo = ([x, y, z]) => {
+    const la = -Math.asin(Math.max(-1, Math.min(1, y))) * 180 / Math.PI;
+    const lo = Math.atan2(x, z) * 180 / Math.PI;
+    return [la, lo];
+  };
+
+  const p1 = toXYZ(lat1, lon1);
+  const p2 = toXYZ(lat2, lon2);
+  const dot = p1[0]*p2[0] + p1[1]*p2[1] + p1[2]*p2[2];
+  const theta = Math.acos(Math.max(-1, Math.min(1, dot)));
+
+  const arc = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    if (theta < 1e-6) { arc.push([lat1, lon1]); continue; }
+    const sinT = Math.sin(theta);
+    const w1 = Math.sin((1 - t) * theta) / sinT;
+    const w2 = Math.sin(t * theta) / sinT;
+    const pt = [w1*p1[0]+w2*p2[0], w1*p1[1]+w2*p2[1], w1*p1[2]+w2*p2[2]];
+    arc.push(toLaLo(pt));
+  }
+  return arc;
+}
+
+// Interpoleer positie op de groote-cirkelroute op basis van voortgang (0-1)
+function getPositionOnArc(arc, t) {
+  const idx = Math.min(arc.length - 2, Math.floor(t * (arc.length - 1)));
+  const frac = t * (arc.length - 1) - idx;
+  const a = arc[idx], b = arc[idx + 1];
+  return [a[0] + (b[0] - a[0]) * frac, a[1] + (b[1] - a[1]) * frac];
+}
+
+// ═══════════════════════════════════════════════════════
+//  WORLD STATE
+// ═══════════════════════════════════════════════════════
+const W = {
   wasm: null,
-  wasmMemory: null,
-  currentVersion: APP_CONFIG.defaultVersion,
-  currentBuild: APP_CONFIG.defaultBuild,
-  currentCommit: 'dev-local',
-  remoteVersionData: null,
-  updateAvailable: false,
-  autoReloadEnabled: true,
+  canvas: null,
+  ctx: null,
+  w: 0, h: 0,
+  dpr: window.devicePixelRatio || 1,
 
-  // Render & Camera State
-  theme: 'hologram', // 'hologram' | 'topo' | 'matrix'
-  isPaused: false,
-  speedFactor: 1,
-  rotY: 0,
-  rotX: 0.35,
-  zoom: 1.0,
-  targetRotY: 0,
-  targetRotX: 0.35,
-  targetZoom: 1.0,
-  isDragging: false,
-  lastMouseX: 0,
-  lastMouseY: 0,
-  dragVelocityX: 0,
-  dragVelocityY: 0,
+  // Camera
+  rotY: 0.4, rotX: 0.3,
+  targetRotY: 0.4, targetRotX: 0.3,
+  zoom: 1.0, targetZoom: 1.0,
+  isDragging: false, lastX: 0, lastY: 0,
+  velX: 0, velY: 0,
+  autoRotate: true,
+  autoRotateSpeed: 0.00025,
 
-  // Simulatie entiteiten
-  satellites: [
-    { name: 'Vroon-Relay Alpha', radius: 240, speed: 0.022, angle: 0.0, inc: 0.35, color: '#38bdf8' },
-    { name: 'Peter-Sat Sentinel', radius: 275, speed: -0.016, angle: 1.8, inc: -0.65, color: '#facc15' },
-    { name: 'Orbital Hub Gamma', radius: 310, speed: 0.012, angle: 3.4, inc: 1.15, color: '#c084fc' },
-    { name: 'DeepScan Delta', radius: 230, speed: 0.028, angle: 4.9, inc: -0.20, color: '#22c55e' }
-  ],
-  landmarks: [
-    { name: "Peter's Citadel", lat: 52.37, lon: 4.90, type: 'Hoofdstad', desc: 'Centrale metropool en bestuurszetel van PetersWorld.' },
-    { name: 'Vroon Orbital Station', lat: 0.0, lon: 10.0, type: 'Ruimtehaven', desc: 'Equatoriale lanceerbasis en verbinding met de ruimtelift.' },
-    { name: 'Cyber Tokyo', lat: 35.68, lon: 139.76, type: 'Mega Hub', desc: 'Technologisch knooppunt voor quantum dataverwerking.' },
-    { name: 'Silicon Bay', lat: 37.77, lon: -122.42, type: 'Tech Vallei', desc: 'Onderzoekscentrum voor neurale architecturen en WASM.' },
-    { name: 'Quantum Observatory', lat: -24.62, lon: -70.40, type: 'Observatorium', desc: 'Hooggelegen telescooparray voor deep-space scans.' },
-    { name: 'Aurora Polar Station', lat: 64.14, lon: -21.94, type: 'Onderzoekslab', desc: 'Poolbasis voor atmosfeer- en plasmametingen.' },
-    { name: 'Mariana Power Core', lat: 11.35, lon: 142.20, type: 'Energiebron', desc: 'Geothermische diepzee-energiecentrale.' },
-    { name: 'Neo Alexandria', lat: 31.20, lon: 29.91, type: 'Kennisbank', desc: 'Universeel archief van menselijke en AI kennis.' }
-  ],
-  pulses: [], // { lat, lon, radius, maxRadius, intensity, color }
-  audioEnabled: false,
-  audioCtx: null
+  // Simulatie
+  paused: false,
+  speed: 1,
+  tick: 0,
+  flights: [],
+  layers: { flights: true, airports: true, trails: true, grid: true },
+
+  // Versie
+  currentVersion: '1.1.0',
+  currentBuild: 4,
+  remoteData: null,
+
+  // Follow
+  followFlight: null,
+
+  // FPS
+  lastFrame: 0,
+  fps: 60,
+  fpsCount: 0,
+  fpsLast: 0,
 };
 
-// ------------------------------------------------------------------------------
-// 2. Audio Synthesizer (Futuristische Sound FX via Web Audio API)
-// ------------------------------------------------------------------------------
-function initAudio() {
-  if (!state.audioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      state.audioCtx = new AudioContext();
-    }
-  }
+// ═══════════════════════════════════════════════════════
+//  3D PROJECTIE
+// ═══════════════════════════════════════════════════════
+function project3D(latDeg, lonDeg, r) {
+  const φ = latDeg * Math.PI / 180;
+  const λ = lonDeg * Math.PI / 180;
+
+  // Coördinaten op bol
+  let x = r * Math.cos(φ) * Math.sin(λ);
+  let y = -r * Math.sin(φ);
+  let z = r * Math.cos(φ) * Math.cos(λ);
+
+  // Rotatie Y (yaw / azimuth)
+  const cY = Math.cos(W.rotY), sY = Math.sin(W.rotY);
+  const x1 = x * cY + z * sY;
+  const z1 = -x * sY + z * cY;
+
+  // Rotatie X (pitch / tilt)
+  const cX = Math.cos(W.rotX), sX = Math.sin(W.rotX);
+  const y2 = y * cX - z1 * sX;
+  const z2 = y * sX + z1 * cX;
+
+  const sc = W.zoom;
+  const cx = W.w / 2, cy = W.h / 2;
+  return {
+    x: cx + x1 * sc,
+    y: cy + y2 * sc,
+    z: z2,
+    visible: z2 > -r * 0.1,     // kleine buffer zodat het niet te abrupt knipt
+    front: z2 > 0,
+  };
 }
 
-function playSound(type) {
-  if (!state.audioEnabled || !state.audioCtx) return;
+// ═══════════════════════════════════════════════════════
+//  WASM BRUG
+// ═══════════════════════════════════════════════════════
+async function loadWasm() {
   try {
-    const ctx = state.audioCtx;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    const now = ctx.currentTime;
-
-    if (type === 'pulse') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc.start(now);
-      osc.stop(now + 0.4);
-    } else if (type === 'click') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.setValueAtTime(1320, now + 0.05);
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else if (type === 'update') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-      osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      osc.start(now);
-      osc.stop(now + 0.45);
-    }
-  } catch (e) {
-    // Negeer audio errors stilzwijgend
-  }
-}
-
-// ------------------------------------------------------------------------------
-// 3. Automatische Versie- & Update Detectie Engine
-// ------------------------------------------------------------------------------
-class VersionManager {
-  static async init() {
-    // Lees eerder opgeslagen client versie
-    const savedVer = localStorage.getItem('petersworld_version');
-    const savedBuild = localStorage.getItem('petersworld_build');
-    if (savedVer) state.currentVersion = savedVer;
-    if (savedBuild) state.currentBuild = parseInt(savedBuild, 10);
-
-    // Controleer direct bij het laden van de pagina
-    await this.checkForUpdates(true);
-
-    // Periodieke background polling
-    setInterval(() => {
-      this.checkForUpdates(false);
-    }, APP_CONFIG.pollIntervalMs);
-
-    // Controleer onmiddellijk wanneer de gebruiker terugkeert naar het tabblad
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        this.checkForUpdates(false);
-      }
-    });
-
-    // Registreer Service Worker
-    this.registerServiceWorker();
-  }
-
-  static async checkForUpdates(isInitial = false) {
-    try {
-      // Gebruik timestamp cache-busting en explicit no-store headers
-      const res = await fetch(`${APP_CONFIG.versionFile}?_t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      if (!res.ok) return;
-
-      const remote = await res.json();
-      state.remoteVersionData = remote;
-
-      const remoteVer = remote.version || APP_CONFIG.defaultVersion;
-      const remoteBuild = parseInt(remote.build || 0, 10);
-      const remoteCommit = remote.git_hash || 'dev';
-
-      // Werk modal telemetry bij
-      const modalServerBuild = document.getElementById('modal-server-build');
-      const modalCommitHash = document.getElementById('modal-commit-hash');
-      const modalBuildTime = document.getElementById('modal-build-time');
-      if (modalServerBuild) modalServerBuild.textContent = `#${remoteBuild}`;
-      if (modalCommitHash) modalCommitHash.textContent = remoteCommit;
-      if (modalBuildTime && remote.timestamp) {
-        modalBuildTime.textContent = new Date(remote.timestamp).toLocaleString('nl-NL');
-      }
-
-      // Controleer of er een nieuwere versie of build is
-      const isNewer = (remoteBuild > state.currentBuild) || 
-                      (remoteVer !== state.currentVersion && remoteBuild >= state.currentBuild);
-
-      if (isInitial && !localStorage.getItem('petersworld_version')) {
-        // Eerste bezoek van deze gebruiker: markeer huidige versie als up-to-date
-        state.currentVersion = remoteVer;
-        state.currentBuild = remoteBuild;
-        state.currentCommit = remoteCommit;
-        localStorage.setItem('petersworld_version', remoteVer);
-        localStorage.setItem('petersworld_build', remoteBuild.toString());
-        this.updateBadgeUI(false);
-        return;
-      }
-
-      if (isNewer) {
-        this.onNewVersionDetected(remote);
-      } else {
-        this.updateBadgeUI(false);
-      }
-    } catch (err) {
-      console.warn('[VersionManager] Update controle kon niet worden voltooid:', err);
-    }
-  }
-
-  static onNewVersionDetected(remote) {
-    state.updateAvailable = true;
-    this.updateBadgeUI(true);
-
-    const banner = document.getElementById('update-banner');
-    const versionTag = document.getElementById('banner-version-tag');
-    const notes = document.getElementById('banner-notes');
-
-    if (versionTag) versionTag.textContent = `v${remote.version} (Build #${remote.build})`;
-    if (notes && remote.features && remote.features.length > 0) {
-      notes.textContent = remote.features[0];
-    }
-    if (banner) banner.classList.add('show');
-
-    playSound('update');
-
-    // Indien automatische herlaadoptie actief is én dit niet tijdens draggen is
-    if (state.autoReloadEnabled && !state.isDragging && localStorage.getItem('petersworld_version')) {
-      console.log('🚀 [PetersWorld] Nieuwe versie gedetecteerd! Automatische herlaad geactiveerd.');
-      // Geef de banner 1.5 seconde de tijd om op te vallen en ververs dan netjes
-      setTimeout(() => {
-        this.applyUpdate();
-      }, 1500);
-    }
-  }
-
-  static updateBadgeUI(hasUpdate) {
-    const versionDisplay = document.getElementById('version-display');
-    const versionDot = document.getElementById('version-dot');
-    const badge = document.getElementById('badge-version');
-
-    if (versionDisplay) {
-      versionDisplay.textContent = `v${state.currentVersion}`;
-    }
-
-    if (hasUpdate) {
-      if (badge) badge.classList.add('update-pending');
-      if (versionDot) {
-        versionDot.style.background = '#facc15';
-        versionDot.style.boxShadow = '0 0 10px #facc15';
-      }
-    } else {
-      if (badge) badge.classList.remove('update-pending');
-      if (versionDot) {
-        versionDot.style.background = '#22c55e';
-        versionDot.style.boxShadow = '0 0 8px #22c55e';
-      }
-    }
-
-    const modalClientVer = document.getElementById('modal-client-ver');
-    if (modalClientVer) modalClientVer.textContent = `v${state.currentVersion} (#${state.currentBuild})`;
-  }
-
-  static async applyUpdate() {
-    if (state.remoteVersionData) {
-      localStorage.setItem('petersworld_version', state.remoteVersionData.version);
-      localStorage.setItem('petersworld_build', state.remoteVersionData.build.toString());
-    }
-
-    // Leeg eventuele Service Worker CacheStorage
-    if ('caches' in window) {
+    const url = `${CFG.wasmFile}?v=${Date.now()}`;
+    let instance;
+    if (WebAssembly.instantiateStreaming) {
       try {
-        const cacheKeys = await caches.keys();
-        await Promise.all(cacheKeys.map(k => caches.delete(k)));
-      } catch (e) {
-        console.warn('Cache wissen fout:', e);
+        const r = await WebAssembly.instantiateStreaming(fetch(url), {});
+        instance = r.instance;
+      } catch {
+        const buf = await (await fetch(url)).arrayBuffer();
+        instance = (await WebAssembly.instantiate(buf, {})).instance;
       }
+    } else {
+      const buf = await (await fetch(url)).arrayBuffer();
+      instance = (await WebAssembly.instantiate(buf, {})).instance;
     }
-
-    // Informeer Service Worker
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
-    }
-
-    // Herlaad de browser geforceerd met cache-busting querystring
-    const timestamp = Date.now();
-    const url = new URL(window.location.href);
-    url.searchParams.set('v', timestamp.toString());
-    window.location.href = url.toString();
-  }
-
-  static registerServiceWorker() {
-    if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-      navigator.serviceWorker.register('sw.js').then((reg) => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              VersionManager.checkForUpdates(false);
-            }
-          });
-        });
-      }).catch((e) => {
-        // Stille fallback voor offline of sandboxed omgevingen
-      });
-    }
+    W.wasm = instance.exports;
+    W.wasm.init_world(0xBEEF);
+    const ver = W.wasm.get_version();
+    document.getElementById('hud-wasm').textContent = `v${(ver/100).toFixed(2)}`;
+    console.log(`[WASM] PetersWorld engine v${(ver/100).toFixed(2)} geladen.`);
+  } catch (e) {
+    console.error('[WASM] Laad fout:', e);
   }
 }
 
-// ------------------------------------------------------------------------------
-// 4. WebAssembly Initialisatie & Bridge
-// ------------------------------------------------------------------------------
-class WasmBridge {
-  static async load() {
-    const wasmUrl = `${APP_CONFIG.wasmFile}?v=${Date.now()}`;
-    const imports = {
-      env: {}
-    };
+// ═══════════════════════════════════════════════════════
+//  VERSIE MANAGER
+// ═══════════════════════════════════════════════════════
+async function checkVersion(isInit = false) {
+  try {
+    const r = await fetch(`${CFG.versionFile}?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    W.remoteData = data;
 
-    try {
-      let wasmInstance;
-      if (WebAssembly.instantiateStreaming) {
-        try {
-          const res = await WebAssembly.instantiateStreaming(fetch(wasmUrl), imports);
-          wasmInstance = res.instance;
-        } catch (e) {
-          // Fallback indien mime-type niet direct streaming toestaat
-          const response = await fetch(wasmUrl);
-          const buffer = await response.arrayBuffer();
-          const module = await WebAssembly.compile(buffer);
-          wasmInstance = await WebAssembly.instantiate(module, imports);
-        }
-      } else {
-        const response = await fetch(wasmUrl);
-        const buffer = await response.arrayBuffer();
-        const module = await WebAssembly.compile(buffer);
-        wasmInstance = await WebAssembly.instantiate(module, imports);
-      }
+    const remoteBuild = parseInt(data.build || 0, 10);
+    const remoteVer   = data.version || W.currentVersion;
 
-      state.wasm = wasmInstance.exports;
-      state.wasmMemory = wasmInstance.exports.memory;
+    document.getElementById('ver-txt').textContent = `v${W.currentVersion}`;
 
-      // Initialiseer wereld status in WASM geheugen
-      if (state.wasm.init_world) {
-        state.wasm.init_world(Date.now() & 0xFFFF);
-      }
-
-      const versionInt = state.wasm.get_version ? state.wasm.get_version() : 100;
-      console.log(`✅ [PetersWorld WASM] Engine v${versionInt / 100} succesvol geladen in geheugen.`);
-
-      // Update badge
-      const wasmBadge = document.getElementById('badge-wasm');
-      if (wasmBadge) {
-        wasmBadge.innerHTML = `<span class="badge-dot" style="background:#22c55e;box-shadow:0 0 8px #22c55e;"></span><span>WASM v${versionInt / 100}</span>`;
-      }
-
-      return true;
-    } catch (err) {
-      console.error('❌ [PetersWorld WASM] Fout bij laden van WASM module:', err);
-      return false;
+    if (isInit && !localStorage.getItem('pw_build')) {
+      localStorage.setItem('pw_build', remoteBuild);
+      localStorage.setItem('pw_ver',   remoteVer);
+      setVerDot(false);
+      return;
     }
+
+    const storedBuild = parseInt(localStorage.getItem('pw_build') || '0', 10);
+    const newer = remoteBuild > storedBuild || remoteVer !== (localStorage.getItem('pw_ver') || W.currentVersion);
+
+    if (newer) {
+      showUpdateBanner(data);
+      setVerDot(true);
+    } else {
+      setVerDot(false);
+    }
+  } catch {}
+}
+
+function setVerDot(hasUpdate) {
+  const dot = document.getElementById('ver-dot');
+  if (!dot) return;
+  if (hasUpdate) {
+    dot.style.background = '#facc15';
+    dot.style.boxShadow  = '0 0 8px #facc15';
+  } else {
+    dot.style.background = '#22c55e';
+    dot.style.boxShadow  = '0 0 7px #22c55e';
   }
 }
 
-// ------------------------------------------------------------------------------
-// 5. 3D Planet Graphics & Canvas Renderer
-// ------------------------------------------------------------------------------
-class WorldRenderer {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.width = 0;
-    this.height = 0;
-    this.lastFrameTime = performance.now();
-    this.fpsCounter = 60;
-    this.framesCount = 0;
-    this.lastFpsUpdate = performance.now();
-
-    // Genereer synthetische continent polygonen voor de wereldbol
-    this.continents = this.generateContinentPolygons();
-
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-    this.setupInteractions();
+function showUpdateBanner(data) {
+  const banner = document.getElementById('update-banner');
+  document.getElementById('upd-ver').textContent  = `v${data.version} build #${data.build}`;
+  if (data.features && data.features[0]) {
+    document.getElementById('upd-note').textContent = data.features[0];
   }
+  banner.classList.add('show');
+}
 
-  resize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.canvas.width = this.width * window.devicePixelRatio;
-    this.canvas.height = this.height * window.devicePixelRatio;
-    this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+async function applyUpdate() {
+  if (W.remoteData) {
+    localStorage.setItem('pw_build', W.remoteData.build);
+    localStorage.setItem('pw_ver',   W.remoteData.version);
   }
-
-  generateContinentPolygons() {
-    // Gestileerde geografische coördinaten voor herkenbare werelddelen
-    return [
-      // Europa
-      { points: [[58, -5], [62, 10], [55, 20], [45, 15], [38, -5], [42, -9], [52, 4]] },
-      // Afrika
-      { points: [[36, -5], [34, 10], [30, 32], [10, 45], [-5, 40], [-25, 32], [-34, 20], [-20, 12], [5, 2], [15, -15], [30, -10]] },
-      // Azië
-      { points: [[70, 40], [72, 80], [70, 130], [60, 165], [40, 140], [35, 120], [22, 115], [10, 105], [20, 85], [30, 60], [45, 40]] },
-      // Noord-Amerika
-      { points: [[70, -140], [72, -95], [60, -65], [45, -60], [30, -80], [20, -100], [32, -118], [48, -125], [60, -140]] },
-      // Zuid-Amerika
-      { points: [[12, -75], [5, -50], [-10, -36], [-25, -45], [-45, -65], [-55, -68], [-35, -72], [-15, -75], [-5, -80]] },
-      // Australië
-      { points: [[-12, 130], [-15, 145], [-28, 153], [-38, 145], [-35, 118], [-20, 115]] },
-      // Antarctica
-      { points: [[-72, 0], [-74, 60], [-73, 120], [-75, 180], [-72, -120], [-70, -60]] }
-    ];
+  if ('caches' in window) {
+    for (const k of await caches.keys()) await caches.delete(k);
   }
-
-  setupInteractions() {
-    const canvas = this.canvas;
-
-    const onPointerDown = (clientX, clientY) => {
-      state.isDragging = true;
-      state.lastMouseX = clientX;
-      state.lastMouseY = clientY;
-      state.dragVelocityX = 0;
-      state.dragVelocityY = 0;
-      this.hidePopover();
-    };
-
-    const onPointerMove = (clientX, clientY) => {
-      if (state.isDragging) {
-        const dx = clientX - state.lastMouseX;
-        const dy = clientY - state.lastMouseY;
-        state.targetRotY += dx * 0.006;
-        state.targetRotX = Math.max(-1.4, Math.min(1.4, state.targetRotX + dy * 0.006));
-        state.dragVelocityX = dx * 0.006;
-        state.dragVelocityY = dy * 0.006;
-        state.lastMouseX = clientX;
-        state.lastMouseY = clientY;
-      } else {
-        this.checkHover(clientX, clientY);
-      }
-    };
-
-    const onPointerUp = (clientX, clientY) => {
-      if (state.isDragging) {
-        state.isDragging = false;
-        // Klik check: als er nauwelijks bewogen is, trigger interactie
-        const movedDist = Math.hypot(state.dragVelocityX, state.dragVelocityY);
-        if (movedDist < 0.01) {
-          this.handleClickOnSphere(clientX, clientY);
-        }
-      }
-    };
-
-    // Muis events
-    canvas.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
-    window.addEventListener('mousemove', (e) => onPointerMove(e.clientX, e.clientY));
-    window.addEventListener('mouseup', (e) => onPointerUp(e.clientX, e.clientY));
-
-    // Touch events (voor mobiel & tablets)
-    canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 1) {
-        onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-      if (e.changedTouches.length === 1) {
-        onPointerUp(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-      }
-    });
-
-    // Zoom via scrollwiel
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      state.targetZoom = Math.max(0.65, Math.min(2.2, state.targetZoom - e.deltaY * 0.0012));
-    }, { passive: false });
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
   }
+  const url = new URL(location.href);
+  url.searchParams.set('v', Date.now());
+  location.href = url.toString();
+}
 
-  // Wiskundige 3D sferische projectie
-  project(latDeg, lonDeg, radius = 180) {
-    const lat = (latDeg * Math.PI) / 180;
-    const lon = (lonDeg * Math.PI) / 180;
+// ═══════════════════════════════════════════════════════
+//  RENDER ENGINE
+// ═══════════════════════════════════════════════════════
+function resize() {
+  W.w = window.innerWidth;
+  W.h = window.innerHeight;
+  W.canvas.width  = W.w * W.dpr;
+  W.canvas.height = W.h * W.dpr;
+  W.ctx.scale(W.dpr, W.dpr);
+}
 
-    // 1. Basis coördinaten
-    let x = radius * Math.cos(lat) * Math.sin(lon);
-    let y = -radius * Math.sin(lat);
-    let z = radius * Math.cos(lat) * Math.cos(lon);
+let _globeR = CFG.globeRadius;
+function globeR() { return _globeR * W.zoom; }
 
-    // 2. Rotatie rond Y as
-    const cosY = Math.cos(state.rotY);
-    const sinY = Math.sin(state.rotY);
-    const x1 = x * cosY + z * sinY;
-    const z1 = -x * sinY + z * cosY;
+function drawBackground() {
+  const { ctx, w, h } = W;
+  const cx = w/2, cy = h/2;
+  const bg = ctx.createRadialGradient(cx, cy, 60, cx, cy, Math.max(w, h));
+  bg.addColorStop(0,   '#091525');
+  bg.addColorStop(0.5, '#060e1a');
+  bg.addColorStop(1,   '#030810');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
 
-    // 3. Rotatie rond X as (pitch tilt)
-    const cosX = Math.cos(state.rotX);
-    const sinX = Math.sin(state.rotX);
-    const y2 = y * cosX - z1 * sinX;
-    const z2 = y * sinX + z1 * cosX;
-
-    // 4. Projecteer naar 2D scherm
-    const cx = this.width / 2;
-    const cy = this.height / 2;
-    const scale = state.zoom;
-
-    return {
-      x: cx + x1 * scale,
-      y: cy + y2 * scale,
-      z: z2 * scale,
-      visible: z2 > 0 // Zichtbaar op de voorzijde van de planeet
-    };
+  // Sterren (statisch, enkel op eerste frame genereren)
+  if (!W._stars) {
+    const rng = seededRng(0xCAFE);
+    W._stars = Array.from({length: 320}, () => ({
+      x: rng() * w, y: rng() * h,
+      r: rng() * 1.4,
+      a: 0.3 + rng() * 0.7
+    }));
   }
-
-  handleClickOnSphere(clientX, clientY) {
-    const cx = this.width / 2;
-    const cy = this.height / 2;
-    const r = 180 * state.zoom;
-    const dx = clientX - cx;
-    const dy = clientY - cy;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist <= r) {
-      // Raycast benadering naar lat/lon
-      const nx = dx / r;
-      const ny = dy / r;
-      const nz = Math.sqrt(Math.max(0, 1 - nx * nx - ny * ny));
-
-      // Omgekeerde rotatie X & Y
-      const cosX = Math.cos(-state.rotX);
-      const sinX = Math.sin(-state.rotX);
-      const ry = ny * cosX - nz * sinX;
-      const rz = ny * sinX + nz * cosX;
-
-      const cosY = Math.cos(-state.rotY);
-      const sinY = Math.sin(-state.rotY);
-      const rx = nx * cosY + rz * sinY;
-      const rfinalZ = -nx * sinY + rz * cosY;
-
-      const lat = -Math.asin(Math.max(-1, Math.min(1, ry))) * (180 / Math.PI);
-      const lon = Math.atan2(rx, rfinalZ) * (180 / Math.PI);
-
-      this.triggerPulse(lat, lon, 1.0);
-      playSound('pulse');
-    }
-  }
-
-  checkHover(clientX, clientY) {
-    let hovered = null;
-    for (const marker of state.landmarks) {
-      const p = this.project(marker.lat, marker.lon, 184);
-      if (p.visible) {
-        const d = Math.hypot(clientX - p.x, clientY - p.y);
-        if (d < 16) {
-          hovered = { marker, x: p.x, y: p.y };
-          break;
-        }
-      }
-    }
-
-    if (hovered) {
-      this.showPopover(hovered.marker, hovered.x, hovered.y);
-    } else {
-      this.hidePopover();
-    }
-  }
-
-  showPopover(marker, x, y) {
-    const pop = document.getElementById('landmark-popover');
-    if (!pop) return;
-    document.getElementById('popover-title').textContent = marker.name;
-    document.getElementById('popover-coords').textContent = `${marker.lat.toFixed(2)}° N, ${marker.lon.toFixed(2)}° E`;
-    document.getElementById('popover-desc').textContent = marker.desc;
-
-    pop.style.left = `${Math.min(window.innerWidth - 240, x + 15)}px`;
-    pop.style.top = `${Math.min(window.innerHeight - 120, y - 20)}px`;
-    pop.classList.add('visible');
-  }
-
-  hidePopover() {
-    const pop = document.getElementById('landmark-popover');
-    if (pop) pop.classList.remove('visible');
-  }
-
-  triggerPulse(lat, lon, intensity = 1.0) {
-    state.pulses.push({
-      lat,
-      lon,
-      radius: 0,
-      maxRadius: 40,
-      intensity: intensity,
-      color: state.theme === 'matrix' ? '#22c55e' : (state.theme === 'topo' ? '#facc15' : '#38bdf8')
-    });
-
-    // Registreer ook in WebAssembly lineair geheugen
-    if (state.wasm && state.wasm.add_pulse) {
-      state.wasm.add_pulse(Math.round(lat * 100), Math.round(lon * 100), Math.round(intensity * 100));
-    }
-  }
-
-  addSatellite() {
-    const colors = ['#38bdf8', '#facc15', '#c084fc', '#22c55e', '#f43f5e'];
-    const idx = state.satellites.length + 1;
-    const newSat = {
-      name: `Peter-Relay #${idx}`,
-      radius: 220 + (Math.random() * 120),
-      speed: (Math.random() > 0.5 ? 1 : -1) * (0.012 + Math.random() * 0.02),
-      angle: Math.random() * Math.PI * 2,
-      inc: (Math.random() - 0.5) * 2.2,
-      color: colors[idx % colors.length]
-    };
-    state.satellites.push(newSat);
-
-    // Registreer in WASM
-    if (state.wasm && state.wasm.add_satellite) {
-      state.wasm.add_satellite(Math.round(newSat.radius), Math.round(newSat.speed * 1000), Math.round(newSat.inc * 100), 1);
-    }
-
-    const hudSats = document.getElementById('hud-sats');
-    if (hudSats) hudSats.textContent = state.satellites.length.toString();
-
-    playSound('click');
-  }
-
-  // Render loop
-  render() {
-    const now = performance.now();
-    const dt = Math.min(100, now - this.lastFrameTime);
-    this.lastFrameTime = now;
-
-    // FPS berekening
-    this.framesCount++;
-    if (now - this.lastFpsUpdate >= 1000) {
-      this.fpsCounter = this.framesCount;
-      this.framesCount = 0;
-      this.lastFpsUpdate = now;
-      const hudFps = document.getElementById('hud-fps');
-      if (hudFps) hudFps.textContent = `${this.fpsCounter} FPS`;
-    }
-
-    // 1. WASM Simulation Step
-    if (state.wasm && state.wasm.update && !state.isPaused) {
-      const tick = state.wasm.update(Math.round(dt), state.speedFactor);
-      const hudTick = document.getElementById('hud-tick');
-      if (hudTick) hudTick.textContent = tick.toString();
-    }
-
-    // 2. Camera & Momentum Physics
-    if (!state.isPaused && !state.isDragging) {
-      state.targetRotY += 0.003 * state.speedFactor;
-    }
-    state.rotY += (state.targetRotY - state.rotY) * 0.12;
-    state.rotX += (state.targetRotX - state.rotX) * 0.12;
-    state.zoom += (state.targetZoom - state.zoom) * 0.15;
-
-    // Update HUD telemetry
-    const hudRot = document.getElementById('hud-rot');
-    if (hudRot) hudRot.textContent = `${((state.rotY % (Math.PI * 2)) * (180 / Math.PI)).toFixed(1)}°`;
-
-    // 3. Canvas schoonmaken
-    const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.width, this.height);
-
-    const cx = this.width / 2;
-    const cy = this.height / 2;
-    const r = 180 * state.zoom;
-
-    // Achtergrond sfeer & sterren
-    this.drawSpaceBackground(cx, cy);
-
-    // Buitenste sfeer / atmosferische halo
-    this.drawAtmosphere(cx, cy, r);
-
-    // Planeet basis bol & schaduw
-    this.drawPlanetSphere(cx, cy, r);
-
-    // Rasterlijnen (Meridianen & Parallellen)
-    this.drawGrid(r);
-
-    // Continenten
-    this.drawContinents(r);
-
-    // Puls golven
-    this.drawPulses(dt);
-
-    // Landmarks & Steden
-    this.drawLandmarks();
-
-    // Satellieten & Banen
-    this.drawSatellites(dt);
-
-    requestAnimationFrame(() => this.render());
-  }
-
-  drawSpaceBackground(cx, cy) {
-    const ctx = this.ctx;
-    // Donkere gradient
-    const bgGrad = ctx.createRadialGradient(cx, cy, 50, cx, cy, Math.max(this.width, this.height));
-    bgGrad.addColorStop(0, '#090f1d');
-    bgGrad.addColorStop(0.6, '#060a12');
-    bgGrad.addColorStop(1, '#030509');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, this.width, this.height);
-  }
-
-  drawAtmosphere(cx, cy, r) {
-    const ctx = this.ctx;
-    let haloColor = 'rgba(56, 189, 248, ';
-    if (state.theme === 'matrix') haloColor = 'rgba(34, 197, 94, ';
-    else if (state.theme === 'topo') haloColor = 'rgba(250, 204, 21, ';
-
-    const atmoGrad = ctx.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.25);
-    atmoGrad.addColorStop(0, haloColor + '0.45)');
-    atmoGrad.addColorStop(0.5, haloColor + '0.15)');
-    atmoGrad.addColorStop(1, haloColor + '0)');
-
-    ctx.fillStyle = atmoGrad;
+  for (const s of W._stars) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${s.a})`;
     ctx.fill();
   }
+}
 
-  drawPlanetSphere(cx, cy, r) {
-    const ctx = this.ctx;
-    ctx.save();
+function drawAtmosphere() {
+  const { ctx, w, h } = W;
+  const cx = w/2, cy = h/2;
+  const r  = globeR();
+  const atmo = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.3);
+  atmo.addColorStop(0,   'rgba(56,189,248,0.40)');
+  atmo.addColorStop(0.4, 'rgba(56,189,248,0.12)');
+  atmo.addColorStop(1,   'rgba(56,189,248,0)');
+  ctx.fillStyle = atmo;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 1.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawGlobe() {
+  const { ctx, w, h } = W;
+  const cx = w/2, cy = h/2;
+  const r  = globeR();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Basiskoe donker
+  ctx.fillStyle = '#071324';
+  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
+
+  // Oceaan gradient
+  const ocean = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+  ocean.addColorStop(0,   '#0f3a6e');
+  ocean.addColorStop(0.6, '#0a2550');
+  ocean.addColorStop(1,   '#071324');
+  ctx.fillStyle = ocean;
+  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
+
+  // Dag/nacht terminator
+  const termGrad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
+  termGrad.addColorStop(0,   'rgba(0,0,0,0.65)');
+  termGrad.addColorStop(0.42,'rgba(0,0,0,0.35)');
+  termGrad.addColorStop(0.5, 'rgba(255,170,80,0.08)');
+  termGrad.addColorStop(0.58,'rgba(255,255,255,0.0)');
+  termGrad.addColorStop(1,   'rgba(255,255,255,0.0)');
+  ctx.fillStyle = termGrad;
+  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
+
+  ctx.restore();
+
+  // Rand / limb glow
+  const limb = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r);
+  limb.addColorStop(0, 'transparent');
+  limb.addColorStop(1, 'rgba(56,189,248,0.35)');
+  ctx.strokeStyle = 'rgba(56,189,248,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawGrid() {
+  if (!W.layers.grid) return;
+  const { ctx } = W;
+  const r = _globeR;
+  ctx.strokeStyle = 'rgba(56,189,248,0.10)';
+  ctx.lineWidth = 0.8;
+
+  // Breedtegraden
+  for (const lat of [-60, -30, 0, 30, 60]) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.clip();
-
-    // Bol achtergrondkleur afhankelijk van thema
-    if (state.theme === 'matrix') {
-      ctx.fillStyle = '#05180f';
-    } else if (state.theme === 'topo') {
-      ctx.fillStyle = '#0a2540';
-    } else {
-      ctx.fillStyle = '#0a1324';
-    }
-    ctx.fill();
-
-    // Dag / Nacht schaduw (terminator)
-    const sunAngle = state.rotY * 0.5;
-    const shadowX = cx + Math.cos(sunAngle) * r * 0.5;
-    const shadowGrad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
-    shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.7)');
-    shadowGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
-    shadowGrad.addColorStop(1, 'rgba(255, 255, 255, 0.08)');
-
-    ctx.fillStyle = shadowGrad;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  drawGrid(r) {
-    const ctx = this.ctx;
-    let strokeCol = 'rgba(56, 189, 248, 0.16)';
-    if (state.theme === 'matrix') strokeCol = 'rgba(34, 197, 94, 0.2)';
-    else if (state.theme === 'topo') strokeCol = 'rgba(255, 255, 255, 0.08)';
-
-    ctx.strokeStyle = strokeCol;
-    ctx.lineWidth = 1;
-
-    // Parallellen (breedtecirkels)
-    const lats = [-60, -30, 0, 30, 60];
-    for (const lat of lats) {
-      ctx.beginPath();
-      let started = false;
-      for (let lon = -180; lon <= 180; lon += 5) {
-        const p = this.project(lat, lon, r);
-        if (p.visible) {
-          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-          else { ctx.lineTo(p.x, p.y); }
-        } else {
-          started = false;
-        }
-      }
-      ctx.stroke();
-    }
-
-    // Meridianen (lengtecirkels)
-    const lons = [0, 45, 90, 135, 180, -135, -90, -45];
-    for (const lon of lons) {
-      ctx.beginPath();
-      let started = false;
-      for (let lat = -90; lat <= 90; lat += 5) {
-        const p = this.project(lat, lon, r);
-        if (p.visible) {
-          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-          else { ctx.lineTo(p.x, p.y); }
-        } else {
-          started = false;
-        }
-      }
-      ctx.stroke();
-    }
-  }
-
-  drawContinents(r) {
-    const ctx = this.ctx;
-    let fillCol = 'rgba(56, 189, 248, 0.25)';
-    let borderCol = 'rgba(56, 189, 248, 0.7)';
-    if (state.theme === 'matrix') {
-      fillCol = 'rgba(34, 197, 94, 0.22)';
-      borderCol = '#22c55e';
-    } else if (state.theme === 'topo') {
-      fillCol = 'rgba(34, 197, 94, 0.45)';
-      borderCol = '#4ade80';
-    }
-
-    ctx.fillStyle = fillCol;
-    ctx.strokeStyle = borderCol;
-    ctx.lineWidth = 1.5;
-
-    for (const cont of this.continents) {
-      ctx.beginPath();
-      let visibleCount = 0;
-      let first = true;
-
-      for (const pt of cont.points) {
-        const p = this.project(pt[0], pt[1], r + 1);
-        if (p.visible) visibleCount++;
-        if (first) {
-          ctx.moveTo(p.x, p.y);
-          first = false;
-        } else {
-          ctx.lineTo(p.x, p.y);
-        }
-      }
-      ctx.closePath();
-
-      // Alleen tekenen als er punten op de zichtbare voorzijde zijn
-      if (visibleCount > 1) {
-        ctx.fill();
-        ctx.stroke();
-      }
-    }
-  }
-
-  drawPulses(dt) {
-    const ctx = this.ctx;
-    for (let i = state.pulses.length - 1; i >= 0; i--) {
-      const pulse = state.pulses[i];
-      pulse.radius += (dt * 0.05);
-      pulse.intensity -= (dt * 0.0012);
-
-      if (pulse.intensity <= 0 || pulse.radius >= pulse.maxRadius) {
-        state.pulses.splice(i, 1);
-        continue;
-      }
-
-      const p = this.project(pulse.lat, pulse.lon, 182);
+    let started = false;
+    for (let lo = -180; lo <= 180; lo += 4) {
+      const p = project3D(lat, lo, r);
       if (p.visible) {
-        ctx.save();
-        ctx.strokeStyle = pulse.color;
-        ctx.globalAlpha = Math.max(0, pulse.intensity);
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, pulse.radius * state.zoom, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
+        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+        else ctx.lineTo(p.x, p.y);
+      } else started = false;
     }
+    ctx.stroke();
   }
 
-  drawLandmarks() {
-    const ctx = this.ctx;
-    const now = performance.now() * 0.003;
-
-    for (const m of state.landmarks) {
-      const p = this.project(m.lat, m.lon, 184);
+  // Lengtegraden
+  for (let lo = -180; lo < 180; lo += 30) {
+    ctx.beginPath();
+    let started = false;
+    for (let la = -88; la <= 88; la += 4) {
+      const p = project3D(la, lo, r);
       if (p.visible) {
-        // Gloeiende radar ring rondom landmark
-        const pulseR = 4 + Math.sin(now + m.lat) * 2;
-        ctx.strokeStyle = '#facc15';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, pulseR, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Kern stip
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Label bij belangrijke hoofdstad Peter's Citadel
-        if (m.name.includes("Peter's") || state.zoom > 1.2) {
-          ctx.font = '10px SFMono-Regular, monospace';
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillText(m.name, p.x + 8, p.y - 4);
-        }
-      }
+        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+        else ctx.lineTo(p.x, p.y);
+      } else started = false;
     }
+    ctx.stroke();
   }
+}
 
-  drawSatellites(dt) {
-    const ctx = this.ctx;
+// Gestileerde continentpolygonen (vereenvoudigd maar herkenbaar)
+const CONTINENT_SHAPES = [
+  // Europa
+  [[71,25],[70,19],[63,10],[58,-5],[43,-9],[36,-5],[38,15],[42,21],[46,30],[48,40],[55,37],[60,30],[65,25],[68,20]],
+  // Afrika
+  [[37,10],[34,32],[30,32],[14,42],[-5,41],[-25,33],[-34,19],[-28,17],[-20,13],[0,10],[8,2],[15,-17],[30,-10],[35,-5]],
+  // Azië (vereenvoudigd)
+  [[72,60],[71,140],[60,165],[35,140],[22,115],[8,105],[20,85],[30,60],[47,40],[55,37],[60,30],[70,38]],
+  // Noord-Amerika
+  [[72,-140],[70,-95],[60,-65],[47,-54],[30,-81],[23,-107],[28,-111],[32,-118],[48,-125],[60,-140]],
+  // Zuid-Amerika
+  [[12,-72],[7,-52],[-5,-35],[-10,-38],[-25,-48],[-45,-65],[-55,-68],[-33,-71],[-18,-70],[-5,-80]],
+  // Australië
+  [[-12,130],[-15,145],[-28,154],[-38,145],[-35,118],[-20,115]],
+  // Groenland (Arctic)
+  [[83,-45],[77,-18],[72,-24],[75,-57],[81,-57]],
+  // Japan (gestileerd)
+  [[44,145],[42,142],[35,137],[34,130],[37,136],[40,141]],
+  // Groot-Brittannië
+  [[59,-3],[57,-6],[51,-5],[51,2],[54,0],[58,-5]],
+];
 
-    for (const sat of state.satellites) {
-      if (!state.isPaused) {
-        sat.angle += sat.speed * state.speedFactor;
-      }
+function drawContinents() {
+  const { ctx } = W;
+  const r = _globeR;
 
-      // Baanvlak projectie in 3D
-      const r = sat.radius;
-      const cosA = Math.cos(sat.angle);
-      const sinA = Math.sin(sat.angle);
+  ctx.fillStyle   = 'rgba(34,197,94,0.22)';
+  ctx.strokeStyle = 'rgba(74,222,128,0.70)';
+  ctx.lineWidth   = 1.2;
 
-      // Baan inclinatie
-      const inc = sat.inc;
-      const x0 = r * cosA;
-      const y0 = r * sinA * Math.sin(inc);
-      const z0 = r * sinA * Math.cos(inc);
+  for (const poly of CONTINENT_SHAPES) {
+    ctx.beginPath();
+    let visCount = 0;
+    let first = true;
+    for (const [la, lo] of poly) {
+      const p = project3D(la, lo, r + 0.5);
+      if (p.front) visCount++;
+      if (first) { ctx.moveTo(p.x, p.y); first = false; }
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    if (visCount > 1) { ctx.fill(); ctx.stroke(); }
+  }
+}
 
-      // Rotatie rond Y
-      const cosY = Math.cos(state.rotY);
-      const sinY = Math.sin(state.rotY);
-      const x1 = x0 * cosY + z0 * sinY;
-      const z1 = -x0 * sinY + z0 * cosY;
+function drawAirports() {
+  if (!W.layers.airports) return;
+  const { ctx } = W;
+  const now = Date.now() / 1000;
+  const r = _globeR;
 
-      // Rotatie rond X
-      const cosX = Math.cos(state.rotX);
-      const sinX = Math.sin(state.rotX);
-      const y2 = y0 * cosX - z1 * sinX;
-      const z2 = y0 * sinX + z1 * cosX;
+  for (const ap of AIRPORTS) {
+    const p = project3D(ap.lat, ap.lon, r + 1);
+    if (!p.front) continue;
 
-      const cx = this.width / 2;
-      const cy = this.height / 2;
-      const scale = state.zoom;
-      const sx = cx + x1 * scale;
-      const sy = cy + y2 * scale;
+    const alpha = 0.5 + p.z / (r * 1.5) * 0.5;
+    const isHub = ap.hub;
 
-      // Alleen voorzijde satellieten krijgen volledige helderheid
-      const isFront = z2 > 0;
-      ctx.save();
-      ctx.globalAlpha = isFront ? 1.0 : 0.35;
-
-      // Satelliet stip
-      ctx.fillStyle = sat.color;
-      ctx.shadowColor = sat.color;
-      ctx.shadowBlur = isFront ? 10 : 2;
+    if (isHub) {
+      // Radar ring animatie voor hubs
+      const pulse = (Math.sin(now * 1.8 + ap.lat) + 1) / 2;
+      ctx.strokeStyle = `rgba(250,204,21,${0.4 + pulse * 0.5})`;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(sx, sy, isFront ? 3.5 : 2.5, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 4 + pulse * 5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(250,204,21,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
       ctx.fill();
 
-      // Klein label
-      if (isFront && state.zoom > 1.1) {
-        ctx.font = '9px SFMono-Regular, monospace';
-        ctx.fillStyle = sat.color;
-        ctx.fillText(sat.name, sx + 6, sy - 4);
-      }
-      ctx.restore();
+      // Label
+      ctx.font = `bold 9px ${getComputedStyle(document.body).getPropertyValue('--mono') || 'monospace'}`;
+      ctx.fillStyle = `rgba(250,204,21,${alpha * 0.9})`;
+      ctx.fillText(ap.code, p.x + 6, p.y - 4);
+    } else {
+      ctx.fillStyle = `rgba(148,163,184,${alpha * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
 
-// ------------------------------------------------------------------------------
-// 6. UI Event Listeners & Interactie Koppelingen
-// ------------------------------------------------------------------------------
-function setupUI(renderer) {
-  // Snelheid knoppen
-  const speedBtns = document.querySelectorAll('[data-speed]');
-  speedBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      speedBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.speedFactor = parseInt(btn.dataset.speed, 10);
-      state.isPaused = false;
-      document.getElementById('btn-pause').classList.remove('active');
-      playSound('click');
-    });
-  });
+function drawFlightTrail(flight) {
+  if (!W.layers.trails || flight.trail.length < 2) return;
+  const { ctx } = W;
 
-  const pauseBtn = document.getElementById('btn-pause');
-  if (pauseBtn) {
-    pauseBtn.addEventListener('click', () => {
-      state.isPaused = !state.isPaused;
-      pauseBtn.classList.toggle('active', state.isPaused);
-      playSound('click');
-    });
+  ctx.beginPath();
+  let first = true;
+  for (let i = 0; i < flight.trail.length; i++) {
+    const [la, lo] = flight.trail[i];
+    const p = project3D(la, lo, _globeR + 1);
+    const alpha = (i / flight.trail.length) * 0.6;
+    if (p.front && p.visible) {
+      if (first) { ctx.moveTo(p.x, p.y); first = false; }
+      else ctx.lineTo(p.x, p.y);
+    } else { first = true; }
   }
 
-  // Thema knoppen
-  const themeBtns = document.querySelectorAll('[data-theme]');
-  themeBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      themeBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.theme = btn.dataset.theme;
-      playSound('click');
-    });
-  });
+  const isSelected = flight === W.followFlight;
+  ctx.strokeStyle = isSelected
+    ? `rgba(250,204,21,0.6)`
+    : hexToRgba(flight.color, 0.4);
+  ctx.lineWidth = isSelected ? 2 : 1;
+  ctx.stroke();
+}
 
-  // Puls afvuren
-  const triggerPulseBtn = document.getElementById('btn-trigger-pulse');
-  if (triggerPulseBtn) {
-    triggerPulseBtn.addEventListener('click', () => {
-      // Trigger puls op Peter's Citadel
-      renderer.triggerPulse(52.37, 4.90, 1.2);
-      playSound('pulse');
-    });
+function drawFlight(flight, pos) {
+  if (!W.layers.flights) return;
+  const { ctx } = W;
+
+  const p = project3D(pos[0], pos[1], _globeR + 2);
+  if (!p.visible) return;
+
+  flight._screenX = p.x;
+  flight._screenY = p.y;
+  flight._front   = p.front;
+
+  const alpha = p.front ? 1.0 : 0.25;
+  const isSelected = flight === W.followFlight;
+  const isHovered  = flight.hovered;
+
+  // Vliegtuig icoontje (driehoekig)
+  const size = isSelected ? 7 : (isHovered ? 6 : 4);
+
+  // Richting berekenen op basis van arc delta
+  const nextT = Math.min(1, flight.progress + 0.01);
+  const nextPos = getPositionOnArc(flight.arc, nextT);
+  const pNext = project3D(nextPos[0], nextPos[1], _globeR + 2);
+  const angle = Math.atan2(pNext.y - p.y, pNext.x - p.x);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(p.x, p.y);
+  ctx.rotate(angle);
+
+  // Vleugels
+  ctx.fillStyle = isSelected ? '#facc15' : (isHovered ? '#fff' : flight.color);
+  ctx.beginPath();
+  // Neus
+  ctx.moveTo(size, 0);
+  // Rechter vleugel
+  ctx.lineTo(-size * 0.4, size * 1.1);
+  // Staart rechts
+  ctx.lineTo(-size * 0.6, size * 0.3);
+  // Romp achter
+  ctx.lineTo(-size, 0);
+  // Staart links
+  ctx.lineTo(-size * 0.6, -size * 0.3);
+  // Linker vleugel
+  ctx.lineTo(-size * 0.4, -size * 1.1);
+  ctx.closePath();
+  ctx.fill();
+
+  if (isSelected || isHovered) {
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
   }
 
-  // Satelliet toevoegen
-  const addSatBtn = document.getElementById('btn-add-sat');
-  if (addSatBtn) {
-    addSatBtn.addEventListener('click', () => {
-      renderer.addSatellite();
-    });
+  ctx.restore();
+}
+
+function drawFlightArcPreview(flight) {
+  if (flight !== W.followFlight && !flight.hovered) return;
+  const { ctx } = W;
+
+  ctx.beginPath();
+  let first = true;
+  for (let i = 0; i <= flight.arc.length - 1; i++) {
+    const [la, lo] = flight.arc[i];
+    const p = project3D(la, lo, _globeR + 1);
+    if (p.visible) {
+      if (first) { ctx.moveTo(p.x, p.y); first = false; }
+      else ctx.lineTo(p.x, p.y);
+    } else first = true;
+  }
+  ctx.strokeStyle = flight === W.followFlight
+    ? 'rgba(250,204,21,0.35)'
+    : hexToRgba(flight.color, 0.25);
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SIMULATIE UPDATE
+// ═══════════════════════════════════════════════════════
+function updateSimulation(dt) {
+  if (W.paused) return;
+
+  // WASM tick
+  if (W.wasm) {
+    W.tick = W.wasm.update(Math.round(dt), W.speed) || W.tick + 1;
+  } else {
+    W.tick++;
   }
 
-  // Camera reset
-  const resetCamBtn = document.getElementById('btn-reset-cam');
-  if (resetCamBtn) {
-    resetCamBtn.addEventListener('click', () => {
-      state.targetRotY = 0;
-      state.targetRotX = 0.35;
-      state.targetZoom = 1.0;
-      playSound('click');
-    });
+  const dtSim = dt * W.speed;
+
+  for (const f of W.flights) {
+    // Voortgang
+    f.progress += f.progressRate * dtSim;
+    if (f.progress >= 1) {
+      // Vlucht geland → reset naar begin
+      f.progress = 0;
+      f.trail = [];
+    }
+
+    // Positie
+    const pos = getPositionOnArc(f.arc, f.progress);
+
+    // Trail
+    f.trail.push(pos);
+    if (f.trail.length > f.trailMaxLen) f.trail.shift();
   }
 
-  // Audio Toggle
-  const audioBtn = document.getElementById('btn-audio');
-  if (audioBtn) {
-    audioBtn.addEventListener('click', () => {
-      initAudio();
-      state.audioEnabled = !state.audioEnabled;
-      audioBtn.textContent = state.audioEnabled ? '🔊' : '🔇';
-      audioBtn.style.color = state.audioEnabled ? 'var(--accent-cyan)' : 'var(--text-muted)';
-      if (state.audioEnabled) playSound('click');
-    });
-  }
-
-  // Banner knoppen
-  const applyUpdateBtn = document.getElementById('btn-apply-update');
-  if (applyUpdateBtn) {
-    applyUpdateBtn.addEventListener('click', () => {
-      VersionManager.applyUpdate();
-    });
-  }
-
-  const dismissUpdateBtn = document.getElementById('btn-dismiss-update');
-  if (dismissUpdateBtn) {
-    dismissUpdateBtn.addEventListener('click', () => {
-      const banner = document.getElementById('update-banner');
-      if (banner) banner.classList.remove('show');
-    });
-  }
-
-  // Handmatige update check
-  const checkUpdateBtn = document.getElementById('btn-check-update');
-  if (checkUpdateBtn) {
-    checkUpdateBtn.addEventListener('click', async () => {
-      checkUpdateBtn.style.transform = 'rotate(360deg)';
-      setTimeout(() => { checkUpdateBtn.style.transform = ''; }, 600);
-      await VersionManager.checkForUpdates(false);
-      playSound('click');
-    });
-  }
-
-  // Modal openen en sluiten
-  const modal = document.getElementById('version-modal');
-  const badgeVersion = document.getElementById('badge-version');
-  const closeModalBtn = document.getElementById('btn-close-modal');
-  const modalCheckBtn = document.getElementById('btn-modal-check');
-  const modalReloadBtn = document.getElementById('btn-modal-reload');
-  const autoReloadCheck = document.getElementById('check-auto-reload');
-
-  if (badgeVersion && modal) {
-    badgeVersion.addEventListener('click', () => {
-      modal.classList.add('active');
-      playSound('click');
-    });
-  }
-
-  if (closeModalBtn && modal) {
-    closeModalBtn.addEventListener('click', () => {
-      modal.classList.remove('active');
-    });
-  }
-
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
-    });
-  }
-
-  if (modalCheckBtn) {
-    modalCheckBtn.addEventListener('click', async () => {
-      modalCheckBtn.textContent = 'Bezig met zoeken...';
-      await VersionManager.checkForUpdates(false);
-      modalCheckBtn.textContent = 'Zoeken naar updates';
-    });
-  }
-
-  if (modalReloadBtn) {
-    modalReloadBtn.addEventListener('click', () => {
-      VersionManager.applyUpdate();
-    });
-  }
-
-  if (autoReloadCheck) {
-    state.autoReloadEnabled = autoReloadCheck.checked;
-    autoReloadCheck.addEventListener('change', (e) => {
-      state.autoReloadEnabled = e.target.checked;
-    });
+  // Camera follow
+  if (W.followFlight) {
+    const pos = getPositionOnArc(W.followFlight.arc, W.followFlight.progress);
+    const tLon = pos[1] * Math.PI / 180;
+    const tLat = -pos[0] * Math.PI / 180;
+    W.targetRotY += ((-tLon) - W.targetRotY) * 0.03;
+    W.targetRotX += (tLat - W.targetRotX) * 0.03;
+  } else if (W.autoRotate && !W.isDragging) {
+    W.targetRotY += W.autoRotateSpeed * dtSim * W.speed;
   }
 }
 
-// ------------------------------------------------------------------------------
-// 7. Hoofd Initialisatie
-// ------------------------------------------------------------------------------
-window.addEventListener('DOMContentLoaded', async () => {
-  console.log('🌍 [PetersWorld] Initialiseren van de 3D WebAssembly applicatie...');
+// ═══════════════════════════════════════════════════════
+//  HOOFD RENDER LOOP
+// ═══════════════════════════════════════════════════════
+function render(now) {
+  requestAnimationFrame(render);
 
-  const canvas = document.getElementById('world-canvas');
-  const renderer = new WorldRenderer(canvas);
+  const dt = Math.min(100, now - (W.lastFrame || now));
+  W.lastFrame = now;
 
-  setupUI(renderer);
+  // FPS
+  W.fpsCount++;
+  if (now - W.fpsLast >= 1000) {
+    W.fps = W.fpsCount;
+    W.fpsCount = 0;
+    W.fpsLast = now;
+    document.getElementById('hud-fps').textContent = `${W.fps} fps`;
+  }
 
-  // 1. Initialiseer versie- en update-beheer
-  await VersionManager.init();
+  // Camera smooth
+  W.rotY += (W.targetRotY - W.rotY) * 0.1;
+  W.rotX += (W.targetRotX - W.rotX) * 0.1;
+  W.zoom += (W.targetZoom  - W.zoom)  * 0.12;
 
-  // 2. Laad de WebAssembly simulatiemodule
-  await WasmBridge.load();
+  // Simulatie
+  updateSimulation(dt);
 
-  // 3. Start de render- & simulatie-loop
-  renderer.render();
+  // HUD update
+  document.getElementById('hud-tick').textContent = W.tick;
+  if (W.wasm) {
+    document.getElementById('hud-flights').textContent = W.wasm.get_stat(6);
+    document.getElementById('hud-pax').textContent     = Number(W.wasm.get_stat(9)).toLocaleString('nl-NL');
+  }
 
-  console.log('✨ [PetersWorld] Gereed voor interactie.');
-});
+  // Tekenen
+  const { ctx, w, h } = W;
+  ctx.clearRect(0, 0, w, h);
+
+  drawBackground();
+  drawAtmosphere();
+  drawGlobe();
+  drawGrid();
+  drawContinents();
+  drawAirports();
+
+  // Sporen (achter vliegtuigen)
+  for (const f of W.flights) {
+    drawFlightTrail(f);
+  }
+  // Route preview (geselecteerd / hover)
+  for (const f of W.flights) {
+    if (f === W.followFlight || f.hovered) drawFlightArcPreview(f);
+  }
+  // Vliegtuigen
+  for (const f of W.flights) {
+    const pos = getPositionOnArc(f.arc, f.progress);
+    drawFlight(f, pos);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INTERACTIE
+// ═══════════════════════════════════════════════════════
+function setupInteraction() {
+  const canvas = W.canvas;
+
+  // Muis
+  canvas.addEventListener('mousedown', e => {
+    W.isDragging = true;
+    W.autoRotate = false;
+    W.lastX = e.clientX; W.lastY = e.clientY;
+    W.velX = 0; W.velY = 0;
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (W.isDragging) {
+      const dx = e.clientX - W.lastX, dy = e.clientY - W.lastY;
+      W.targetRotY += dx * 0.005;
+      W.targetRotX = Math.max(-1.3, Math.min(1.3, W.targetRotX + dy * 0.005));
+      W.velX = dx * 0.005; W.velY = dy * 0.005;
+      W.lastX = e.clientX; W.lastY = e.clientY;
+    } else {
+      checkHover(e.clientX, e.clientY);
+    }
+  });
+
+  window.addEventListener('mouseup', e => {
+    if (W.isDragging) {
+      W.isDragging = false;
+      const movedDist = Math.hypot(W.velX, W.velY);
+      if (movedDist < 0.005) handleClick(e.clientX, e.clientY);
+    }
+  });
+
+  // Touch
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      W.isDragging = true;
+      W.autoRotate = false;
+      W.lastX = e.touches[0].clientX;
+      W.lastY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    if (W.isDragging && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - W.lastX;
+      const dy = e.touches[0].clientY - W.lastY;
+      W.targetRotY += dx * 0.005;
+      W.targetRotX = Math.max(-1.3, Math.min(1.3, W.targetRotX + dy * 0.005));
+      W.lastX = e.touches[0].clientX;
+      W.lastY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', e => { W.isDragging = false; });
+
+  // Zoom
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    W.targetZoom = Math.max(0.55, Math.min(3.0, W.targetZoom - e.deltaY * 0.001));
+  }, { passive: false });
+}
+
+function findFlightAt(cx, cy) {
+  let best = null, bestD = 18;
+  for (const f of W.flights) {
+    if (!f._front) continue;
+    const d = Math.hypot((f._screenX || -999) - cx, (f._screenY || -999) - cy);
+    if (d < bestD) { bestD = d; best = f; }
+  }
+  return best;
+}
+
+function checkHover(mx, my) {
+  const hit = findFlightAt(mx, my);
+  for (const f of W.flights) f.hovered = false;
+  const tt = document.getElementById('tooltip');
+
+  if (hit) {
+    hit.hovered = true;
+    const pct = (hit.progress * 100).toFixed(0);
+    document.getElementById('tt-route').textContent   = hit.callsign;
+    document.getElementById('tt-airline').textContent = `${hit.airline.name} · ${hit.aircraft}`;
+    document.getElementById('tt-from').textContent    = hit.origin.code;
+    document.getElementById('tt-to').textContent      = hit.dest.code;
+    document.getElementById('tt-alt').textContent     = `${Number(hit.altitude).toLocaleString('nl-NL')} m`;
+    document.getElementById('tt-spd').textContent     = `${hit.speedKmh} km/h`;
+    document.getElementById('tt-pct').textContent     = `${pct}%`;
+    document.getElementById('tt-bar').style.width     = `${pct}%`;
+
+    const tx = Math.min(W.w - 220, mx + 15);
+    const ty = Math.min(W.h - 180, my - 10);
+    tt.style.left = tx + 'px';
+    tt.style.top  = ty + 'px';
+    tt.classList.add('show');
+    canvas.style.cursor = 'pointer';
+  } else {
+    tt.classList.remove('show');
+    W.canvas.style.cursor = W.isDragging ? 'grabbing' : 'grab';
+  }
+}
+
+function handleClick(mx, my) {
+  const hit = findFlightAt(mx, my);
+  if (hit) {
+    W.followFlight = (W.followFlight === hit) ? null : hit;
+    updateFlightPanel();
+  } else {
+    W.followFlight = null;
+    W.autoRotate = true;
+    updateFlightPanel();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  VLUCHT PANEL UI
+// ═══════════════════════════════════════════════════════
+function buildFlightPanel() {
+  const list = document.getElementById('flight-list');
+  list.innerHTML = '';
+
+  for (const f of W.flights) {
+    const item = document.createElement('div');
+    item.className = 'flight-item';
+    item.dataset.id = f.id;
+
+    const pct = (f.progress * 100).toFixed(0);
+    item.innerHTML = `
+      <span class="fi-icon">✈</span>
+      <div class="fi-info">
+        <div class="fi-route" style="color:${f.color}">${f.callsign} · ${f.origin.code}→${f.dest.code}</div>
+        <div class="fi-label">${f.airline.name} · ${f.aircraft}</div>
+      </div>
+      <span class="fi-prog" id="fp-pct-${f.id}">${pct}%</span>
+    `;
+
+    item.addEventListener('click', () => {
+      W.followFlight = (W.followFlight === f) ? null : f;
+      updateFlightPanel();
+    });
+
+    list.appendChild(item);
+    f._listItem = item;
+  }
+}
+
+function updateFlightPanel() {
+  for (const f of W.flights) {
+    if (!f._listItem) continue;
+    f._listItem.classList.toggle('active', f === W.followFlight);
+
+    const pctEl = document.getElementById(`fp-pct-${f.id}`);
+    if (pctEl) pctEl.textContent = `${(f.progress * 100).toFixed(0)}%`;
+  }
+
+  // Follow knop tekst
+  const btn = document.getElementById('btn-follow');
+  if (btn) btn.textContent = W.followFlight ? '📍 Stop volgen' : '📍 Volg vlucht';
+}
+
+// Periodiek panel updaten (niet elke frame)
+setInterval(updateFlightPanel, 500);
+
+// ═══════════════════════════════════════════════════════
+//  CONTROLS KNOPPEN
+// ═══════════════════════════════════════════════════════
+function setupControls() {
+  // Layers
+  for (const btn of document.querySelectorAll('[data-layer]')) {
+    btn.addEventListener('click', () => {
+      const layer = btn.dataset.layer;
+      W.layers[layer] = !W.layers[layer];
+      btn.classList.toggle('active', W.layers[layer]);
+    });
+  }
+
+  // Snelheid
+  for (const btn of document.querySelectorAll('[data-speed]')) {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      W.speed = parseInt(btn.dataset.speed, 10);
+      W.paused = false;
+      document.getElementById('btn-pause').classList.remove('active');
+    });
+  }
+
+  document.getElementById('btn-pause').addEventListener('click', () => {
+    W.paused = !W.paused;
+    document.getElementById('btn-pause').classList.toggle('active', W.paused);
+    document.getElementById('btn-pause').textContent = W.paused ? '▶' : '⏸';
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    W.targetRotY = 0.4; W.targetRotX = 0.3; W.targetZoom = 1.0;
+    W.followFlight = null;
+    W.autoRotate = true;
+    updateFlightPanel();
+  });
+
+  document.getElementById('btn-follow').addEventListener('click', () => {
+    if (W.followFlight) {
+      W.followFlight = null;
+      W.autoRotate = true;
+    } else {
+      // Volg willekeurig een zichtbaar vliegtuig
+      const front = W.flights.filter(f => f._front);
+      if (front.length) {
+        W.followFlight = front[Math.floor(Math.random() * front.length)];
+        W.autoRotate = false;
+      }
+    }
+    updateFlightPanel();
+  });
+
+  // Header knoppen
+  document.getElementById('btn-refresh').addEventListener('click', () => checkVersion(false));
+
+  // Update banner
+  document.getElementById('btn-apply-upd').addEventListener('click', applyUpdate);
+  document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
+    document.getElementById('update-banner').classList.remove('show');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  HULPFUNCTIES
+// ═══════════════════════════════════════════════════════
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INITIALISATIE
+// ═══════════════════════════════════════════════════════
+async function init() {
+  W.canvas = document.getElementById('canvas');
+  W.ctx    = W.canvas.getContext('2d');
+
+  resize();
+  window.addEventListener('resize', () => { W._stars = null; resize(); });
+
+  // Genereer vluchten
+  W.flights = generateFlights(CFG.flightCount);
+  console.log(`[PetersWorld] ${W.flights.length} vluchten gegenereerd over ${AIRPORTS.length} luchthavens.`);
+
+  // WASM laden
+  await loadWasm();
+
+  // Versie check
+  await checkVersion(true);
+  setInterval(() => checkVersion(false), CFG.pollMs);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkVersion(false);
+  });
+
+  // Service Worker
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // UI
+  setupInteraction();
+  setupControls();
+  buildFlightPanel();
+
+  // Start render loop
+  requestAnimationFrame(render);
+
+  console.log('[PetersWorld] ✈  Klaar voor vlucht!');
+}
+
+document.addEventListener('DOMContentLoaded', init);

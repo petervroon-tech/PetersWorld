@@ -5,13 +5,11 @@ on:
     branches: ["main", "master"]
   workflow_dispatch:
 
-# Permissies die nodig zijn voor GitHub Pages deployment met OIDC id-token
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Voorkom meerdere gelijktijdige deployments
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -23,7 +21,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Repository ophalen (Checkout)
+      - name: 📥 Repository ophalen
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -33,17 +31,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: 🔨 Bouw WebAssembly & update versie-informatie
+      - name: 🔨 Bouw WebAssembly & update version.json
         run: |
-          echo "Compiling PetersWorld WASM & updating version.json..."
+          echo "Building PetersWorld Global Flight Radar WASM..."
           python3 build.py --ci --sha "${{ github.sha }}" --build "${{ github.run_number }}"
-          echo "Validating built files:"
-          ls -la petersworld.wasm version.json
+          echo "Build output:"
+          ls -lh petersworld.wasm version.json
+          cat version.json
 
       - name: 🌐 GitHub Pages configureren
         uses: actions/configure-pages@v5
 
-      - name: 📦 Pagina-artefacten uploaden
+      - name: 📦 Upload site artefact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'

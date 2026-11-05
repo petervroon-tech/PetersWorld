@@ -1,16 +1,12 @@
 {
-  "name": "PetersWorld WASM 3D Planet",
+  "name": "PetersWorld – Global Flight Radar",
   "short_name": "PetersWorld",
-  "description": "Cross-platform WebAssembly 3D Planet en wereld simulatie",
+  "description": "Realtime 3D wereldbol met vluchten van over de hele wereld. Aangedreven door WebAssembly.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#090d16",
+  "background_color": "#060b16",
   "theme_color": "#0284c7",
   "icons": [
-    {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
-    }
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
   ]
 }

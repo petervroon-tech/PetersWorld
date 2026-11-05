@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-PetersWorld WebAssembly Build & Release Compiler
-=================================================
+PetersWorld WebAssembly Build & Release Compiler v1.1.0
+======================================================
 Assembleert de WebAssembly instructies naar een valide binary 'petersworld.wasm'
-en beheert de automatische versie- en build-detectie in 'version.json'.
-
-Kan standalone draaien op macOS, Linux en Windows zonder externe afhankelijkheden!
+voor de wereldbol vluchtsimulatie (Global Flight Radar) en beheert versie-detectie.
 """
 
 import os
 import sys
 import json
-import time
 import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.0.0"
+DEFAULT_VERSION = "1.1.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -63,17 +60,16 @@ def get_git_hash() -> str:
     """Haalt de huidige git commit hash op indien beschikbaar."""
     try:
         p = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True)
-        if p.returncode == 0:
+        if p.returncode == 0 and p.stdout.strip():
             return p.stdout.strip()
     except Exception:
         pass
     return "dev-local"
 
 def build_wasm(output_path: str):
-    """Genereert de WebAssembly bytecode voor de PetersWorld simulatie-engine."""
+    """Genereert de WebAssembly bytecode voor de PetersWorld Flight Radar engine."""
     # -------------------------------------------------------------
     # 1. Type Section (ID 1)
-    # Definieert de functie signatures
     # -------------------------------------------------------------
     types = [
         bytes([0x60, 0, 1, 0x7F]),                    # 0: () -> i32
@@ -86,20 +82,17 @@ def build_wasm(output_path: str):
 
     # -------------------------------------------------------------
     # 2. Function Section (ID 3)
-    # Koppelt functies aan hun type signature
     # -------------------------------------------------------------
-    func_types = [0, 0, 1, 2, 3, 4, 1]
+    func_types = [0, 0, 1, 2, 3, 4, 1, 1]
     func_sec = sec(3, leb_u(len(func_types)) + bytes(func_types))
 
     # -------------------------------------------------------------
     # 3. Memory Section (ID 5)
-    # 2 pagina's (128 KB) min, 4 pagina's max
     # -------------------------------------------------------------
     mem_sec = sec(5, bytes([1, 0x01, 0x02, 0x04]))
 
     # -------------------------------------------------------------
     # 4. Export Section (ID 7)
-    # Exporteert functies en geheugen naar de host (JavaScript / Runtime)
     # -------------------------------------------------------------
     exports = [
         (b"get_version", 0, 0),
@@ -107,8 +100,9 @@ def build_wasm(output_path: str):
         (b"init_world", 0, 2),
         (b"update", 0, 3),
         (b"add_pulse", 0, 4),
-        (b"add_satellite", 0, 5),
+        (b"add_flight", 0, 5),
         (b"get_stat", 0, 6),
+        (b"get_flight_progress", 0, 7),
         (b"memory", 2, 0)
     ]
     exp_payload = leb_u(len(exports))
@@ -118,71 +112,61 @@ def build_wasm(output_path: str):
 
     # -------------------------------------------------------------
     # 5. Code Section (ID 10)
-    # Bevat de opcodes van de geëxporteerde functies
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (retourneert 100 voor v1.0.0)
-    code0 = bytes([0]) + i32_const(100) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (110 voor v1.1.0)
+    code0 = bytes([0]) + i32_const(110) + bytes([0x0B])
 
-    # Func 1: get_state_ptr() -> i32 (retourneert basisadres 0)
+    # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
 
     # Func 2: init_world(seed: i32) -> i32
-    # Initialiseert statusvariabelen in lineair geheugen
     code2_body = bytearray([0])
     def store_val(offset, val):
         return i32_const(offset) + i32_const(val) + i32_store(0, 2)
 
-    code2_body += store_val(0, 0x50575244)  # Offset 0: Magic Header 'PWRD'
-    code2_body += store_val(4, 100)         # Offset 4: Versie 100
+    code2_body += store_val(0, 0x50575244)  # Offset 0: Magic 'PWRD'
+    code2_body += store_val(4, 110)         # Offset 4: Versie 110 (v1.1.0)
     code2_body += store_val(8, 0)           # Offset 8: Simulatie tick
-    code2_body += store_val(12, 0)          # Offset 12: Rotatiehoek Y
-    code2_body += store_val(16, 350)        # Offset 16: Rotatiehoek X (tilt)
+    code2_body += store_val(12, 0)          # Offset 12: Rotatie Y
+    code2_body += store_val(16, 350)        # Offset 16: Rotatie X
     code2_body += store_val(20, 0)          # Offset 20: Zonhoek
-    code2_body += store_val(24, 4)          # Offset 24: Actieve satellieten
-    code2_body += store_val(28, 8)          # Offset 28: Actieve landmarks
+    code2_body += store_val(24, 48)         # Offset 24: Actieve vluchten (48 live vluchten)
+    code2_body += store_val(28, 30)         # Offset 28: Wereldwijde luchthavens (30 hubs)
     code2_body += store_val(32, 0)          # Offset 32: Actieve pulsen
-    code2_body += store_val(36, 100)        # Offset 36: Energie flux (100%)
-    code2_body += store_val(40, 180)        # Offset 40: PetersWorld radius
-    code2_body += store_val(44, 8520)       # Offset 44: Wereldbevolking (miljoenen)
+    code2_body += store_val(36, 14280)      # Offset 36: Totaal passagiers in de lucht
+    code2_body += store_val(40, 180)        # Offset 40: Globe radius
+    code2_body += store_val(44, 915)        # Offset 44: Gemiddelde snelheid (km/h)
     code2_body += i32_const(1) + bytes([0x0B])
     code2 = bytes(code2_body)
 
     # Func 3: update(dt_ms: i32, speed_factor: i32) -> i32
-    # Berekent de volgende simulatie stap: ticks, rotaties, en energie flux
     code3_body = bytearray([0])
-    
-    # 1. Tick ophogen: mem[8] += 1
+    # Tick += 1
     code3_body += i32_const(8)
     code3_body += i32_const(8) + i32_load(0, 2) + i32_const(1) + bytes([0x6A])
     code3_body += i32_store(0, 2)
 
-    # 2. Rotatie Y updaten: mem[12] = (mem[12] + dt_ms * speed_factor / 5) % 6283
+    # Rotatie Y = (Rotatie Y + dt_ms * speed_factor / 5) % 6283
     code3_body += i32_const(12)
     code3_body += i32_const(12) + i32_load(0, 2)
-    code3_body += bytes([0x20, 0x00])             # local.get 0 (dt_ms)
-    code3_body += bytes([0x20, 0x01])             # local.get 1 (speed_factor)
-    code3_body += bytes([0x6C])                   # i32.mul
-    code3_body += i32_const(5) + bytes([0x6D])     # div_s
-    code3_body += bytes([0x6A])                   # i32.add
-    code3_body += i32_const(6283) + bytes([0x70]) # rem_s
+    code3_body += bytes([0x20, 0x00, 0x20, 0x01, 0x6C]) # dt * speed
+    code3_body += i32_const(5) + bytes([0x6D, 0x6A])      # div 5, add
+    code3_body += i32_const(6283) + bytes([0x70])         # rem 6283
     code3_body += i32_store(0, 2)
 
-    # 3. Zonhoek updaten: mem[20] = (mem[20] + dt_ms * 2) % 6283
+    # Zonhoek = (Zonhoek + dt_ms * 2) % 6283
     code3_body += i32_const(20)
     code3_body += i32_const(20) + i32_load(0, 2)
-    code3_body += bytes([0x20, 0x00])             # local.get 0
-    code3_body += i32_const(2) + bytes([0x6C])     # mul by 2
-    code3_body += bytes([0x6A])                   # add
-    code3_body += i32_const(6283) + bytes([0x70]) # rem_s
+    code3_body += bytes([0x20, 0x00]) + i32_const(2) + bytes([0x6C, 0x6A])
+    code3_body += i32_const(6283) + bytes([0x70])
     code3_body += i32_store(0, 2)
 
-    # 4. Retourneer mem[8] (de nieuwe tick waarde)
+    # Return mem[8] (nieuwe tick)
     code3_body += i32_const(8) + i32_load(0, 2) + bytes([0x0B])
     code3 = bytes(code3_body)
 
-    # Func 4: add_pulse(lat_e2: i32, lon_e2: i32, intensity: i32) -> i32
-    # Verhoogt actieve pulsen teller bij mem[32]
+    # Func 4: add_pulse(lat_e2, lon_e2, intensity) -> i32
     code4_body = bytearray([0])
     code4_body += i32_const(32)
     code4_body += i32_const(32) + i32_load(0, 2) + i32_const(1) + bytes([0x6A])
@@ -190,57 +174,61 @@ def build_wasm(output_path: str):
     code4_body += i32_const(32) + i32_load(0, 2) + bytes([0x0B])
     code4 = bytes(code4_body)
 
-    # Func 5: add_satellite(r: i32, speed: i32, inc: i32, type: i32) -> i32
-    # Verhoogt actieve satelliet teller bij mem[24]
+    # Func 5: add_flight(origin_idx, dest_idx, speed, type) -> i32
     code5_body = bytearray([0])
+    # Verhoog actieve vluchten teller bij mem[24]
     code5_body += i32_const(24)
     code5_body += i32_const(24) + i32_load(0, 2) + i32_const(1) + bytes([0x6A])
+    code5_body += i32_store(0, 2)
+    # Verhoog passagiers bij mem[36] met ~280
+    code5_body += i32_const(36)
+    code5_body += i32_const(36) + i32_load(0, 2) + i32_const(280) + bytes([0x6A])
     code5_body += i32_store(0, 2)
     code5_body += i32_const(24) + i32_load(0, 2) + bytes([0x0B])
     code5 = bytes(code5_body)
 
     # Func 6: get_stat(idx: i32) -> i32
-    # Leest geheugenwaarde bij index * 4
     code6_body = bytearray([0])
-    code6_body += bytes([0x20, 0x00])              # local.get 0
-    code6_body += i32_const(4) + bytes([0x6C])      # mul by 4
+    code6_body += bytes([0x20, 0x00]) + i32_const(4) + bytes([0x6C])
     code6_body += i32_load(0, 2) + bytes([0x0B])
     code6 = bytes(code6_body)
 
-    codes = [code0, code1, code2, code3, code4, code5, code6]
+    # Func 7: get_flight_progress(flight_idx: i32) -> i32
+    # Berekent virtuele vluchtprogressie (0-10000) gebaseerd op tick en flight_idx
+    code7_body = bytearray([0])
+    code7_body += i32_const(8) + i32_load(0, 2) + i32_const(12) + bytes([0x6C])
+    code7_body += bytes([0x20, 0x00]) + i32_const(211) + bytes([0x6C, 0x6A])
+    code7_body += i32_const(10000) + bytes([0x70, 0x0B])
+    code7 = bytes(code7_body)
+
+    codes = [code0, code1, code2, code3, code4, code5, code6, code7]
     code_payload = leb_u(len(codes))
     for c in codes:
         code_payload += leb_u(len(c)) + c
     code_sec = sec(10, code_payload)
 
     # -------------------------------------------------------------
-    # 6. Data Section (ID 11)
-    # Strings en metadata in geheugen bij offset 4096 (0x1000)
+    # 6. Data Section (ID 11) - Luchthavens & Vlucht Metadata
     # -------------------------------------------------------------
-    names = [
-        b"Peter's Citadel",
-        b"Vroon Orbital Station",
-        b"Cyber Tokyo",
-        b"Silicon Bay",
-        b"Quantum Observatory",
-        b"Aurora Polar Station",
-        b"Mariana Power Core",
-        b"Neo Alexandria",
-        b"Vroon-Relay Alpha",
-        b"Peter-Sat Sentinel",
-        b"Orbital Hub Gamma",
-        b"DeepScan Delta"
+    hubs = [
+        b"Amsterdam Schiphol (AMS)",
+        b"London Heathrow (LHR)",
+        b"Paris Charles de Gaulle (CDG)",
+        b"Frankfurt Main (FRA)",
+        b"Dubai International (DXB)",
+        b"New York JFK (JFK)",
+        b"Los Angeles International (LAX)",
+        b"Tokyo Haneda (HND)",
+        b"Singapore Changi (SIN)",
+        b"Sydney Kingsford Smith (SYD)"
     ]
     data_bytes = bytearray()
-    for name in names:
-        data_bytes += name + b"\x00"
+    for hub in hubs:
+        data_bytes += hub + b"\x00"
 
     data_seg = bytes([0x00]) + i32_const(4096) + bytes([0x0B]) + leb_u(len(data_bytes)) + bytes(data_bytes)
     data_sec = sec(11, bytes([1]) + data_seg)
 
-    # -------------------------------------------------------------
-    # Header en samenstelling
-    # -------------------------------------------------------------
     wasm_bytes = (
         b"\x00asm\x01\x00\x00\x00" +
         type_sec +
@@ -265,11 +253,11 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
-            "Cross-platform WebAssembly 3D Planet Engine",
-            "Interactieve satelliet- en landmark-simulatie",
-            "Realtime automatische versie-detectie in de browser",
-            "Continuous Deployment naar GitHub Pages",
-            "Automatische push via Git Hooks"
+            "Wereldbol Vluchten Radar (Global Live Aircraft Traffic)",
+            "Realtime 3D vliegtuig projecties & Great Circle trajecten",
+            "Schiphol AMS en 30+ wereldwijde internationale hubs",
+            "Automatische versie-detectie bij laden in browser",
+            "Continuous Deployment naar GitHub Pages & Auto-Push"
         ]
     }
 
@@ -277,7 +265,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         try:
             with open(version_path, "r", encoding="utf-8") as f:
                 old_data = json.load(f)
-                data["version"] = old_data.get("version", DEFAULT_VERSION)
+                data["version"] = DEFAULT_VERSION
                 data["build"] = int(old_data.get("build", 0)) + 1
         except Exception as e:
             print(f"⚠️  Kon oude version.json niet lezen, start nieuw: {e}")
@@ -307,10 +295,12 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 100) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 110) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
+            var prog = inst.exports.get_flight_progress(0);
+            if (typeof prog !== 'number') throw new Error('Flight progress faalde');
             print('VERIFY_OK');
             """
             p = subprocess.run([jsc_path, "-e", js_test], capture_output=True, text=True)
@@ -333,18 +323,15 @@ def main():
     version_output = os.path.join(project_dir, "version.json")
 
     print("=" * 60)
-    print(f"🌍 Bouwen van {APP_NAME} WebAssembly distributie...")
+    print(f"✈️  Bouwen van {APP_NAME} Global Flight Radar WebAssembly...")
     print("=" * 60)
 
-    # 1. Bouw WebAssembly binary
     wasm_size = build_wasm(wasm_output)
     print(f"✅ WebAssembly gecompileerd naar: {os.path.basename(wasm_output)} ({wasm_size} bytes)")
 
-    # 2. Lokale runtime verificatie
     if verify_wasm_locally(wasm_output):
         print("✅ WASM bytecode validatie geslaagd (JavaScriptCore WebAssembly runtime)")
 
-    # 3. Update version.json
     version_info = update_version_file(version_output, forced_sha=args.sha, forced_build=args.build)
     print(f"✅ Versie-informatie bijgewerkt:")
     print(f"   • Versie:   v{version_info['version']}")
