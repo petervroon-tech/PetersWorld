@@ -1,0 +1,17 @@
+[package]
+name = "petersworld"
+version = "1.0.0"
+edition = "2021"
+authors = ["Peter Vroon <petervroon@users.noreply.github.com>"]
+description = "PetersWorld: Cross-platform WebAssembly and native 3D planet simulation"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "petersworld-cli"
+path = "src/main.rs"
+
+[dependencies]
+# Optionele dependencies voor interactieve native weergave

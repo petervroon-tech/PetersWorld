@@ -1,0 +1,53 @@
+name: Deploy PetersWorld naar GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+# Permissies die nodig zijn voor GitHub Pages deployment met OIDC id-token
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Voorkom meerdere gelijktijdige deployments
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Repository ophalen (Checkout)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ Python instellen
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🔨 Bouw WebAssembly & update versie-informatie
+        run: |
+          echo "Compiling PetersWorld WASM & updating version.json..."
+          python3 build.py --ci --sha "${{ github.sha }}" --build "${{ github.run_number }}"
+          echo "Validating built files:"
+          ls -la petersworld.wasm version.json
+
+      - name: 🌐 GitHub Pages configureren
+        uses: actions/configure-pages@v5
+
+      - name: 📦 Pagina-artefacten uploaden
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: 🚀 Publiceren naar GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

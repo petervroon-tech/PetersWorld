@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PetersWorld - WebAssembly 3D Planet</title>
+  <meta name="description" content="PetersWorld is een cross-platform WebAssembly 3D planeet en wereldsimulatie met automatische versieherkenning." />
+  
+  <!-- Cache Control & PWA Meta -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="theme-color" content="#080c14" />
+  
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ==============================================================================
+       1. Automatische Versie-Update Notificatie Banner
+       ============================================================================== -->
+  <div id="update-banner" role="alert" aria-live="assertive">
+    <div class="update-content">
+      <span class="update-icon">🚀</span>
+      <div class="update-text">
+        <strong>Nieuwe versie beschikbaar:</strong>
+        <span id="banner-version-tag">v1.0.1</span> &bull;
+        <span id="banner-notes">Nieuwe features & prestatie-optimalisaties</span>
+      </div>
+    </div>
+    <div class="update-actions">
+      <button id="btn-apply-update" class="btn-update">Nu bijwerken</button>
+      <button id="btn-dismiss-update" class="btn-dismiss" title="Sluiten">&times;</button>
+    </div>
+  </div>
+
+  <!-- ==============================================================================
+       2. Applicatie Header
+       ============================================================================== -->
+  <header>
+    <div class="brand-wrapper">
+      <img src="favicon.svg" alt="PetersWorld Logo" class="brand-logo" />
+      <div>
+        <h1 class="brand-title">PetersWorld</h1>
+        <div class="brand-subtitle">Cross-Platform WebAssembly Engine</div>
+      </div>
+    </div>
+
+    <div class="header-badges">
+      <!-- WASM Status Pill -->
+      <div class="badge" id="badge-wasm" title="WebAssembly Core Status">
+        <span class="badge-dot" style="background:#38bdf8;box-shadow:0 0 8px #38bdf8;"></span>
+        <span>WASM 1.0</span>
+      </div>
+
+      <!-- Live Versie Badge (klikbaar voor details) -->
+      <div class="badge" id="badge-version" title="Klik om versie-details te bekijken">
+        <span class="badge-dot" id="version-dot"></span>
+        <span id="version-display">v1.0.0</span>
+      </div>
+
+      <!-- Audio FX Toggle -->
+      <button class="btn-icon" id="btn-audio" title="Schakel futuristische audio-effecten in/uit">
+        🔊
+      </button>
+
+      <!-- Handmatige Update Check Knop -->
+      <button class="btn-icon" id="btn-check-update" title="Handmatig controleren op updates">
+        🔄
+      </button>
+    </div>
+  </header>
+
+  <!-- ==============================================================================
+       3. Canvas & Render Vlak
+       ============================================================================== -->
+  <div id="canvas-container">
+    <canvas id="world-canvas"></canvas>
+  </div>
+
+  <!-- ==============================================================================
+       4. Realtime Telemetrie HUD
+       ============================================================================== -->
+  <div class="hud-telemetry">
+    <div class="hud-title">
+      <span>WASM TELEMETRIE</span>
+      <span id="hud-fps" class="telemetry-value highlight">60 FPS</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Simulatie Tick:</span>
+      <span id="hud-tick" class="telemetry-value">0</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Rotatie Hoek:</span>
+      <span id="hud-rot" class="telemetry-value">0.0&deg;</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Zon Positie:</span>
+      <span id="hud-sun" class="telemetry-value">0.0&deg;</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Satellieten in Baan:</span>
+      <span id="hud-sats" class="telemetry-value highlight">4</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Actieve Landmarks:</span>
+      <span id="hud-markers" class="telemetry-value">8</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Energie Flux:</span>
+      <span id="hud-energy" class="telemetry-value gold">100%</span>
+    </div>
+    <div class="telemetry-row">
+      <span class="telemetry-label">Bevolking:</span>
+      <span id="hud-pop" class="telemetry-value">8.52 Miljard</span>
+    </div>
+  </div>
+
+  <!-- ==============================================================================
+       5. Interactief Control Deck
+       ============================================================================== -->
+  <nav class="control-deck" aria-label="Besturingspaneel">
+    <!-- Rotatie & Snelheid -->
+    <div class="control-group">
+      <span class="control-label">Snelheid</span>
+      <div class="btn-group">
+        <button class="btn-ctrl" id="btn-pause" title="Pauzeer rotatie">⏸</button>
+        <button class="btn-ctrl active" id="btn-speed-1" data-speed="1">1x</button>
+        <button class="btn-ctrl" id="btn-speed-2" data-speed="2">2x</button>
+        <button class="btn-ctrl" id="btn-speed-5" data-speed="5">5x</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Render Thema -->
+    <div class="control-group">
+      <span class="control-label">Thema</span>
+      <div class="btn-group">
+        <button class="btn-ctrl active" data-theme="hologram" id="btn-theme-holo">Hologram</button>
+        <button class="btn-ctrl" data-theme="topo" id="btn-theme-topo">Topografie</button>
+        <button class="btn-ctrl" data-theme="matrix" id="btn-theme-matrix">Matrix</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Acties -->
+    <div class="control-group">
+      <span class="control-label">WASM Acties</span>
+      <div class="btn-group">
+        <button class="btn-ctrl pulse-btn" id="btn-trigger-pulse">
+          ⚡ Puls Afvuren
+        </button>
+        <button class="btn-ctrl" id="btn-add-sat">
+          🛰️ Satelliet +1
+        </button>
+        <button class="btn-ctrl" id="btn-reset-cam" title="Zet camera recht">
+          🎯 Reset
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==============================================================================
+       6. Landmark Popover
+       ============================================================================== -->
+  <div id="landmark-popover">
+    <div class="popover-header" id="popover-title">Peter's Citadel</div>
+    <div class="popover-coords" id="popover-coords">52.37&deg; N, 4.90&deg; E</div>
+    <div class="popover-desc" id="popover-desc">
+      Centrale metropool en zenuwcentrum van PetersWorld.
+    </div>
+  </div>
+
+  <!-- ==============================================================================
+       7. Versiebeheer & Changelog Modal
+       ============================================================================== -->
+  <div class="modal-overlay" id="version-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🌍 PetersWorld Versiebeheer</span>
+        </div>
+        <button class="modal-close" id="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="version-box">
+          <div class="version-row">
+            <span>Huidige client versie:</span>
+            <strong id="modal-client-ver" class="telemetry-value highlight">v1.0.0</strong>
+          </div>
+          <div class="version-row">
+            <span>Server build:</span>
+            <strong id="modal-server-build" class="telemetry-value">#1</strong>
+          </div>
+          <div class="version-row">
+            <span>Git Commit Hash:</span>
+            <span id="modal-commit-hash" class="telemetry-value">dev-local</span>
+          </div>
+          <div class="version-row">
+            <span>Laatste build datum:</span>
+            <span id="modal-build-time" class="telemetry-value">Laden...</span>
+          </div>
+        </div>
+
+        <div>
+          <strong style="color:var(--accent-cyan);font-size:0.85rem;">Functies in deze versie:</strong>
+          <ul class="version-features" id="modal-features-list">
+            <li>Cross-platform WebAssembly 3D Planet Engine</li>
+            <li>Realtime satelliet- en landmark-simulatie</li>
+            <li>Automatische versieherkenning via version.json</li>
+            <li>CI/CD GitHub Pages workflow & automatische push</li>
+          </ul>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+          <input type="checkbox" id="check-auto-reload" checked style="accent-color:var(--accent-cyan);cursor:pointer;" />
+          <label for="check-auto-reload" style="cursor:pointer;font-size:0.8rem;color:var(--text-muted);">
+            Automatisch verversen zodra een nieuwere versie op GitHub Pages landt
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ctrl" id="btn-modal-check">Zoeken naar updates</button>
+        <button class="btn-update" id="btn-modal-reload">Herlaad applicatie</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Applicatie Script -->
+  <script src="app.js"></script>
+</body>
+</html>

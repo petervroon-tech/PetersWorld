@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Build & Rust
+target/
+*.o
+*.out
+petersworld-c-cli
+
+# IDE
+.vscode/
+.idea/
+*.swp
