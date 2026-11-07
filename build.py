@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.3.0"
+DEFAULT_VERSION = "1.4.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (130 voor v1.3.0)
-    code0 = bytes([0]) + i32_const(130) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (140 voor v1.4.0)
+    code0 = bytes([0]) + i32_const(140) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -126,7 +126,7 @@ def build_wasm(output_path: str):
         return i32_const(offset) + i32_const(val) + i32_store(0, 2)
 
     code2_body += store_val(0, 0x50575244)  # Offset 0: Magic 'PWRD'
-    code2_body += store_val(4, 130)         # Offset 4: Versie 130 (v1.3.0)
+    code2_body += store_val(4, 140)         # Offset 4: Versie 140 (v1.4.0)
     code2_body += store_val(8, 0)           # Offset 8: Simulatie tick
     code2_body += store_val(12, 0)          # Offset 12: Rotatie Y
     code2_body += store_val(16, 350)        # Offset 16: Rotatie X
@@ -253,11 +253,11 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Luchthaven Vluchtenbord (Live Vertrek & Aankomst per vliegveld)",
+            "Luchthaven Regie: bepaal zelf vertrek, landing, doorstart & weer per luchthaven",
+            "Verbeterde Realtime ATC Communicatie met natuurlijke stemmen & VHF radio filtering",
             "Fotorealistische 3D NASA Blue Marble Wereldbol met 3D Vliegtuigen",
-            "Live ATC Radio Communicatie (Verkeerstoren & Cockpit audio)",
-            "Nachtelijke stadsverlichting & dynamische wolkenlaag",
-            "Wereldbol Vluchten Radar (Global Live Aircraft Traffic)",
-            "Schiphol AMS en 35+ wereldwijde internationale hubs",
+            "35 Wereldwijde Hubs & Directe camera navigatie",
             "Automatische versie-detectie bij laden in browser",
             "Continuous Deployment naar GitHub Pages & Auto-Push"
         ]
@@ -297,7 +297,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 130) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 140) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

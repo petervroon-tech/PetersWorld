@@ -1,15 +1,15 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.3.0",
-  "build": 8,
-  "timestamp": "2026-11-07T19:25:00.061750+00:00",
-  "git_hash": "dev-local",
+  "version": "1.4.0",
+  "build": 10,
+  "timestamp": "2026-11-07T19:33:25.970800+00:00",
+  "git_hash": "ea797f3",
   "features": [
+    "Luchthaven Vluchtenbord (Live Vertrek & Aankomst per vliegveld)",
+    "Luchthaven Regie: bepaal zelf vertrek, landing, doorstart & weer per luchthaven",
+    "Verbeterde Realtime ATC Communicatie met natuurlijke stemmen & VHF radio filtering",
     "Fotorealistische 3D NASA Blue Marble Wereldbol met 3D Vliegtuigen",
-    "Live ATC Radio Communicatie (Verkeerstoren & Cockpit audio)",
-    "Nachtelijke stadsverlichting & dynamische wolkenlaag",
-    "Wereldbol Vluchten Radar (Global Live Aircraft Traffic)",
-    "Schiphol AMS en 35+ wereldwijde internationale hubs",
+    "35 Wereldwijde Hubs & Directe camera navigatie",
     "Automatische versie-detectie bij laden in browser",
     "Continuous Deployment naar GitHub Pages & Auto-Push"
   ]
