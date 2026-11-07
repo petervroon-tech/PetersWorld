@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (172 voor v1.7.2)
-    code0 = bytes([0]) + i32_const(172) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (174 voor v1.7.4)
+    code0 = bytes([0]) + i32_const(174) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -311,7 +311,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 172) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 174) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

@@ -744,7 +744,7 @@
       <span><strong id="upd-ver">v1.7.4</strong> beschikbaar &bull; <span id="upd-note">Amerikaanse & Wereldwijde Torens 100% Menselijke Radio Zonder Weerberichten</span></span>
     </div>
     <div class="upd-right">
-      <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
+      <button class="btn-upd" id="btn-apply-upd" onclick="this.textContent='Bezig...';if('caches' in window){caches.keys().then(function(k){return Promise.all(k.map(function(c){return caches.delete(c);}));}).finally(function(){var u=new URL(location.href);u.searchParams.set('v','1.7.4');u.searchParams.set('t',Date.now().toString());location.replace(u.toString());});}else{location.reload(true);}">Nu bijwerken</button>
       <button class="btn-dismiss" id="btn-dismiss-upd">&times;</button>
     </div>
   </div>

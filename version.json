@@ -1,9 +1,9 @@
 {
   "app_name": "PetersWorld",
   "version": "1.7.4",
-  "build": 23,
-  "timestamp": "2026-11-07T22:04:22.213568+00:00",
-  "git_hash": "f4220cb",
+  "build": 24,
+  "timestamp": "2026-11-07T22:06:58.443944+00:00",
+  "git_hash": "d115b92",
   "features": [
     "Amerikaanse torens (SFO, JFK, LAX, ORD, ATL, DFW, MIA) 100% gezuiverd van automatisch weerbericht/ATIS - directe authentieke verkeersleider/piloot communicatie",
     "Audio cache-busting (?v=1.7.4) op alle torenfeeds zodat browsers direct de nieuwste menselijke radio afspelen",

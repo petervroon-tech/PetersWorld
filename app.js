@@ -2630,7 +2630,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.7.2';
+let currentVersion = '1.7.4';
 
 async function checkVersion(silent = true) {
   try {
@@ -2660,15 +2660,33 @@ async function checkVersion(silent = true) {
   }
 }
 
-function applyUpdate() {
-  if ('caches' in window) {
-    caches.keys().then(names => {
-      names.forEach(n => caches.delete(n));
-      window.location.reload(true);
-    });
-  } else {
-    window.location.reload(true);
-  }
+async function applyUpdate() {
+  const btn = document.getElementById('btn-apply-upd');
+  if (btn) btn.textContent = 'Bezig met bijwerken...';
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const r of registrations) {
+        await r.unregister();
+      }
+    }
+  } catch (e) {}
+
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (const k of keys) {
+        await caches.delete(k);
+      }
+    }
+  } catch (e) {}
+
+  // Forceer harde reload met verse timestamp query parameter zodat de browser NOOIT cache pakt
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', '1.7.4');
+  url.searchParams.set('t', Date.now().toString());
+  window.location.replace(url.toString());
 }
 
 // ═══════════════════════════════════════════════════════
