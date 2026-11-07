@@ -26,7 +26,7 @@ const AIRPORTS = [
   // Europa (Koppeling met Live Schiphol Grond / West-Europa Radar feeds)
   { code:'AMS', flag:'🇳🇱', name:'Amsterdam Schiphol', city:'Amsterdam', country:'Nederland', lat: 52.31, lon: 4.76, hub:true,
     runways:['Kaagbaan 24', 'Polderbaan 36L', 'Zwanenburgerbaan 18C', 'Aalsmeerbaan 18L', 'Buitenveldertbaan 09'], activeRunway:'Kaagbaan 24',
-    rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.050' }, utcOffset:1, weather:{ cond:'cavok', wind:'220° 12kt', qnh:'1014' } },
   { code:'LHR', flag:'🇬🇧', name:'London Heathrow', city:'Londen', country:'Verenigd Koninkrijk', lat: 51.47, lon: -0.46, hub:true,
     runways:['Runway 27L', 'Runway 27R', 'Runway 09L', 'Runway 09R'], activeRunway:'Runway 27L',
@@ -222,11 +222,12 @@ class LiveAtcEngine {
   constructor() {
     this.audioEl = null;
     this.isPlaying = false;
-    this.currentStation = 'eham_gnd';
+    this.currentStation = 'eham_twr_rec';
     this.audioCtx = null;
     this.analyser = null;
     this.animVizId = null;
     this.streams = {
+      eham_twr_rec: 'audio/eham_twr.mp3',
       eham_gnd: 'https://s1-bos.liveatc.net/eham_gnd_18c36c',
       eham_del: 'https://s1-bos.liveatc.net/eham_del',
       eham_atis_live: 'https://s1-bos.liveatc.net/eham_atis_arr',
@@ -245,10 +246,11 @@ class LiveAtcEngine {
       ymml_twr: 'https://s1-bos.liveatc.net/ymml_twr',
     };
     this.stationLabels = {
+      eham_twr_rec: '🇳🇱 Schiphol Toren (Directe Communicatie - Echte Stemmen)',
       eham_gnd: '🇳🇱 Schiphol Grond (121.905 MHz Live)',
       eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz Live)',
       eham_atis_live: '🇳🇱 Schiphol ATIS Live (132.980 MHz)',
-      eham_atis_rec: '🇳🇱 Schiphol Radio (Lokale Echte Stemmen)',
+      eham_atis_rec: '🇳🇱 Schiphol ATIS (Volledig Weerbericht)',
       kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz Live)',
       klax_twr: '🇺🇸 Los Angeles Toren (120.950 MHz Live)',
       kord_twr: "🇺🇸 Chicago O'Hare Toren (120.750 MHz Live)",
@@ -289,18 +291,18 @@ class LiveAtcEngine {
     if (this.audioEl) {
       this.audioEl.addEventListener('error', (e) => {
         console.warn('LiveATC audio error, switching to authentic Schiphol radio recording fallback:', e);
-        if (this.isPlaying && this.currentStation !== 'eham_atis_rec') {
+        if (this.isPlaying && this.currentStation !== 'eham_twr_rec') {
           this.fallbackToRealAudio();
         }
       });
       this.audioEl.addEventListener('ended', () => {
-        if (this.isPlaying && this.currentStation === 'eham_atis_rec') {
+        if (this.isPlaying && (this.currentStation === 'eham_twr_rec' || this.currentStation === 'eham_atis_rec')) {
           setTimeout(() => {
-            if (this.isPlaying && this.audioEl && this.currentStation === 'eham_atis_rec') {
+            if (this.isPlaying && this.audioEl && (this.currentStation === 'eham_twr_rec' || this.currentStation === 'eham_atis_rec')) {
               this.audioEl.currentTime = 0;
               this.audioEl.play().catch(() => {});
             }
-          }, 2500);
+          }, 2000);
         }
       });
     }
@@ -380,10 +382,10 @@ class LiveAtcEngine {
     const dot = document.getElementById('liveatc-dot');
     const pill = document.getElementById('pill-liveatc');
 
-    this.currentStation = 'eham_atis_rec';
-    if (select) select.value = 'eham_atis_rec';
+    this.currentStation = 'eham_twr_rec';
+    if (select) select.value = 'eham_twr_rec';
 
-    this.audioEl.src = 'audio/eham_atis.mp3';
+    this.audioEl.src = 'audio/eham_twr.mp3';
     this.audioEl.load();
     const p = this.audioEl.play();
     if (p && p.then) {
@@ -392,10 +394,10 @@ class LiveAtcEngine {
         if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
-        if (statusTxt) statusTxt.textContent = '🔴 Schiphol ATIS (Lokale Echte Stemmen) actief';
-        if (hudStatus) hudStatus.textContent = 'EHAM ATIS';
+        if (statusTxt) statusTxt.textContent = '🔴 Schiphol Toren (Directe Communicatie - Echte Stemmen) actief';
+        if (hudStatus) hudStatus.textContent = 'EHAM TWR';
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', 'Live stream gebufferd/CORS restrictie: direct overgeschakeld naar Schiphol radio-opname met echte stemmen!', true);
+        ATC.logMessage('LIVE ATC', 'Directe toren-piloot communicatie gestart met echte stemmen!', true);
       }).catch((err) => {
         console.warn('Fallback play failed:', err);
       });
@@ -415,7 +417,9 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Verbinden met ${label}...`;
 
-    if (this.currentStation === 'eham_atis_rec') {
+    if (this.currentStation === 'eham_twr_rec') {
+      this.audioEl.src = 'audio/eham_twr.mp3';
+    } else if (this.currentStation === 'eham_atis_rec') {
       this.audioEl.src = 'audio/eham_atis.mp3';
     } else {
       const url = this.streams[this.currentStation];
@@ -468,10 +472,10 @@ class LiveAtcEngine {
     ATC.playMicClick(false);
   }
 
-  tuneToAirport(airport) {
+  tuneToAirport(airport, autoPlay = true) {
     if (!airport) return;
     const select = document.getElementById('liveatc-station-select');
-    const targetStation = airport.liveAtcStation || 'eham_gnd';
+    const targetStation = airport.liveAtcStation || 'eham_twr_rec';
     this.currentStation = targetStation;
     if (select) {
       select.value = targetStation;
@@ -480,7 +484,7 @@ class LiveAtcEngine {
     const statusTxt = document.getElementById('liveatc-status-txt');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
-    if (this.isPlaying) {
+    if (autoPlay || this.isPlaying) {
       this.playStream();
     } else {
       if (statusTxt) statusTxt.textContent = `📻 Afgestemd op ${label} (Echte Stemmen)`;
@@ -721,6 +725,13 @@ const S = {
   cameraTargetPos: null,
   cameraTargetLook: null,
   isZoomingToAirport: false,
+
+  // Belichting & Dagzicht
+  daylightMode: true,
+  ambLight: null,
+  sunLight: null,
+  backLight: null,
+  cameraLight: null,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -767,17 +778,22 @@ function initThree() {
   S.scene.add(S.airportsGroup);
   S.scene.add(S.airportDetailGroup);
 
-  // Belichting
-  const ambLight = new THREE.AmbientLight(0xffffff, 0.40);
-  S.scene.add(ambLight);
+  // Belichting (met dagzicht standaard actief voor optimale zichtbaarheid)
+  S.ambLight = new THREE.AmbientLight(0xffffff, 1.10);
+  S.scene.add(S.ambLight);
 
-  const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
-  sunLight.position.set(200, 100, 150);
-  S.scene.add(sunLight);
+  S.sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+  S.sunLight.position.set(200, 100, 150);
+  S.scene.add(S.sunLight);
 
-  const backLight = new THREE.DirectionalLight(0x38bdf8, 0.30);
-  backLight.position.set(-200, -80, -150);
-  S.scene.add(backLight);
+  S.backLight = new THREE.DirectionalLight(0x38bdf8, 0.40);
+  S.backLight.position.set(-200, -80, -150);
+  S.scene.add(S.backLight);
+
+  // Camera headlight voor direct dagzicht vanaf de kijkrichting van de gebruiker
+  S.cameraLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  S.cameraLight.position.copy(S.camera.position);
+  S.scene.add(S.cameraLight);
 
   buildStarfield();
   buildRealisticEarth();
@@ -1315,6 +1331,10 @@ function animate(now) {
     }
   }
 
+  if (S.cameraLight && S.camera) {
+    S.cameraLight.position.copy(S.camera.position);
+  }
+
   S.controls.update();
   S.renderer.render(S.scene, S.camera);
 }
@@ -1464,7 +1484,7 @@ function selectAirport(ap) {
   }
 
   ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
-  LIVEATC.tuneToAirport(ap);
+  LIVEATC.tuneToAirport(ap, true);
 
   renderAirportFlightBoard();
 }
@@ -1954,6 +1974,14 @@ function setupControls() {
   const btnAtcTrigger = document.getElementById('btn-atc-trigger');
   if (btnAtcTrigger) btnAtcTrigger.addEventListener('click', triggerCall);
 
+  // Dagzicht schakelaar (bovenbalk + onderbalk)
+  const toggleDaylight = () => setDaylightMode(!S.daylightMode);
+  const btnToggleDaylight = document.getElementById('btn-toggle-daylight');
+  if (btnToggleDaylight) btnToggleDaylight.addEventListener('click', toggleDaylight);
+
+  const btnCtrlDaylight = document.getElementById('btn-ctrl-daylight');
+  if (btnCtrlDaylight) btnCtrlDaylight.addEventListener('click', toggleDaylight);
+
   document.getElementById('btn-refresh').addEventListener('click', () => checkVersion(false));
   document.getElementById('btn-apply-upd').addEventListener('click', applyUpdate);
   document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
@@ -1962,9 +1990,47 @@ function setupControls() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  DAGZICHT / NACHTZICHT REGELING
+// ═══════════════════════════════════════════════════════
+function setDaylightMode(enabled) {
+  S.daylightMode = !!enabled;
+  if (S.ambLight) {
+    S.ambLight.intensity = S.daylightMode ? 1.10 : 0.25;
+  }
+  if (S.cameraLight) {
+    S.cameraLight.intensity = S.daylightMode ? 0.85 : 0.0;
+  }
+  if (S.sunLight) {
+    S.sunLight.intensity = S.daylightMode ? 1.6 : 1.3;
+  }
+
+  const btnHead = document.getElementById('btn-toggle-daylight');
+  const txtHead = document.getElementById('txt-daylight');
+  const btnCtrl = document.getElementById('btn-ctrl-daylight');
+
+  if (S.daylightMode) {
+    if (btnHead) btnHead.classList.add('active');
+    if (txtHead) txtHead.textContent = '☀️ Dagzicht: AAN';
+    if (btnCtrl) {
+      btnCtrl.classList.add('active');
+      btnCtrl.textContent = '☀️ Dagzicht';
+    }
+    ATC.logMessage('BELICHTING', 'Dagzicht geactiveerd: aarde, landingsbanen en vliegtuigen helder verlicht.', false);
+  } else {
+    if (btnHead) btnHead.classList.remove('active');
+    if (txtHead) txtHead.textContent = '🌙 Nachtzicht: AAN';
+    if (btnCtrl) {
+      btnCtrl.classList.remove('active');
+      btnCtrl.textContent = '🌙 Nachtzicht';
+    }
+    ATC.logMessage('BELICHTING', 'Realistische zonbelichting & nachtschaduw geactiveerd.', false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.5.2';
+let currentVersion = '1.5.3';
 
 async function checkVersion(silent = true) {
   try {

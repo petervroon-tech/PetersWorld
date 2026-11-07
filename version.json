@@ -1,10 +1,12 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.5.2",
-  "build": 13,
-  "timestamp": "2026-11-07T20:33:18.186672+00:00",
-  "git_hash": "5c95f54",
+  "version": "1.5.3",
+  "build": 14,
+  "timestamp": "2026-11-07T20:57:19.126831+00:00",
+  "git_hash": "aa61054",
   "features": [
+    "Directe toren-piloot radio bij aanklikken vliegveld (zonder algemene introductie)",
+    "Dagzicht-modus: aarde, vliegvelden en banen op elk moment in helder daglicht",
     "Echte live menselijke stemmen voor alle wereldwijde luchthavens (LiveATC)",
     "Volledige uitfasering computergestuurde spraak: 100% authentieke radio streams",
     "Inzoomen tot 300 meter boven landingsbanen met realistisch 3D baanmodel",

@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.5.2"
+DEFAULT_VERSION = "1.5.3"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (152 voor v1.5.2)
-    code0 = bytes([0]) + i32_const(152) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (153 voor v1.5.3)
+    code0 = bytes([0]) + i32_const(153) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,6 +253,8 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Directe toren-piloot radio bij aanklikken vliegveld (zonder algemene introductie)",
+            "Dagzicht-modus: aarde, vliegvelden en banen op elk moment in helder daglicht",
             "Echte live menselijke stemmen voor alle wereldwijde luchthavens (LiveATC)",
             "Volledige uitfasering computergestuurde spraak: 100% authentieke radio streams",
             "Inzoomen tot 300 meter boven landingsbanen met realistisch 3D baanmodel",
@@ -300,7 +302,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 152) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 153) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

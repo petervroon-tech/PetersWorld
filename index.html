@@ -93,6 +93,9 @@
     .pill.active { border-color: var(--cyan); background: rgba(2,132,199,.25); }
     .pill.liveatc-pill { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.12); color: #fca5a5; }
     .pill.liveatc-pill:hover { background: rgba(239,68,68,.25); border-color: var(--red); }
+    .pill.daylight-pill { border-color: rgba(250,204,21,.5); background: rgba(250,204,21,.12); color: #fde047; }
+    .pill.daylight-pill:hover { background: rgba(250,204,21,.25); border-color: var(--gold); }
+    .pill.daylight-pill.active { background: rgba(250,204,21,.3); border-color: #facc15; color: #fff; box-shadow: 0 0 10px rgba(250,204,21,.4); }
     .dot { width: 7px; height: 7px; border-radius: 50%; animation: blink 2s infinite; }
     .dot.green { background: var(--green); box-shadow: 0 0 7px var(--green); }
     .dot.gold  { background: var(--gold);  box-shadow: 0 0 7px var(--gold);  }
@@ -370,7 +373,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.5.2</strong> beschikbaar &bull; <span id="upd-note">LiveATC Echte Stemmen voor alle luchthavens</span></span>
+      <span><strong id="upd-ver">v1.5.3</strong> beschikbaar &bull; <span id="upd-note">Directe Communicatie bij klik & Dagzicht schakelaar</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -394,12 +397,15 @@
     </div>
 
     <div class="header-right">
+      <div class="pill daylight-pill active" id="btn-toggle-daylight" title="Schakel tussen Realistische Nacht/Zon en Dagzicht">
+        <span id="txt-daylight">☀️ Dagzicht: AAN</span>
+      </div>
       <div class="pill liveatc-pill" id="pill-liveatc" title="LiveATC radio streaming aan/uitzetten">
         <span class="dot red" id="liveatc-dot"></span>
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.2</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.3</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -416,7 +422,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.2</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.3</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -437,7 +443,8 @@
     <div class="liveatc-deck">
       <div class="liveatc-row-top">
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies LiveATC station">
-          <option value="eham_gnd" selected>🇳🇱 Schiphol Grond (121.905 MHz LiveATC)</option>
+          <option value="eham_twr_rec" selected>🇳🇱 Schiphol Toren (Directe Communicatie - Echte Stemmen)</option>
+          <option value="eham_gnd">🇳🇱 Schiphol Grond (121.905 MHz LiveATC)</option>
           <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz LiveATC)</option>
           <option value="eham_atis_live">🇳🇱 Schiphol ATIS Live (132.980 MHz LiveATC)</option>
           <option value="eham_atis_rec">🇳🇱 Schiphol Radio (Lokale Echte Stemmen Opname)</option>
@@ -602,8 +609,9 @@
     </div>
     <div class="sep"></div>
     <div class="ctrl-group">
-      <span class="ctrl-label">Lagen</span>
+      <span class="ctrl-label">Lagen & Zicht</span>
       <div class="btn-row">
+        <button class="btn daylight-btn active" id="btn-ctrl-daylight" title="Schakel tussen dag- en nachtbelichting">☀️ Dagzicht</button>
         <button class="btn active" data-layer="flights" id="btn-flights">✈ Vluchten</button>
         <button class="btn active" data-layer="airports" id="btn-airports">🔵 Hubs</button>
         <button class="btn active" data-layer="trails" id="btn-trails">〜 Bogen</button>
