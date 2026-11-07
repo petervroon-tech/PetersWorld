@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PetersWorld – Real 3D Globe, Airport Board, Operations & Live ATC</title>
-  <meta name="description" content="Fotorealistische 3D wereldbol met live vluchten, luchthaven vertrek- en aankomstborden, operationele regie en realtime communicatie met echte stemmen." />
+  <title>PetersWorld – Real 3D Globe, Airport 300m Zoom & Live ATC Radio</title>
+  <meta name="description" content="Fotorealistische 3D wereldbol met live vluchten, inzoomen tot 300 meter boven vliegvelden, 3D landingsbanen en echte LiveATC radio communicatie." />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -14,8 +14,8 @@
   <style>
     :root {
       --bg: #030712;
-      --panel: rgba(8,18,36,0.92);
-      --panel-hover: rgba(15,30,60,0.97);
+      --panel: rgba(8,18,36,0.94);
+      --panel-hover: rgba(15,30,60,0.98);
       --cyan: #38bdf8;
       --cyan-dim: rgba(56,189,248,0.25);
       --gold: #facc15;
@@ -30,7 +30,7 @@
       --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --blur: blur(14px);
       --ease: 0.22s cubic-bezier(0.16,1,0.3,1);
-      --border: rgba(56,189,248,0.24);
+      --border: rgba(56,189,248,0.26);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
@@ -75,7 +75,7 @@
       display: flex; align-items: center; gap: 8px; pointer-events: auto;
     }
     .airport-quick-select {
-      background: rgba(8,18,36,0.92); border: 1px solid var(--gold);
+      background: rgba(8,18,36,0.94); border: 1px solid var(--gold);
       color: var(--gold); font-family: var(--mono); font-size: .8rem; font-weight: 600;
       padding: 6px 12px; border-radius: 10px; backdrop-filter: var(--blur);
       cursor: pointer; outline: none; box-shadow: 0 4px 18px rgba(0,0,0,.4);
@@ -91,6 +91,8 @@
     }
     .pill:hover { background: var(--panel-hover); border-color: var(--cyan); }
     .pill.active { border-color: var(--cyan); background: rgba(2,132,199,.25); }
+    .pill.liveatc-pill { border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.12); color: #fca5a5; }
+    .pill.liveatc-pill:hover { background: rgba(239,68,68,.25); border-color: var(--red); }
     .dot { width: 7px; height: 7px; border-radius: 50%; animation: blink 2s infinite; }
     .dot.green { background: var(--green); box-shadow: 0 0 7px var(--green); }
     .dot.gold  { background: var(--gold);  box-shadow: 0 0 7px var(--gold);  }
@@ -119,13 +121,13 @@
     .hud-val.go { color: var(--gold); }
     .hud-val.gr { color: var(--green); }
 
-    /* ── ATC Radio Transceiver Console (Left-Bottom) ── */
+    /* ── LiveATC Radio Transceiver Console (Left-Bottom) ── */
     #atc-console {
-      position: fixed; bottom: 85px; left: 16px; z-index: 15; width: 340px;
-      background: rgba(6,15,30,0.94); border: 1px solid var(--cyan); border-radius: 12px;
+      position: fixed; bottom: 85px; left: 16px; z-index: 15; width: 360px;
+      background: rgba(6,15,30,0.96); border: 1px solid var(--cyan); border-radius: 14px;
       backdrop-filter: var(--blur); padding: 12px 14px;
       display: flex; flex-direction: column; gap: 8px;
-      box-shadow: 0 10px 35px rgba(0,0,0,.7), 0 0 20px rgba(56,189,248,0.22);
+      box-shadow: 0 10px 40px rgba(0,0,0,.75), 0 0 20px rgba(56,189,248,0.22);
     }
     .atc-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -139,6 +141,7 @@
     }
     .atc-tx-indicator.tx-tower { background: rgba(239,68,68,.3); color: var(--red); border-color: var(--red); animation: blink .8s infinite; }
     .atc-tx-indicator.tx-pilot { background: rgba(250,204,21,.3); color: var(--gold); border-color: var(--gold); animation: blink .8s infinite; }
+    .atc-tx-indicator.tx-live { background: rgba(239,68,68,.35); color: #f87171; border-color: var(--red); animation: blink 1s infinite; }
     .atc-freq { font-family: var(--mono); font-size: .88rem; font-weight: 700; color: var(--gold); letter-spacing: .5px; }
     .atc-channel { font-size: .65rem; color: var(--cyan); text-transform: uppercase; font-family: var(--mono); }
     .atc-actions { display: flex; gap: 6px; }
@@ -149,13 +152,30 @@
       transition: all var(--ease);
     }
     .btn-icon-sm:hover { background: rgba(56,189,248,.2); border-color: var(--cyan); }
-    .atc-voice-badge {
-      font-size: .63rem; color: #a5f3fc; font-family: var(--mono); display: flex; align-items: center; gap: 4px;
-      background: rgba(56,189,248,.1); padding: 2px 6px; border-radius: 4px;
+
+    /* LiveATC Player Controls in Console */
+    .liveatc-deck {
+      background: rgba(0,0,0,.45); border: 1px solid rgba(239,68,68,.35); border-radius: 8px;
+      padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;
     }
+    .liveatc-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .liveatc-station-select {
+      flex: 1; background: #081224; border: 1px solid rgba(239,68,68,.4); color: #fca5a5;
+      font-family: var(--mono); font-size: .72rem; padding: 4px 6px; border-radius: 5px; outline: none;
+    }
+    .liveatc-play-btn {
+      background: rgba(239,68,68,.25); border: 1px solid var(--red); color: #fff;
+      font-family: var(--mono); font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 5px;
+      cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all var(--ease);
+    }
+    .liveatc-play-btn:hover { background: rgba(239,68,68,.45); }
+    .liveatc-play-btn.playing { background: rgba(34,197,94,.3); border-color: var(--green); color: #86efac; }
+    .liveatc-status-row { display: flex; align-items: center; justify-content: space-between; font-size: .64rem; font-family: var(--mono); color: var(--muted); }
+    .canvas-viz { width: 100%; height: 24px; background: rgba(0,0,0,.5); border-radius: 4px; display: block; border: 1px solid rgba(56,189,248,.15); }
+
     .atc-log-box {
       font-family: var(--mono); font-size: .73rem; line-height: 1.45;
-      max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;
+      max-height: 100px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;
       padding-right: 4px;
     }
     .atc-msg-line {
@@ -168,7 +188,7 @@
 
     /* ── Main Panel (Right): Tabs between Airport Board & All Flights ── */
     #right-deck {
-      position: fixed; top: 80px; right: 16px; z-index: 10; width: 380px; max-height: calc(100vh - 110px);
+      position: fixed; top: 80px; right: 16px; z-index: 10; width: 390px; max-height: calc(100vh - 110px);
       background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
       backdrop-filter: var(--blur); padding: 12px 14px;
       display: flex; flex-direction: column; gap: 10px;
@@ -186,7 +206,7 @@
 
     /* Airport Board Card */
     .airport-banner {
-      background: linear-gradient(135deg, rgba(8,30,60,0.85), rgba(15,23,42,0.95));
+      background: linear-gradient(135deg, rgba(8,30,60,0.88), rgba(15,23,42,0.96));
       border: 1px solid rgba(56,189,248,0.3); border-radius: 10px; padding: 10px 12px;
       display: flex; flex-direction: column; gap: 6px;
     }
@@ -195,6 +215,22 @@
     .ap-code { font-family: var(--mono); font-size: .8rem; font-weight: 800; color: var(--gold); background: rgba(250,204,21,.15); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--gold); }
     .ap-meta-row { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); font-family: var(--mono); }
     .ap-weather-tag { color: var(--cyan); background: rgba(56,189,248,.12); padding: 2px 6px; border-radius: 4px; }
+    
+    /* 300m Zoom Action Bar inside Airport Card */
+    .ap-zoom-action-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      margin-top: 2px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.08);
+    }
+    .ap-alt-display {
+      font-family: var(--mono); font-size: .70rem; color: #67e8f9; display: flex; align-items: center; gap: 5px;
+    }
+    .btn-zoom-300-quick {
+      background: linear-gradient(135deg, rgba(2,132,199,.35), rgba(124,58,237,.35));
+      border: 1px solid var(--cyan); color: #fff; font-family: var(--mono); font-size: .68rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all var(--ease);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .btn-zoom-300-quick:hover { background: linear-gradient(135deg, rgba(2,132,199,.6), rgba(124,58,237,.6)); box-shadow: 0 0 10px rgba(56,189,248,.4); }
 
     /* Sub Tabs (Departures, Arrivals, Regie) */
     .board-sub-nav { display: flex; gap: 5px; border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 6px; }
@@ -207,7 +243,7 @@
 
     /* FIDS Table / Lists */
     .fids-scroll {
-      overflow-y: auto; max-height: calc(100vh - 360px); display: flex; flex-direction: column; gap: 6px; padding-right: 2px;
+      overflow-y: auto; max-height: calc(100vh - 380px); display: flex; flex-direction: column; gap: 6px; padding-right: 2px;
     }
     .fids-row {
       background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 8px;
@@ -237,7 +273,7 @@
 
     /* Regie Panel Controls */
     .regie-box {
-      display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: calc(100vh - 360px);
+      display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: calc(100vh - 380px);
     }
     .regie-section {
       background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 8px 10px;
@@ -312,6 +348,8 @@
     }
     .btn:hover { background: rgba(56,189,248,.14); border-color: var(--cyan); }
     .btn.active { background: rgba(2,132,199,.55); border-color: var(--cyan); box-shadow: 0 0 10px rgba(56,189,248,.35); }
+    .btn.zoom-btn { border-color: rgba(56,189,248,.4); background: rgba(56,189,248,.12); color: #bae6fd; font-weight: 600; }
+    .btn.zoom-btn:hover { background: rgba(56,189,248,.25); border-color: var(--cyan); }
     .btn.radio-btn { border-color: rgba(250,204,21,.4); background: rgba(250,204,21,.1); }
     .btn.radio-btn:hover { background: rgba(250,204,21,.25); border-color: var(--gold); }
     .sep { width: 1px; height: 28px; background: rgba(255,255,255,.1); }
@@ -332,7 +370,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.4.0</strong> beschikbaar &bull; <span id="upd-note">Luchthaven vluchtenbord & regie actief</span></span>
+      <span><strong id="upd-ver">v1.5.0</strong> beschikbaar &bull; <span id="upd-note">300m Baan-zoom & LiveATC audio actief</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -346,7 +384,7 @@
       <img src="favicon.svg" alt="logo" />
       <div>
         <div class="brand-name">PetersWorld</div>
-        <div class="brand-sub">Airport Board · Regie · Live ATC</div>
+        <div class="brand-sub">3D Earth · 300m Baanzicht · LiveATC</div>
       </div>
     </div>
 
@@ -356,12 +394,12 @@
     </div>
 
     <div class="header-right">
-      <div class="pill active" id="pill-atc" title="Luchtverkeersleiding (ATC) Radio in/uitschakelen">
-        <span class="dot green" id="atc-dot"></span>
-        <span id="atc-txt">📻 ATC: 118.100 MHz [AAN]</span>
+      <div class="pill liveatc-pill" id="pill-liveatc" title="LiveATC radio streaming aan/uitzetten">
+        <span class="dot red" id="liveatc-dot"></span>
+        <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.4.0</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -369,19 +407,19 @@
   <!-- Stats HUD -->
   <div id="hud">
     <div class="hud-title">
-      <span>✈ RADAR STATISTIEKEN</span>
+      <span>✈ RADAR & HOOGTE</span>
       <span id="hud-fps" class="hud-val cy">60 fps</span>
     </div>
+    <div class="hud-row"><span class="hud-label">Camera hoogte</span><span class="hud-val cy" id="hud-cam-alt">300 m</span></div>
     <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">120</span></div>
     <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">14.280</span></div>
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
-    <div class="hud-row"><span class="hud-label">Gem. snelheid</span><span class="hud-val gr" id="hud-speed">915 km/h</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.4.0</span></div>
-    <div class="hud-row"><span class="hud-label">Sim tick</span><span class="hud-val" id="hud-tick">0</span></div>
+    <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.0</span></div>
   </div>
 
-  <!-- ATC Radio Transceiver Console -->
+  <!-- LiveATC Radio Transceiver Console -->
   <div id="atc-console" aria-label="ATC Radio Transceiver">
     <div class="atc-header">
       <div class="atc-freq-wrap">
@@ -394,15 +432,35 @@
         <button class="btn-icon-sm" id="btn-atc-call" title="Zend Oproep (Tower ↔ Piloot)">🎙️</button>
       </div>
     </div>
-    <div class="atc-voice-badge" id="atc-voice-info">
-      <span>🗣️ Echte stemmen:</span>
-      <span id="atc-active-voices">Laden...</span>
-    </div>
-    <div id="atc-log" class="atc-log-box">
-      <div class="atc-msg-line">
-        <span class="atc-speaker">📻 RADIO:</span> Schiphol Toren 118.100 MHz actief. Klik op een luchthaven of voer een actie uit!
+
+    <!-- LiveATC Stream Deck (Net zoals de LiveATC App) -->
+    <div class="liveatc-deck">
+      <div class="liveatc-row-top">
+        <select id="liveatc-station-select" class="liveatc-station-select" title="Kies LiveATC station">
+          <option value="eham_twr">🇳🇱 Schiphol Toren (118.100 MHz - EHAM)</option>
+          <option value="kjfk_twr">🇺🇸 New York JFK Toren (119.100 MHz Live)</option>
+          <option value="ksfo_twr">🇺🇸 San Francisco Toren (120.500 MHz Live)</option>
+          <option value="katl_twr">🇺🇸 Atlanta Tower (119.500 MHz Live)</option>
+          <option value="kewr_twr">🇺🇸 Newark Liberty Toren (118.300 MHz Live)</option>
+          <option value="kbos_twr">🇺🇸 Boston Logan Toren (119.100 MHz Live)</option>
+        </select>
+        <button id="btn-liveatc-toggle" class="liveatc-play-btn">▶ PLAY</button>
+      </div>
+      <canvas id="atc-audio-visualizer" class="canvas-viz" width="320" height="24"></canvas>
+      <div class="liveatc-status-row">
+        <span id="liveatc-status-txt">📻 LiveATC stream gereed</span>
+        <span id="liveatc-smeter">S-METER: S9+10dB</span>
       </div>
     </div>
+
+    <div id="atc-log" class="atc-log-box">
+      <div class="atc-msg-line">
+        <span class="atc-speaker">📻 RADIO:</span> Schiphol Toren 118.100 MHz actief. Klik op ▶ PLAY voor LiveATC stream of zoom in tot 300m!
+      </div>
+    </div>
+
+    <!-- Verborgen HTML5 Audio Element voor echte LiveATC streams -->
+    <audio id="liveatc-audio-element" preload="none" crossorigin="anonymous"></audio>
   </div>
 
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
@@ -415,7 +473,7 @@
 
     <!-- Section 1: Airport Board & Operations Deck -->
     <div id="airport-deck-view" style="display:flex;flex-direction:column;gap:10px;">
-      <!-- Selected Airport Banner -->
+      <!-- Selected Airport Banner with 300m Zoom Action -->
       <div class="airport-banner">
         <div class="ap-title-row">
           <div class="ap-name" id="ap-disp-name">🇳🇱 Amsterdam Schiphol</div>
@@ -424,6 +482,10 @@
         <div class="ap-meta-row">
           <span id="ap-disp-time">🕐 20:30 Lokale tijd</span>
           <span class="ap-weather-tag" id="ap-disp-weather">🌦️ Baan 24 · Wind 220° 12kt</span>
+        </div>
+        <div class="ap-zoom-action-bar">
+          <span class="ap-alt-display" id="ap-disp-altitude">📷 Hoogte: 300 m (Kaagbaan)</span>
+          <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🔍 Baanzicht (300m)</button>
         </div>
       </div>
 
@@ -518,8 +580,17 @@
     <div class="tt-bar-wrap"><div class="tt-bar" id="tt-bar" style="width:0%"></div></div>
   </div>
 
-  <!-- Controls (Bottom Center) -->
+  <!-- Controls (Bottom Center) with 300m Zoom Buttons -->
   <div id="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Camera & Hoogte</span>
+      <div class="btn-row">
+        <button class="btn zoom-btn" id="btn-zoom-300" title="Zoom direct in tot 300 meter boven de landingsbaan">🔍 300m Baan</button>
+        <button class="btn zoom-btn" id="btn-zoom-1500" title="Zoom naar naderingshoogte (1.5 km)">🛬 1.5 km</button>
+        <button class="btn" id="btn-zoom-globe" title="Volledige aardbol overzicht">🌍 Globe</button>
+      </div>
+    </div>
+    <div class="sep"></div>
     <div class="ctrl-group">
       <span class="ctrl-label">Lagen</span>
       <div class="btn-row">
@@ -527,12 +598,11 @@
         <button class="btn active" data-layer="airports" id="btn-airports">🔵 Hubs</button>
         <button class="btn active" data-layer="trails" id="btn-trails">〜 Bogen</button>
         <button class="btn active" data-layer="clouds" id="btn-clouds">☁ Wolken</button>
-        <button class="btn active" data-layer="atmosphere" id="btn-atmo">✨ Atmosfeer</button>
       </div>
     </div>
     <div class="sep"></div>
     <div class="ctrl-group">
-      <span class="ctrl-label">ATC Radio</span>
+      <span class="ctrl-label">LiveATC Radio</span>
       <div class="btn-row">
         <button class="btn radio-btn" id="btn-atc-trigger">🎙️ Zend Oproep</button>
       </div>
@@ -545,15 +615,6 @@
         <button class="btn active" data-speed="1">1×</button>
         <button class="btn" data-speed="3">3×</button>
         <button class="btn" data-speed="10">10×</button>
-      </div>
-    </div>
-    <div class="sep"></div>
-    <div class="ctrl-group">
-      <span class="ctrl-label">Camera</span>
-      <div class="btn-row">
-        <button class="btn" id="btn-reset">🎯 Reset</button>
-        <button class="btn" id="btn-focus-airport">🏢 Naar Vliegveld</button>
-        <button class="btn" id="btn-follow">📍 Volg vlucht</button>
       </div>
     </div>
   </div>

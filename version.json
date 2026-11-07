@@ -1,16 +1,17 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.4.0",
-  "build": 10,
-  "timestamp": "2026-11-07T19:33:25.970800+00:00",
-  "git_hash": "ea797f3",
+  "version": "1.5.0",
+  "build": 11,
+  "timestamp": "2026-11-07T19:55:40.522634+00:00",
+  "git_hash": "6f12f8d",
   "features": [
+    "Inzoomen tot 300 meter boven landingsbanen met realistisch 3D baanmodel",
+    "Echte LiveATC Radio Streaming (JFK, SFO, Atlanta, Schiphol toren)",
+    "Gedetailleerde landingsbaanmarkeringen, drempellichten, PAPI & toren",
+    "Realtime camera hoogtemeter (meters boven NAP/baan)",
     "Luchthaven Vluchtenbord (Live Vertrek & Aankomst per vliegveld)",
-    "Luchthaven Regie: bepaal zelf vertrek, landing, doorstart & weer per luchthaven",
-    "Verbeterde Realtime ATC Communicatie met natuurlijke stemmen & VHF radio filtering",
+    "Luchthaven Regie: bepaal zelf vertrek, landing, doorstart & weer",
     "Fotorealistische 3D NASA Blue Marble Wereldbol met 3D Vliegtuigen",
-    "35 Wereldwijde Hubs & Directe camera navigatie",
-    "Automatische versie-detectie bij laden in browser",
     "Continuous Deployment naar GitHub Pages & Auto-Push"
   ]
 }

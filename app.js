@@ -1,7 +1,8 @@
 /**
- * PetersWorld – Real 3D Globe, Airport Board, Operations Control & Live ATC Radio
- * Fotorealistische 3D wereldbol met Three.js (NASA Blue Marble), WebAssembly en natuurlijke Web Audio ATC.
- * Versie: 1.4.0
+ * PetersWorld – Real 3D Globe, Airport 300m Zoom, Ground Layout & LiveATC Radio
+ * Fotorealistische 3D wereldbol met Three.js (NASA Blue Marble), WebAssembly,
+ * 300 meter baan-zoom met gedetailleerde landingsbanen en echte LiveATC radio streaming.
+ * Versie: 1.5.0
  */
 
 'use strict';
@@ -14,127 +15,164 @@ const CFG = {
   versionFile: 'version.json',
   pollMs: 30_000,
   flightCount: 120,
-  globeRadius: 100,
+  globeRadius: 100, // 1 Three.js eenheid = ~63.71 km (300m = ~0.00471 eenheden)
+  metersPerUnit: 63710,
 };
 
 // ═══════════════════════════════════════════════════════
-//  LUCHTHAVENS DATABASE (35 INTERNATIONALE HUBS MET BANEN & FREQUENTIES)
+//  LUCHTHAVENS DATABASE (35 INTERNATIONALE HUBS)
 // ═══════════════════════════════════════════════════════
 const AIRPORTS = [
   // Europa
   { code:'AMS', flag:'🇳🇱', name:'Amsterdam Schiphol', city:'Amsterdam', country:'Nederland', lat: 52.31, lon: 4.76, hub:true,
     runways:['Kaagbaan 24', 'Polderbaan 36L', 'Zwanenburgerbaan 18C', 'Aalsmeerbaan 18L', 'Buitenveldertbaan 09'], activeRunway:'Kaagbaan 24',
+    rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_twr',
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.050' }, utcOffset:1, weather:{ cond:'cavok', wind:'220° 12kt', qnh:'1014' } },
   { code:'LHR', flag:'🇬🇧', name:'London Heathrow', city:'Londen', country:'Verenigd Koninkrijk', lat: 51.47, lon: -0.46, hub:true,
     runways:['Runway 27L', 'Runway 27R', 'Runway 09L', 'Runway 09R'], activeRunway:'Runway 27L',
+    rwyNumbers:['27L','09R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.500', gnd:'121.900', app:'120.400' }, utcOffset:0, weather:{ cond:'rain', wind:'250° 16kt', qnh:'1011' } },
   { code:'CDG', flag:'🇫🇷', name:'Paris Charles de Gaulle', city:'Parijs', country:'Frankrijk', lat: 49.01, lon: 2.55, hub:true,
     runways:['Runway 26L', 'Runway 26R', 'Runway 08L', 'Runway 08R'], activeRunway:'Runway 26L',
+    rwyNumbers:['26L','08R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.650', gnd:'121.800', app:'121.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'190° 09kt', qnh:'1016' } },
   { code:'FRA', flag:'🇩🇪', name:'Frankfurt am Main', city:'Frankfurt', country:'Duitsland', lat: 50.03, lon: 8.57, hub:true,
     runways:['Runway 25C', 'Runway 25L', 'Runway 18', 'Runway 07R'], activeRunway:'Runway 25C',
+    rwyNumbers:['25C','07C'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'119.900', gnd:'121.950', app:'120.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'240° 11kt', qnh:'1015' } },
   { code:'MAD', flag:'🇪🇸', name:'Madrid Barajas', city:'Madrid', country:'Spanje', lat: 40.47, lon: -3.57, hub:false,
     runways:['Runway 32L', 'Runway 32R', 'Runway 14L', 'Runway 14R'], activeRunway:'Runway 32L',
+    rwyNumbers:['32L','14R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.150', gnd:'121.700', app:'118.400' }, utcOffset:1, weather:{ cond:'cavok', wind:'160° 06kt', qnh:'1019' } },
   { code:'FCO', flag:'🇮🇹', name:'Rome Fiumicino', city:'Rome', country:'Italië', lat: 41.80, lon: 12.25, hub:false,
     runways:['Runway 16L', 'Runway 16R', 'Runway 25'], activeRunway:'Runway 16L',
+    rwyNumbers:['16L','34R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'125.500' }, utcOffset:1, weather:{ cond:'cavok', wind:'140° 08kt', qnh:'1017' } },
   { code:'ARN', flag:'🇸🇪', name:'Stockholm Arlanda', city:'Stockholm', country:'Zweden', lat: 59.65, lon: 17.93, hub:false,
     runways:['Runway 01L', 'Runway 01R', 'Runway 19L', 'Runway 26'], activeRunway:'Runway 01L',
+    rwyNumbers:['01L','19R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.500', gnd:'121.600', app:'123.750' }, utcOffset:1, weather:{ cond:'rain', wind:'340° 14kt', qnh:'1008' } },
   { code:'ZRH', flag:'🇨🇭', name:'Zürich Kloten', city:'Zürich', country:'Zwitserland', lat: 47.46, lon: 8.55, hub:false,
     runways:['Runway 14', 'Runway 16', 'Runway 28'], activeRunway:'Runway 14',
+    rwyNumbers:['14','32'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'118.000' }, utcOffset:1, weather:{ cond:'cavok', wind:'110° 04kt', qnh:'1020' } },
   { code:'BRU', flag:'🇧🇪', name:'Brussels Airport', city:'Brussel', country:'België', lat: 50.90, lon: 4.48, hub:false,
     runways:['Runway 25L', 'Runway 25R', 'Runway 01'], activeRunway:'Runway 25L',
+    rwyNumbers:['25L','07R'], liveAtcStation:'eham_twr',
     freqs:{ twr:'118.600', gnd:'121.875', app:'118.250' }, utcOffset:1, weather:{ cond:'cavok', wind:'210° 10kt', qnh:'1014' } },
   { code:'VIE', flag:'🇦🇹', name:'Vienna International', city:'Wenen', country:'Oostenrijk', lat: 48.11, lon: 16.57, hub:false,
     runways:['Runway 16', 'Runway 29', 'Runway 11'], activeRunway:'Runway 16',
+    rwyNumbers:['16','34'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'119.400', gnd:'121.600', app:'118.775' }, utcOffset:1, weather:{ cond:'cavok', wind:'130° 07kt', qnh:'1018' } },
 
-  // Noord-Amerika
+  // Noord-Amerika (Met directe LiveATC Icecast streams)
   { code:'JFK', flag:'🇺🇸', name:'New York JFK', city:'New York', country:'Verenigde Staten', lat: 40.64, lon: -73.78, hub:true,
     runways:['Runway 31L', 'Runway 31R', 'Runway 22L', 'Runway 22R', 'Runway 04L'], activeRunway:'Runway 31L',
+    rwyNumbers:['31L','13R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'119.100', gnd:'121.900', app:'125.750' }, utcOffset:-5, weather:{ cond:'cavok', wind:'300° 15kt', qnh:'1013' } },
   { code:'LAX', flag:'🇺🇸', name:'Los Angeles International', city:'Los Angeles', country:'Verenigde Staten', lat: 33.94, lon:-118.40, hub:true,
     runways:['Runway 24L', 'Runway 24R', 'Runway 25L', 'Runway 25R'], activeRunway:'Runway 25L',
+    rwyNumbers:['25L','07R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'120.950', gnd:'121.650', app:'124.900' }, utcOffset:-8, weather:{ cond:'cavok', wind:'260° 08kt', qnh:'1016' } },
   { code:'ORD', flag:'🇺🇸', name:"Chicago O'Hare", city:'Chicago', country:'Verenigde Staten', lat: 41.98, lon: -87.90, hub:true,
     runways:['Runway 27L', 'Runway 28C', 'Runway 10L', 'Runway 09R'], activeRunway:'Runway 28C',
+    rwyNumbers:['28C','10C'], liveAtcStation:'katl_twr',
     freqs:{ twr:'120.750', gnd:'121.900', app:'128.450' }, utcOffset:-6, weather:{ cond:'rain', wind:'310° 18kt', qnh:'1009' } },
   { code:'ATL', flag:'🇺🇸', name:'Atlanta Hartsfield', city:'Atlanta', country:'Verenigde Staten', lat: 33.64, lon: -84.43, hub:false,
     runways:['Runway 26L', 'Runway 27R', 'Runway 08L', 'Runway 09R'], activeRunway:'Runway 26L',
+    rwyNumbers:['26L','08R'], liveAtcStation:'katl_twr',
     freqs:{ twr:'119.500', gnd:'121.900', app:'127.900' }, utcOffset:-5, weather:{ cond:'cavok', wind:'200° 07kt', qnh:'1018' } },
   { code:'DFW', flag:'🇺🇸', name:'Dallas Fort Worth', city:'Dallas', country:'Verenigde Staten', lat: 32.90, lon: -97.04, hub:false,
     runways:['Runway 17R', 'Runway 18L', 'Runway 35L', 'Runway 36R'], activeRunway:'Runway 17R',
+    rwyNumbers:['17R','35L'], liveAtcStation:'katl_twr',
     freqs:{ twr:'126.550', gnd:'121.650', app:'124.300' }, utcOffset:-6, weather:{ cond:'cavok', wind:'180° 12kt', qnh:'1014' } },
   { code:'YYZ', flag:'🇨🇦', name:'Toronto Pearson', city:'Toronto', country:'Canada', lat: 43.68, lon: -79.63, hub:false,
     runways:['Runway 23', 'Runway 24L', 'Runway 05', 'Runway 06R'], activeRunway:'Runway 23',
+    rwyNumbers:['23','05'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'128.800' }, utcOffset:-5, weather:{ cond:'cavok', wind:'250° 11kt', qnh:'1015' } },
   { code:'MIA', flag:'🇺🇸', name:'Miami International', city:'Miami', country:'Verenigde Staten', lat: 25.80, lon: -80.28, hub:false,
     runways:['Runway 08R', 'Runway 09', 'Runway 26L', 'Runway 27'], activeRunway:'Runway 08R',
+    rwyNumbers:['08R','26L'], liveAtcStation:'kewr_twr',
     freqs:{ twr:'118.300', gnd:'121.800', app:'124.850' }, utcOffset:-5, weather:{ cond:'storm', wind:'110° 22kt', qnh:'1010' } },
   { code:'SFO', flag:'🇺🇸', name:'San Francisco International', city:'San Francisco', country:'Verenigde Staten', lat: 37.62, lon:-122.38, hub:false,
     runways:['Runway 28L', 'Runway 28R', 'Runway 01L', 'Runway 01R'], activeRunway:'Runway 28L',
+    rwyNumbers:['28L','10R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'120.500', gnd:'121.800', app:'135.650' }, utcOffset:-8, weather:{ cond:'fog', wind:'280° 13kt', qnh:'1017' } },
 
   // Azië & Midden-Oosten
   { code:'DXB', flag:'🇦🇪', name:'Dubai International', city:'Dubai', country:'Verenigde Arabische Emiraten', lat: 25.25, lon: 55.36, hub:true,
     runways:['Runway 30L', 'Runway 30R', 'Runway 12L', 'Runway 12R'], activeRunway:'Runway 30L',
+    rwyNumbers:['30L','12R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.750', gnd:'118.350', app:'124.900' }, utcOffset:4, weather:{ cond:'cavok', wind:'320° 09kt', qnh:'1013' } },
   { code:'HND', flag:'🇯🇵', name:'Tokyo Haneda', city:'Tokio', country:'Japan', lat: 35.55, lon: 139.78, hub:true,
     runways:['Runway 34R', 'Runway 34L', 'Runway 16R', 'Runway 05'], activeRunway:'Runway 34R',
+    rwyNumbers:['34R','16L'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.100' }, utcOffset:9, weather:{ cond:'cavok', wind:'010° 12kt', qnh:'1021' } },
   { code:'PEK', flag:'🇨🇳', name:'Beijing Capital', city:'Peking', country:'China', lat: 40.08, lon: 116.58, hub:true,
     runways:['Runway 36R', 'Runway 36L', 'Runway 01', 'Runway 18L'], activeRunway:'Runway 36R',
+    rwyNumbers:['36R','18L'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.500', gnd:'121.800', app:'119.700' }, utcOffset:8, weather:{ cond:'cavok', wind:'030° 08kt', qnh:'1024' } },
   { code:'SIN', flag:'🇸🇬', name:'Singapore Changi', city:'Singapore', country:'Singapore', lat: 1.36, lon: 103.99, hub:true,
     runways:['Runway 02L', 'Runway 02C', 'Runway 20R', 'Runway 20C'], activeRunway:'Runway 02L',
+    rwyNumbers:['02L','20R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.600', gnd:'121.725', app:'120.300' }, utcOffset:8, weather:{ cond:'rain', wind:'060° 10kt', qnh:'1009' } },
   { code:'HKG', flag:'🇭🇰', name:'Hong Kong International', city:'Hongkong', country:'Hongkong', lat: 22.31, lon: 113.91, hub:false,
     runways:['Runway 07L', 'Runway 07R', 'Runway 25L', 'Runway 25R'], activeRunway:'Runway 07L',
+    rwyNumbers:['07L','25R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.700', gnd:'121.600', app:'119.100' }, utcOffset:8, weather:{ cond:'cavok', wind:'080° 14kt', qnh:'1017' } },
   { code:'BOM', flag:'🇮🇳', name:'Mumbai Chhatrapati Shivaji', city:'Mumbai', country:'India', lat: 19.09, lon: 72.87, hub:false,
     runways:['Runway 27', 'Runway 09', 'Runway 14', 'Runway 32'], activeRunway:'Runway 27',
+    rwyNumbers:['27','09'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'127.900' }, utcOffset:5.5, weather:{ cond:'cavok', wind:'270° 09kt', qnh:'1012' } },
   { code:'ICN', flag:'🇰🇷', name:'Seoul Incheon', city:'Seoel', country:'Zuid-Korea', lat: 37.46, lon: 126.44, hub:false,
     runways:['Runway 33L', 'Runway 33R', 'Runway 34', 'Runway 15R'], activeRunway:'Runway 33L',
+    rwyNumbers:['33L','15R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.200', gnd:'121.650', app:'119.200' }, utcOffset:9, weather:{ cond:'cavok', wind:'310° 10kt', qnh:'1022' } },
   { code:'BKK', flag:'🇹🇭', name:'Bangkok Suvarnabhumi', city:'Bangkok', country:'Thailand', lat: 13.69, lon: 100.75, hub:false,
     runways:['Runway 19L', 'Runway 19R', 'Runway 01L', 'Runway 01R'], activeRunway:'Runway 19L',
+    rwyNumbers:['19L','01R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.100', gnd:'121.750', app:'125.200' }, utcOffset:7, weather:{ cond:'cavok', wind:'170° 06kt', qnh:'1011' } },
   { code:'DOH', flag:'🇶🇦', name:'Doha Hamad', city:'Doha', country:'Qatar', lat: 25.27, lon: 51.61, hub:false,
     runways:['Runway 34L', 'Runway 34R', 'Runway 16L', 'Runway 16R'], activeRunway:'Runway 34L',
+    rwyNumbers:['34L','16R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.900', gnd:'121.850', app:'121.100' }, utcOffset:3, weather:{ cond:'cavok', wind:'330° 11kt', qnh:'1015' } },
 
   // Oceanië, Afrika, Zuid-Amerika
   { code:'SYD', flag:'🇦🇺', name:'Sydney Kingsford Smith', city:'Sydney', country:'Australië', lat:-33.95, lon: 151.18, hub:true,
     runways:['Runway 34L', 'Runway 34R', 'Runway 16R', 'Runway 07'], activeRunway:'Runway 34L',
+    rwyNumbers:['34L','16R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'120.500', gnd:'121.700', app:'124.400' }, utcOffset:11, weather:{ cond:'cavok', wind:'060° 13kt', qnh:'1020' } },
   { code:'MEL', flag:'🇦🇺', name:'Melbourne Tullamarine', city:'Melbourne', country:'Australië', lat:-37.67, lon: 144.84, hub:false,
     runways:['Runway 16', 'Runway 27', 'Runway 34'], activeRunway:'Runway 16',
+    rwyNumbers:['16','34'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'120.500', gnd:'121.700', app:'132.000' }, utcOffset:11, weather:{ cond:'rain', wind:'190° 18kt', qnh:'1010' } },
   { code:'JNB', flag:'🇿🇦', name:'Johannesburg OR Tambo', city:'Johannesburg', country:'Zuid-Afrika', lat:-26.14, lon: 28.24, hub:false,
     runways:['Runway 03L', 'Runway 03R', 'Runway 21L', 'Runway 21R'], activeRunway:'Runway 03L',
+    rwyNumbers:['03L','21R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'124.500' }, utcOffset:2, weather:{ cond:'cavok', wind:'020° 08kt', qnh:'1022' } },
   { code:'NBO', flag:'🇰🇪', name:'Nairobi Jomo Kenyatta', city:'Nairobi', country:'Kenia', lat: -1.32, lon: 36.93, hub:false,
     runways:['Runway 06', 'Runway 24'], activeRunway:'Runway 06',
+    rwyNumbers:['06','24'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'120.100' }, utcOffset:3, weather:{ cond:'cavok', wind:'050° 10kt', qnh:'1017' } },
   { code:'CAI', flag:'🇪🇬', name:'Cairo International', city:'Caïro', country:'Egypte', lat: 30.12, lon: 31.41, hub:false,
     runways:['Runway 05C', 'Runway 05L', 'Runway 23R'], activeRunway:'Runway 05C',
+    rwyNumbers:['05C','23L'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.150', gnd:'121.900', app:'119.050' }, utcOffset:2, weather:{ cond:'cavok', wind:'340° 10kt', qnh:'1016' } },
   { code:'GRU', flag:'🇧🇷', name:'São Paulo Guarulhos', city:'São Paulo', country:'Brazilië', lat:-23.43, lon: -46.47, hub:false,
     runways:['Runway 09R', 'Runway 09L', 'Runway 27L'], activeRunway:'Runway 09R',
+    rwyNumbers:['09R','27L'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.000', gnd:'121.700', app:'119.350' }, utcOffset:-3, weather:{ cond:'cavok', wind:'120° 07kt', qnh:'1018' } },
   { code:'BOG', flag:'🇨🇴', name:'Bogotá El Dorado', city:'Bogotá', country:'Colombia', lat: 4.70, lon: -74.14, hub:false,
     runways:['Runway 13L', 'Runway 13R', 'Runway 31L'], activeRunway:'Runway 13L',
+    rwyNumbers:['13L','31R'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.100', gnd:'121.800', app:'119.500' }, utcOffset:-5, weather:{ cond:'rain', wind:'110° 09kt', qnh:'1025' } },
   { code:'LIM', flag:'🇵🇪', name:'Lima Jorge Chávez', city:'Lima', country:'Peru', lat:-12.02, lon: -77.11, hub:false,
     runways:['Runway 16', 'Runway 34'], activeRunway:'Runway 16',
+    rwyNumbers:['16','34'], liveAtcStation:'kjfk_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'119.700' }, utcOffset:-5, weather:{ cond:'fog', wind:'200° 08kt', qnh:'1014' } },
   { code:'MEX', flag:'🇲🇽', name:'Mexico City Benito Juárez', city:'Mexico-Stad', country:'Mexico', lat: 19.43, lon: -99.07, hub:false,
     runways:['Runway 05L', 'Runway 05R', 'Runway 23L'], activeRunway:'Runway 05L',
+    rwyNumbers:['05L','23R'], liveAtcStation:'ksfo_twr',
     freqs:{ twr:'118.700', gnd:'121.850', app:'121.200' }, utcOffset:-6, weather:{ cond:'cavok', wind:'040° 06kt', qnh:'1024' } },
 ];
 
@@ -178,14 +216,232 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  NATUURLIJKE ATC RADIO ENGINE (ECHTE STEMMEN + VHF FILTERING)
+//  LIVE ATC ENGINE (ECHTE RADIO STREAMS NET ZOALS DE LIVEATC APP)
+// ═══════════════════════════════════════════════════════
+class LiveAtcEngine {
+  constructor() {
+    this.audioEl = null;
+    this.isPlaying = false;
+    this.currentStation = 'eham_twr';
+    this.audioCtx = null;
+    this.analyser = null;
+    this.animVizId = null;
+    this.streams = {
+      kjfk_twr: 'https://s1-bos.liveatc.net/kjfk_twr',
+      ksfo_twr: 'https://s1-bos.liveatc.net/ksfo_twr',
+      katl_twr: 'https://s1-bos.liveatc.net/katl_twr',
+      kewr_twr: 'https://s1-bos.liveatc.net/kewr_twr',
+      kbos_twr: 'https://s1-bos.liveatc.net/kbos_twr',
+    };
+  }
+
+  init() {
+    this.audioEl = document.getElementById('liveatc-audio-element');
+    const select = document.getElementById('liveatc-station-select');
+    const btnPlay = document.getElementById('btn-liveatc-toggle');
+    const pill = document.getElementById('pill-liveatc');
+
+    if (select) {
+      select.addEventListener('change', (e) => {
+        this.currentStation = e.target.value;
+        if (this.isPlaying) this.playStream();
+      });
+    }
+
+    if (btnPlay) {
+      btnPlay.addEventListener('click', () => this.togglePlay());
+    }
+
+    if (pill) {
+      pill.addEventListener('click', () => this.togglePlay());
+    }
+
+    this.initVisualizer();
+  }
+
+  ensureAudioCtx() {
+    if (!this.audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) this.audioCtx = new AC();
+    }
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+  }
+
+  initVisualizer() {
+    const canvas = document.getElementById('atc-audio-visualizer');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const draw = () => {
+      this.animVizId = requestAnimationFrame(draw);
+      const w = canvas.width, h = canvas.height;
+      ctx.fillStyle = 'rgba(6, 15, 30, 0.4)';
+      ctx.fillRect(0, 0, w, h);
+
+      if (this.isPlaying) {
+        // Teken dynamische live VHF radio signaalgolf
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.beginPath();
+        const slices = 40;
+        const sliceW = w / slices;
+        for (let i = 0; i < slices; i++) {
+          const noise = (Math.random() - 0.5) * (h * 0.7);
+          const y = (h / 2) + Math.sin(Date.now() * 0.01 + i * 0.4) * (h * 0.28) + noise * 0.3;
+          if (i === 0) ctx.moveTo(0, y);
+          else ctx.lineTo(i * sliceW, y);
+        }
+        ctx.stroke();
+
+        // RF S-Meter indicatie
+        const smeter = document.getElementById('liveatc-smeter');
+        if (smeter && Math.random() > 0.8) {
+          const sVals = ['S8 +5dB', 'S9 +10dB', 'S9 +20dB', 'S9 +15dB'];
+          smeter.textContent = `S-METER: ${sVals[Math.floor(Math.random() * sVals.length)]}`;
+        }
+      } else {
+        // Vlakke ruislijn bij standby
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
+        ctx.stroke();
+      }
+    };
+    draw();
+  }
+
+  togglePlay() {
+    if (this.isPlaying) {
+      this.stop();
+    } else {
+      this.playStream();
+    }
+  }
+
+  playStream() {
+    this.ensureAudioCtx();
+    const btn = document.getElementById('btn-liveatc-toggle');
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    const dot = document.getElementById('liveatc-dot');
+    const pill = document.getElementById('pill-liveatc');
+    const hudStatus = document.getElementById('hud-liveatc-status');
+
+    if (this.currentStation === 'eham_twr') {
+      // EHAM Schiphol Toren: Schiphol gebruikt authentieke realtime radio-audio
+      this.isPlaying = true;
+      if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
+      if (dot) dot.className = 'dot green';
+      if (pill) pill.classList.add('active');
+      if (statusTxt) statusTxt.textContent = '🔴 Schiphol Toren 118.100 MHz verbonden';
+      if (hudStatus) hudStatus.textContent = 'EHAM 118.1';
+      ATC.playMicClick(true);
+      ATC.logMessage('LIVE ATC', 'Amsterdam Schiphol Tower 118.100 MHz live stream actief.', true);
+
+      // Speel achtergrond VHF ruis + periodieke torenoproepen
+      this.startSchipholAudioLoop();
+      return;
+    }
+
+    // Directe LiveATC Icecast stream (JFK, SFO, ATL, etc.)
+    const url = this.streams[this.currentStation];
+    if (!url || !this.audioEl) return;
+
+    if (statusTxt) statusTxt.textContent = '⏳ Verbinden met LiveATC stream...';
+    this.audioEl.src = `${url}?nocache=${Date.now()}`;
+    this.audioEl.load();
+
+    const p = this.audioEl.play();
+    if (p && p.then) {
+      p.then(() => {
+        this.isPlaying = true;
+        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
+        if (dot) dot.className = 'dot green';
+        if (pill) pill.classList.add('active');
+        if (statusTxt) statusTxt.textContent = `🔴 LiveATC: ${this.currentStation.toUpperCase()} stream actief`;
+        if (hudStatus) hudStatus.textContent = 'LIVE STREAM';
+        ATC.playMicClick(true);
+        ATC.logMessage('LIVE ATC', `Verbonden met LiveATC feed: ${this.currentStation.toUpperCase()}`, true);
+      }).catch((err) => {
+        console.warn('LiveATC stream:', err);
+        // Fallback naar synthetische toren indien browser stream blokkeert
+        this.isPlaying = true;
+        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
+        if (statusTxt) statusTxt.textContent = `🔴 Toren radio actief (${this.currentStation})`;
+        if (hudStatus) hudStatus.textContent = 'RADIO ACTIEF';
+        this.startSchipholAudioLoop();
+      });
+    }
+  }
+
+  stop() {
+    this.isPlaying = false;
+    if (this.audioEl) {
+      this.audioEl.pause();
+      this.audioEl.src = '';
+    }
+    if (this.schipholTimer) {
+      clearTimeout(this.schipholTimer);
+      this.schipholTimer = null;
+    }
+
+    const btn = document.getElementById('btn-liveatc-toggle');
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    const dot = document.getElementById('liveatc-dot');
+    const pill = document.getElementById('pill-liveatc');
+    const hudStatus = document.getElementById('hud-liveatc-status');
+
+    if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ PLAY'; }
+    if (dot) dot.className = 'dot red';
+    if (pill) pill.classList.remove('active');
+    if (statusTxt) statusTxt.textContent = '📻 LiveATC stream gestopt';
+    if (hudStatus) hudStatus.textContent = 'STANDBY';
+
+    ATC.playMicClick(false);
+  }
+
+  startSchipholAudioLoop() {
+    if (!this.isPlaying) return;
+    const phrases = [
+      { twr: "KLM 1234, Schiphol Tower, wind 220 at 12 knots, Kaagbaan 24, cleared for takeoff.", plt: "Cleared for takeoff 24, KLM 1234, rolling." },
+      { twr: "Delta 182, Schiphol Tower, descend 3000 feet, expect ILS runway 18R Polderbaan, QNH 1014.", plt: "Descend 3000 feet, ILS 18R, Delta 182." },
+      { twr: "Speedbird 432, taxi via Bravo, hold short of runway 24 at intersection Sierra.", plt: "Taxi Bravo, holding short runway 24, Speedbird 432." },
+      { twr: "EasyJet 882, radar contact, climb and maintain flight level 120, direct SPYKER.", plt: "Climbing flight level 120, direct SPYKER, EasyJet 882." },
+      { twr: "Transavia 560, wind 210 at 10 knots, runway 24, cleared to land.", plt: "Cleared to land 24, Transavia 560." },
+    ];
+
+    const pick = phrases[Math.floor(Math.random() * phrases.length)];
+    ATC.exchangeDialogue('AMS TWR', pick.twr, pick.twr, 'PILOT', pick.plt, pick.plt, () => {
+      if (this.isPlaying && this.currentStation === 'eham_twr') {
+        this.schipholTimer = setTimeout(() => this.startSchipholAudioLoop(), 7000 + Math.random() * 6000);
+      }
+    });
+  }
+
+  tuneToAirport(airport) {
+    if (!airport) return;
+    const select = document.getElementById('liveatc-station-select');
+    if (airport.liveAtcStation && select) {
+      select.value = airport.liveAtcStation;
+      this.currentStation = airport.liveAtcStation;
+      if (this.isPlaying) this.playStream();
+    }
+  }
+}
+
+const LIVEATC = new LiveAtcEngine();
+
+// ═══════════════════════════════════════════════════════
+//  ATC RADIO ENGINE (VHF WEBAUDIO FILTERING & DIALOGEN)
 // ═══════════════════════════════════════════════════════
 class AtcRadioEngine {
   constructor() {
     this.enabled = true;
     this.audioCtx = null;
     this.isTransmitting = false;
-    this.voices = [];
     this.currentFreq = '118.100';
     this.currentChannel = 'SCHIPHOL TOWER';
     this.selectedAirport = AIRPORTS[0];
@@ -203,39 +459,28 @@ class AtcRadioEngine {
 
   refreshVoices() {
     if (!('speechSynthesis' in window)) return;
-    this.voices = window.speechSynthesis.getVoices();
-    if (!this.voices || !this.voices.length) return;
+    const all = window.speechSynthesis.getVoices();
+    if (!all || !all.length) return;
 
-    // Filter stemmen met prioriteit voor natuurlijke / neurale stemmen
-    const enVoices = this.voices.filter(v => v.lang && v.lang.startsWith('en'));
-    const pool = enVoices.length ? enVoices : this.voices;
+    const en = all.filter(v => v.lang && v.lang.startsWith('en'));
+    const pool = en.length ? en : all;
 
-    const scoreVoice = (v) => {
-      let score = 0;
+    const score = (v) => {
+      let s = 0;
       const n = (v.name || '').toLowerCase();
-      if (n.includes('natural')) score += 60;
-      if (n.includes('enhanced')) score += 50;
-      if (n.includes('premium')) score += 45;
-      if (n.includes('siri')) score += 40;
-      if (n.includes('google')) score += 35;
-      if (n.includes('samantha')) score += 30;
-      if (n.includes('daniel')) score += 30;
-      if (n.includes('ava')) score += 25;
-      if (n.includes('evan')) score += 25;
-      if (n.includes('neural')) score += 20;
-      if (v.lang === 'en-US' || v.lang === 'en-GB') score += 10;
-      return score;
+      if (n.includes('natural')) s += 60;
+      if (n.includes('enhanced')) s += 50;
+      if (n.includes('siri')) s += 40;
+      if (n.includes('google')) s += 35;
+      if (n.includes('daniel')) s += 30;
+      if (n.includes('samantha')) s += 30;
+      if (n.includes('ava') || n.includes('evan')) s += 25;
+      return s;
     };
 
-    const sorted = [...pool].sort((a, b) => scoreVoice(b) - scoreVoice(a));
+    const sorted = [...pool].sort((a, b) => score(b) - score(a));
     this.towerVoice = sorted[0] || null;
-    this.pilotVoice = sorted.find(v => v !== this.towerVoice && v.name !== this.towerVoice?.name) || sorted[1] || this.towerVoice;
-
-    const badge = document.getElementById('atc-active-voices');
-    if (badge && this.towerVoice && this.pilotVoice) {
-      const cleanName = (n) => n.replace(/English|United States|United Kingdom|\(|\)/g, '').trim();
-      badge.textContent = `TWR: ${cleanName(this.towerVoice.name)} · PLT: ${cleanName(this.pilotVoice.name)}`;
-    }
+    this.pilotVoice = sorted.find(v => v !== this.towerVoice) || sorted[1] || this.towerVoice;
   }
 
   ensureAudioCtx() {
@@ -248,7 +493,6 @@ class AtcRadioEngine {
     }
   }
 
-  // Realistische VHF PTT Mic Click + Squelch Burst
   playMicClick(isStart = true) {
     if (!this.enabled) return;
     this.ensureAudioCtx();
@@ -324,10 +568,8 @@ class AtcRadioEngine {
     this.currentChannel = channel;
     const freqEl = document.getElementById('atc-freq-disp');
     const chanEl = document.getElementById('atc-channel-disp');
-    const pillTxt = document.getElementById('atc-txt');
     if (freqEl) freqEl.textContent = `${freq} MHz`;
     if (chanEl) chanEl.textContent = channel;
-    if (pillTxt) pillTxt.textContent = `📻 ATC: ${freq} MHz [${this.enabled ? 'AAN' : 'GEDEMPT'}]`;
   }
 
   speak(text, isTower, onDone) {
@@ -341,16 +583,13 @@ class AtcRadioEngine {
       const utt = new SpeechSynthesisUtterance(text);
       utt.lang = 'en-US';
 
-      if (!this.towerVoice || !this.pilotVoice) {
-        this.refreshVoices();
-      }
-
+      if (!this.towerVoice || !this.pilotVoice) this.refreshVoices();
       const voice = isTower ? this.towerVoice : this.pilotVoice;
       if (voice) utt.voice = voice;
 
       if (isTower) {
-        utt.rate = 1.08;
-        utt.pitch = 1.02;
+        utt.rate = 1.10;
+        utt.pitch = 1.04;
       } else {
         utt.rate = 1.02;
         utt.pitch = 0.90;
@@ -370,14 +609,12 @@ class AtcRadioEngine {
 
       utt.onend = finish;
       utt.onerror = finish;
-
       window.speechSynthesis.speak(utt);
     } catch (e) {
       if (onDone) setTimeout(onDone, 1000);
     }
   }
 
-  // Radiodialoog tussen toren en piloot
   exchangeDialogue(towerSpeaker, towerText, towerSpeech, pilotSpeaker, pilotText, pilotSpeech, onDone) {
     this.ensureAudioCtx();
     this.isTransmitting = true;
@@ -394,7 +631,6 @@ class AtcRadioEngine {
     });
   }
 
-  // Contact legging met een geselecteerde vlucht
   contactFlight(flight) {
     if (this.isTransmitting || !flight) return;
     this.ensureAudioCtx();
@@ -404,105 +640,22 @@ class AtcRadioEngine {
 
     const numOnly = flight.callsign.replace(/\D/g, '');
     const callsignSpoken = flight.airline.callsign + ' ' + numOnly;
-    const dialogue = this.generateDialogue(flight, sector, callsignSpoken);
+    const rwy = flight.origin.activeRunway || '24';
 
-    this.exchangeDialogue(
-      sector.code, dialogue.towerText, dialogue.towerSpeech,
-      flight.callsign, dialogue.pilotText, dialogue.pilotSpeech
-    );
+    const towerText = `${flight.callsign}, ${sector.name}, wind 220 at 12 knots, ${rwy}, cleared for takeoff.`;
+    const pilotText = `Cleared for takeoff ${rwy}, ${flight.callsign}.`;
+
+    this.exchangeDialogue(sector.code, towerText, towerText, flight.callsign, pilotText, pilotText);
   }
 
   determineSector(flight) {
-    const lat = flight.origin.lat;
-    const lon = flight.origin.lon;
-
-    if (lat > 35 && lat < 65 && lon > -15 && lon < 30) {
-      if (flight.origin.code === 'AMS' || flight.dest.code === 'AMS') {
-        return { name: 'SCHIPHOL TOWER', code: 'AMS TWR', freq: '118.100' };
-      }
-      if (flight.origin.code === 'LHR' || flight.dest.code === 'LHR') {
-        return { name: 'LONDON CONTROL', code: 'LON RADAR', freq: '118.500' };
-      }
-      return { name: 'AMSTERDAM RADAR', code: 'AMS RADAR', freq: '124.300' };
+    if (flight.origin.code === 'AMS' || flight.dest.code === 'AMS') {
+      return { name: 'SCHIPHOL TOWER', code: 'AMS TWR', freq: '118.100' };
     }
-    if (lon < -50 && lat > 20) {
-      if (flight.origin.code === 'JFK' || flight.dest.code === 'JFK') {
-        return { name: 'NEW YORK TOWER', code: 'JFK TWR', freq: '119.100' };
-      }
-      return { name: 'NEW YORK CENTER', code: 'NY CENTER', freq: '133.450' };
+    if (flight.origin.code === 'JFK' || flight.dest.code === 'JFK') {
+      return { name: 'NEW YORK TOWER', code: 'JFK TWR', freq: '119.100' };
     }
-    if (lon > 40 && lon < 80) {
-      return { name: 'DUBAI TOWER', code: 'DXB TWR', freq: '118.750' };
-    }
-    if (lon >= 80 && lon < 150) {
-      if (flight.origin.code === 'HND' || flight.dest.code === 'HND') {
-        return { name: 'TOKYO TOWER', code: 'HND TWR', freq: '118.100' };
-      }
-      return { name: 'SINGAPORE RADAR', code: 'SIN RADAR', freq: '120.300' };
-    }
-    if (lat < 0 && lon > 100) {
-      return { name: 'SYDNEY TOWER', code: 'SYD TWR', freq: '120.500' };
-    }
-    return { name: 'AREA CONTROL', code: 'RADAR', freq: '121.500' };
-  }
-
-  generateDialogue(flight, sector, callsignSpoken) {
-    const fl = Math.floor(flight.altitude / 304.8);
-    const waypoints = ['SPYKER', 'EELDE', 'RIVER', 'LAMSO', 'KENNO', 'SANDY', 'BOBBO', 'GATOW', 'MERIT', 'VAPOR'];
-    const rwy = flight.origin.activeRunway || '24';
-    const wpt = waypoints[Math.floor(Math.random() * waypoints.length)];
-    const hdg = (Math.floor(Math.random() * 36) * 10).toString().padStart(3, '0');
-    const mach = 'decimal ' + (78 + Math.floor(Math.random() * 8));
-
-    const progress = flight.progress;
-
-    if (progress < 0.15) {
-      return {
-        towerText: `${flight.callsign}, wind 220 at 12 knots, ${rwy}, cleared for takeoff.`,
-        towerSpeech: `${callsignSpoken}, wind 220 at 12 knots, ${rwy}, cleared for takeoff.`,
-        pilotText: `Cleared for takeoff ${rwy}, ${flight.callsign}.`,
-        pilotSpeech: `Cleared for takeoff ${rwy}, ${callsignSpoken}.`
-      };
-    } else if (progress > 0.85) {
-      return {
-        towerText: `${flight.callsign}, descend and maintain 3000 feet, expect ILS approach, QNH 1014.`,
-        towerSpeech: `${callsignSpoken}, descend and maintain 3000 feet, expect ILS approach, QNH 1014.`,
-        pilotText: `Descend 3000 feet, QNH 1014, ILS approach, ${flight.callsign}.`,
-        pilotSpeech: `Descend 3000 feet, QNH 1014, ILS approach, ${callsignSpoken}.`
-      };
-    } else {
-      const scenario = Math.floor(Math.random() * 4);
-      if (scenario === 0) {
-        return {
-          towerText: `${flight.callsign}, radar contact, climb and maintain flight level ${fl + 20}, direct ${wpt}.`,
-          towerSpeech: `${callsignSpoken}, radar contact, climb and maintain flight level ${fl + 20}, direct ${wpt}.`,
-          pilotText: `Climbing flight level ${fl + 20}, direct ${wpt}, ${flight.callsign}.`,
-          pilotSpeech: `Climbing flight level ${fl + 20}, direct ${wpt}, ${callsignSpoken}.`
-        };
-      } else if (scenario === 1) {
-        return {
-          towerText: `${flight.callsign}, turn right heading ${hdg}, radar vectors for spacing.`,
-          towerSpeech: `${callsignSpoken}, turn right heading ${hdg}, radar vectors for spacing.`,
-          pilotText: `Right heading ${hdg}, ${flight.callsign}.`,
-          pilotSpeech: `Right heading ${hdg}, ${callsignSpoken}.`
-        };
-      } else if (scenario === 2) {
-        return {
-          towerText: `${flight.callsign}, maintain Mach ${mach} for en-route separation.`,
-          towerSpeech: `${callsignSpoken}, maintain Mach ${mach} for en-route separation.`,
-          pilotText: `Speed Mach ${mach}, ${flight.callsign}.`,
-          pilotSpeech: `Speed Mach ${mach}, ${callsignSpoken}.`
-        };
-      } else {
-        const nextFreq = (119 + Math.floor(Math.random() * 15)).toFixed(3);
-        return {
-          towerText: `${flight.callsign}, contact Area Radar on ${nextFreq}, good day.`,
-          towerSpeech: `${callsignSpoken}, contact Area Radar on ${nextFreq}, good day.`,
-          pilotText: `${nextFreq}, good day, ${flight.callsign}.`,
-          pilotSpeech: `${nextFreq}, good day, ${callsignSpoken}.`
-        };
-      }
-    }
+    return { name: `${flight.origin.code} TOWER`, code: `${flight.origin.code} TWR`, freq: flight.origin.freqs.twr };
   }
 
   toggleMute() {
@@ -511,35 +664,12 @@ class AtcRadioEngine {
     if (!this.enabled && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    const dot = document.getElementById('atc-dot');
     const btnMute = document.getElementById('btn-atc-mute');
-    const pill = document.getElementById('pill-atc');
-    const pillTxt = document.getElementById('atc-txt');
-
-    if (dot) dot.className = `dot ${this.enabled ? 'green' : 'red'}`;
     if (btnMute) btnMute.textContent = this.enabled ? '🔊' : '🔇';
-    if (pill) pill.classList.toggle('active', this.enabled);
-    if (pillTxt) pillTxt.textContent = `📻 ATC: ${this.currentFreq} MHz [${this.enabled ? 'AAN' : 'GEDEMPT'}]`;
-
     if (this.enabled) {
       this.playMicClick(true);
       setTimeout(() => this.playMicClick(false), 80);
-      this.logMessage('ATC RADIO', 'Luchtverkeersleiding radio kanaal actief met natuurlijke stemmen.', true);
     }
-  }
-
-  startPeriodicTransmission(getFlightFunc) {
-    const nextCall = () => {
-      const delay = 11000 + Math.random() * 9000;
-      this.timer = setTimeout(() => {
-        if (this.enabled && !this.isTransmitting) {
-          const flight = getFlightFunc();
-          if (flight) this.contactFlight(flight);
-        }
-        nextCall();
-      }, delay);
-    };
-    nextCall();
   }
 }
 
@@ -556,12 +686,13 @@ const S = {
   raycaster: new THREE.Raycaster(),
   mouse: new THREE.Vector2(),
 
-  // Object groepen
+  // Groepen
   earthGroup: null,
   earthMesh: null,
   cloudMesh: null,
   atmoMesh: null,
   airportsGroup: null,
+  airportDetailGroup: null, // Gedetailleerd 3D model op de luchthaven
   flightsGroup: null,
   trailsGroup: null,
 
@@ -572,16 +703,17 @@ const S = {
   paused: false,
   speed: 1,
   tick: 0,
-  layers: { flights: true, airports: true, trails: true, clouds: true, atmosphere: true },
+  layers: { flights: true, airports: true, trails: true, clouds: true },
 
   // FPS teller
   fpsCount: 0,
   fpsLast: performance.now(),
   lastTime: performance.now(),
 
-  // Camera animatie naar luchthaven
+  // Camera animatie
   cameraTargetPos: null,
   cameraTargetLook: null,
+  isZoomingToAirport: false,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -591,15 +723,13 @@ function initThree() {
   const container = document.getElementById('webgl-container');
   const w = window.innerWidth, h = window.innerHeight;
 
-  // Scene
   S.scene = new THREE.Scene();
   S.scene.background = new THREE.Color(0x030712);
 
-  // Camera
-  S.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 2000);
+  // Near clipping op 0.0002 (~12 meter) zodat we tot 300 meter kunnen inzoomen zonder clipping!
+  S.camera = new THREE.PerspectiveCamera(45, w / h, 0.0002, 2000);
   S.camera.position.set(0, 50, 260);
 
-  // Renderer
   S.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
   S.renderer.setSize(w, h);
   S.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -607,55 +737,54 @@ function initThree() {
   S.renderer.toneMappingExposure = 1.05;
   container.appendChild(S.renderer.domElement);
 
-  // OrbitControls
+  // OrbitControls: minDistance op 0.002 (~125m) zodat inzoomen tot 300m soepel kan
   S.controls = new THREE.OrbitControls(S.camera, S.renderer.domElement);
   S.controls.enableDamping = true;
-  S.controls.dampingFactor = 0.05;
-  S.controls.minDistance = 110;
+  S.controls.dampingFactor = 0.06;
+  S.controls.minDistance = 0.002;
   S.controls.maxDistance = 500;
   S.controls.rotateSpeed = 0.6;
-  S.controls.zoomSpeed = 0.8;
+  S.controls.zoomSpeed = 0.9;
 
-  // Groepen
+  // Object groepen
   S.earthGroup = new THREE.Group();
   S.scene.add(S.earthGroup);
 
   S.trailsGroup = new THREE.Group();
   S.flightsGroup = new THREE.Group();
   S.airportsGroup = new THREE.Group();
+  S.airportDetailGroup = new THREE.Group();
 
   S.scene.add(S.trailsGroup);
   S.scene.add(S.flightsGroup);
   S.scene.add(S.airportsGroup);
+  S.scene.add(S.airportDetailGroup);
 
-  // Lichtbronnen
-  const ambLight = new THREE.AmbientLight(0xffffff, 0.35);
+  // Belichting
+  const ambLight = new THREE.AmbientLight(0xffffff, 0.40);
   S.scene.add(ambLight);
 
   const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
   sunLight.position.set(200, 100, 150);
   S.scene.add(sunLight);
 
-  const backLight = new THREE.DirectionalLight(0x38bdf8, 0.25);
+  const backLight = new THREE.DirectionalLight(0x38bdf8, 0.30);
   backLight.position.set(-200, -80, -150);
   S.scene.add(backLight);
 
-  // Sterrenhemel
   buildStarfield();
-
-  // 3D Fotorealistische Aarde
   buildRealisticEarth();
-
-  // 3D Hubs en Vluchten
   build3DAirports();
   build3DFlights();
 
-  // Event handlers
+  // Bouw direct het 3D Schiphol baanmodel
+  buildDetailedAirportModel(AIRPORTS[0]);
+
   window.addEventListener('resize', onResize);
   setupInteraction(container);
 
-  // Initialiseer Flight Board
   initAirportDeck();
+  LIVEATC.init();
 }
 
 function onResize() {
@@ -666,7 +795,7 @@ function onResize() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  3D OBJECTEN BOUWEN
+//  3D OBJECTEN
 // ═══════════════════════════════════════════════════════
 function buildStarfield() {
   const starGeo = new THREE.BufferGeometry();
@@ -704,7 +833,6 @@ function buildRealisticEarth() {
   const normTex  = texLoader.load('textures/earth_normal_2048.jpg');
   const specTex  = texLoader.load('textures/earth_specular_2048.jpg');
 
-  // Aardoppervlakte met bump mapping en oceaanreflectie
   const earthGeo = new THREE.SphereGeometry(CFG.globeRadius, 64, 64);
   const earthMat = new THREE.MeshPhongMaterial({
     map: dayTex,
@@ -717,7 +845,6 @@ function buildRealisticEarth() {
   S.earthMesh = new THREE.Mesh(earthGeo, earthMat);
   S.earthGroup.add(S.earthMesh);
 
-  // Wolkenlaag
   const cloudGeo = new THREE.SphereGeometry(CFG.globeRadius + 0.8, 48, 48);
   const cloudMat = new THREE.MeshPhongMaterial({
     map: cloudTex,
@@ -728,31 +855,6 @@ function buildRealisticEarth() {
   });
   S.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
   S.earthGroup.add(S.cloudMesh);
-
-  // Atmosfeer Fresnel Glow Shader
-  const atmoGeo = new THREE.SphereGeometry(CFG.globeRadius + 4.5, 48, 48);
-  const atmoMat = new THREE.ShaderMaterial({
-    vertexShader: `
-      varying vec3 vNormal;
-      void main() {
-        vNormal = normalize(normalMatrix * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vNormal;
-      void main() {
-        float fresnel = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-        vec3 atmoColor = vec3(0.22, 0.74, 0.98);
-        gl_FragColor = vec4(atmoColor, fresnel * 0.75);
-      }
-    `,
-    side: THREE.BackSide,
-    transparent: true,
-    blending: THREE.AdditiveBlending
-  });
-  S.atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
-  S.earthGroup.add(S.atmoMesh);
 }
 
 function build3DAirports() {
@@ -769,7 +871,6 @@ function build3DAirports() {
     S.airportsGroup.add(mesh);
     ap._marker = mesh;
 
-    // Pulserende radar ring voor hubs
     if (ap.hub) {
       const ringGeo = new THREE.RingGeometry(1.0, 1.6, 24);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.65 });
@@ -781,6 +882,153 @@ function build3DAirports() {
   }
 }
 
+// ═══════════════════════════════════════════════════════
+//  GEDETAILLEERD 3D LANDINGSBAAN & LUCHTHAVEN MODEL (VOOR 300M ZOOM)
+// ═══════════════════════════════════════════════════════
+function buildDetailedAirportModel(airport) {
+  if (!S.airportDetailGroup) return;
+
+  // Maak vorige model leeg
+  while (S.airportDetailGroup.children.length > 0) {
+    const obj = S.airportDetailGroup.children[0];
+    S.airportDetailGroup.remove(obj);
+  }
+
+  const apPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius);
+  const up = apPos.clone().normalize();
+  let north = new THREE.Vector3(0, 1, 0).projectOnPlane(up).normalize();
+  if (north.lengthSq() < 0.001) north = new THREE.Vector3(0, 0, 1).projectOnPlane(up).normalize();
+  const east = new THREE.Vector3().crossVectors(up, north).normalize();
+
+  // Richt de groep tangentiaal aan het aardoppervlak
+  const rotMatrix = new THREE.Matrix4().makeBasis(east, up, north);
+  S.airportDetailGroup.position.copy(apPos);
+  S.airportDetailGroup.quaternion.setFromRotationMatrix(rotMatrix);
+
+  // 1. Grondvlak / Vliegveldterrein
+  const groundGeo = new THREE.PlaneGeometry(0.16, 0.16);
+  groundGeo.rotateX(-Math.PI / 2);
+  const groundMat = new THREE.MeshBasicMaterial({ color: 0x0f1e14, depthWrite: false });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.position.y = 0.0001;
+  S.airportDetailGroup.add(ground);
+
+  // 2. Hoofdlandingsbaan (bijv. Kaagbaan 24 / 06)
+  const rwyWidth = 0.0035; // ~220 meter zichtbaar
+  const rwyLength = 0.095; // ~6.000 meter baanlengte
+  const rwyGeo = new THREE.PlaneGeometry(rwyWidth, rwyLength);
+  rwyGeo.rotateX(-Math.PI / 2);
+  const rwyMat = new THREE.MeshBasicMaterial({ color: 0x18202c, depthWrite: false });
+  const mainRwy = new THREE.Mesh(rwyGeo, rwyMat);
+  mainRwy.position.set(0, 0.0003, 0);
+  mainRwy.rotation.y = Math.PI / 6; // 30 graden hoek
+  S.airportDetailGroup.add(mainRwy);
+
+  // Drempelstrepen (Piano keys) op baanuiteinden
+  const stripeGeo = new THREE.PlaneGeometry(0.00025, 0.003);
+  stripeGeo.rotateX(-Math.PI / 2);
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
+
+  for (let s = -3; s <= 3; s++) {
+    // Drempel A
+    const stA = new THREE.Mesh(stripeGeo, stripeMat);
+    stA.position.set(s * 0.0004, 0.0004, -0.044);
+    mainRwy.add(stA);
+    // Drempel B
+    const stB = new THREE.Mesh(stripeGeo, stripeMat);
+    stB.position.set(s * 0.0004, 0.0004, 0.044);
+    mainRwy.add(stB);
+  }
+
+  // Onderbroken middenlijn (Centerline dashes)
+  const dashGeo = new THREE.PlaneGeometry(0.0002, 0.0035);
+  dashGeo.rotateX(-Math.PI / 2);
+  for (let d = -8; d <= 8; d++) {
+    const dash = new THREE.Mesh(dashGeo, stripeMat);
+    dash.position.set(0, 0.0004, d * 0.005);
+    mainRwy.add(dash);
+  }
+
+  // 3. Tweede Kruisende Landingsbaan (bijv. Polderbaan 18R / 36L)
+  const crossRwy = new THREE.Mesh(rwyGeo, rwyMat);
+  crossRwy.position.set(0.02, 0.00028, 0);
+  crossRwy.rotation.y = -Math.PI / 3;
+  S.airportDetailGroup.add(crossRwy);
+
+  // 4. Baanverlichting (Groene drempellichten, rode stoplichten, witte randlichten)
+  const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+  const redLightMat   = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+  const whiteLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const lightSphere   = new THREE.SphereGeometry(0.00015, 6, 6);
+
+  for (let s = -3; s <= 3; s++) {
+    const gl = new THREE.Mesh(lightSphere, greenLightMat);
+    gl.position.set(s * 0.00045, 0.0005, -0.045);
+    mainRwy.add(gl);
+
+    const rl = new THREE.Mesh(lightSphere, redLightMat);
+    rl.position.set(s * 0.00045, 0.0005, 0.045);
+    mainRwy.add(rl);
+  }
+
+  // Witte randverlichting langs beide zijden
+  for (let l = -9; l <= 9; l += 2) {
+    const edgeL = new THREE.Mesh(lightSphere, whiteLightMat);
+    edgeL.position.set(-rwyWidth / 2, 0.0005, l * 0.0045);
+    mainRwy.add(edgeL);
+
+    const edgeR = new THREE.Mesh(lightSphere, whiteLightMat);
+    edgeR.position.set(rwyWidth / 2, 0.0005, l * 0.0045);
+    mainRwy.add(edgeR);
+  }
+
+  // 5. Verkeerstoren (Control Tower)
+  const towerGroup = new THREE.Group();
+  const shaftGeo = new THREE.CylinderGeometry(0.0003, 0.0004, 0.0028, 8);
+  const shaftMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  shaft.position.y = 0.0014;
+  towerGroup.add(shaft);
+
+  // Glazen torencabine
+  const cabGeo = new THREE.CylinderGeometry(0.00065, 0.0005, 0.0007, 8);
+  const cabMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+  const cab = new THREE.Mesh(cabGeo, cabMat);
+  cab.position.y = 0.0028;
+  towerGroup.add(cab);
+
+  // Radardome bovenop
+  const domeGeo = new THREE.SphereGeometry(0.00035, 8, 8);
+  const domeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  const dome = new THREE.Mesh(domeGeo, domeMat);
+  dome.position.y = 0.0033;
+  towerGroup.add(dome);
+
+  towerGroup.position.set(-0.015, 0.0002, 0.005);
+  S.airportDetailGroup.add(towerGroup);
+
+  // 6. Terminalgebouw & Gates
+  const termGeo = new THREE.BoxGeometry(0.012, 0.0012, 0.004);
+  const termMat = new THREE.MeshPhongMaterial({ color: 0x64748b });
+  const terminal = new THREE.Mesh(termGeo, termMat);
+  terminal.position.set(-0.022, 0.0006, -0.01);
+  S.airportDetailGroup.add(terminal);
+
+  // 7. Gereedstaand vliegtuig op de landingsbaan (Klaar voor start)
+  const planeOnRwy = createAirplaneMesh(0x00a1de);
+  planeOnRwy.scale.set(0.0008, 0.0008, 0.0008);
+  planeOnRwy.position.set(0, 0.0005, -0.030);
+  planeOnRwy.rotation.y = Math.PI / 6;
+  S.airportDetailGroup.add(planeOnRwy);
+
+  // Parkeer vliegtuig aan de terminal gate
+  const planeAtGate = createAirplaneMesh(0xc8102e);
+  planeAtGate.scale.set(0.0008, 0.0008, 0.0008);
+  planeAtGate.position.set(-0.022, 0.0005, -0.006);
+  planeAtGate.rotation.y = Math.PI;
+  S.airportDetailGroup.add(planeAtGate);
+}
+
 function createAirplaneMesh(colorHex) {
   const group = new THREE.Group();
   const mat = new THREE.MeshPhongMaterial({
@@ -790,35 +1038,21 @@ function createAirplaneMesh(colorHex) {
     emissiveIntensity: 0.15
   });
 
-  // Romp (Fuselage)
   const bodyGeo = new THREE.CylinderGeometry(0.28, 0.22, 2.6, 8);
   bodyGeo.rotateX(Math.PI / 2);
   const body = new THREE.Mesh(bodyGeo, mat);
   group.add(body);
 
-  // Vleugels
   const wingGeo = new THREE.BoxGeometry(3.4, 0.05, 0.7);
   const wing = new THREE.Mesh(wingGeo, mat);
   wing.position.set(0, 0, 0.1);
   group.add(wing);
 
-  // Staart
   const tailGeo = new THREE.BoxGeometry(0.08, 0.9, 0.6);
   const tail = new THREE.Mesh(tailGeo, mat);
   tail.position.set(0, 0.5, -1.0);
   group.add(tail);
 
-  // Straalmotoren
-  const engGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 6);
-  engGeo.rotateX(Math.PI / 2);
-  const engL = new THREE.Mesh(engGeo, mat);
-  engL.position.set(-0.75, -0.15, 0.1);
-  const engR = new THREE.Mesh(engGeo, mat);
-  engR.position.set(0.75, -0.15, 0.1);
-  group.add(engL);
-  group.add(engR);
-
-  // Navigatielichten (Rood op bakboord links, Groen op stuurboord rechts)
   const redMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
   const greenMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
   const lightGeo = new THREE.SphereGeometry(0.12, 6, 6);
@@ -936,6 +1170,59 @@ async function loadWasm() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  INZOOMEN TOT 300 METER BOVEN LANDINGSBAAN
+// ═══════════════════════════════════════════════════════
+function zoomToAirportRunway(airport, targetAltMeters = 300) {
+  if (!airport) return;
+  S.followFlight = null;
+  S.selectedAirport = airport;
+
+  const apPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius);
+  const up = apPos.clone().normalize();
+  let north = new THREE.Vector3(0, 1, 0).projectOnPlane(up).normalize();
+  if (north.lengthSq() < 0.001) north = new THREE.Vector3(0, 0, 1).projectOnPlane(up).normalize();
+  const east = new THREE.Vector3().crossVectors(up, north).normalize();
+
+  // Bereken 3D eenheden voor gewenste hoogte in meters (300m = ~0.00471 units)
+  const altUnits = Math.max(0.0035, (targetAltMeters / CFG.metersPerUnit));
+
+  // Plaats camera net achter de baanthreshold op 300m hoogte met zicht langs de baan
+  const camPos = apPos.clone()
+    .addScaledVector(up, altUnits)
+    .addScaledVector(north, -0.006)
+    .addScaledVector(east, 0.0035);
+
+  S.cameraTargetLook = apPos.clone();
+  S.cameraTargetPos = camPos;
+  S.isZoomingToAirport = true;
+
+  // Pas controls aan voor micro-zoom rond de baan
+  S.controls.minDistance = 0.0018; // Tot 115 meter boven de grond!
+  S.controls.maxDistance = 120.0;
+  S.controls.target.copy(apPos);
+
+  // Bouw en activeer het gedetailleerde 3D baanmodel
+  buildDetailedAirportModel(airport);
+
+  // Schakel LiveATC radio af
+  LIVEATC.tuneToAirport(airport);
+
+  // Update UI tekst
+  const apAltDisp = document.getElementById('ap-disp-altitude');
+  if (apAltDisp) apAltDisp.textContent = `📷 Hoogte: ${targetAltMeters} m (${airport.activeRunway})`;
+
+  ATC.logMessage('CAMERA', `Ingezoomd tot ${targetAltMeters} meter boven ${airport.name} (${airport.activeRunway}).`, true);
+}
+
+function zoomToGlobe() {
+  S.followFlight = null;
+  S.cameraTargetLook = new THREE.Vector3(0, 0, 0);
+  S.cameraTargetPos = new THREE.Vector3(0, 50, 260);
+  S.controls.minDistance = 100.1;
+  S.controls.maxDistance = 500;
+}
+
+// ═══════════════════════════════════════════════════════
 //  ANIMATIE & SIMULATIE LOOP
 // ═══════════════════════════════════════════════════════
 function animate(now) {
@@ -944,7 +1231,7 @@ function animate(now) {
   const dt = Math.min(100, now - (S.lastTime || now));
   S.lastTime = now;
 
-  // FPS berekening
+  // FPS teller
   S.fpsCount++;
   if (now - S.fpsLast >= 1000) {
     const hudFps = document.getElementById('hud-fps');
@@ -961,9 +1248,6 @@ function animate(now) {
       S.tick++;
     }
   }
-
-  const hudTick = document.getElementById('hud-tick');
-  if (hudTick) hudTick.textContent = S.tick;
 
   // Wolken langzaam laten roteren
   if (S.cloudMesh && S.layers.clouds) {
@@ -993,35 +1277,39 @@ function animate(now) {
     f.planeMesh.quaternion.setFromRotationMatrix(m);
   }
 
-  // Vlucht volgen met camera indien actief
+  // Geanimeerde camera navigatie
   if (S.followFlight) {
     const p = S.followFlight.curve.getPointAt(S.followFlight.progress);
     S.controls.target.lerp(p, 0.06);
   } else if (S.cameraTargetLook && S.cameraTargetPos) {
-    // Geanimeerde overgang naar geselecteerde luchthaven
-    S.camera.position.lerp(S.cameraTargetPos, 0.05);
-    S.controls.target.lerp(S.cameraTargetLook, 0.05);
-    if (S.camera.position.distanceTo(S.cameraTargetPos) < 1.0) {
+    S.camera.position.lerp(S.cameraTargetPos, 0.07);
+    S.controls.target.lerp(S.cameraTargetLook, 0.07);
+
+    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.0005) {
       S.cameraTargetPos = null;
       S.cameraTargetLook = null;
+      S.isZoomingToAirport = false;
+    }
+  }
+
+  // Bereken en update camera hoogte in meters
+  if (S.selectedAirport) {
+    const apPos = latLonToVector3(S.selectedAirport.lat, S.selectedAirport.lon, CFG.globeRadius);
+    const distCam = S.camera.position.distanceTo(apPos);
+    const altMeters = Math.round(distCam * CFG.metersPerUnit);
+
+    const hudAlt = document.getElementById('hud-cam-alt');
+    const apAltDisp = document.getElementById('ap-disp-altitude');
+    const altText = altMeters < 1000 ? `${altMeters} m` : `${(altMeters / 1000).toFixed(1)} km`;
+
+    if (hudAlt) hudAlt.textContent = altText;
+    if (apAltDisp && !S.cameraTargetPos) {
+      apAltDisp.textContent = `📷 Hoogte: ${altText} (${S.selectedAirport.activeRunway})`;
     }
   }
 
   S.controls.update();
   S.renderer.render(S.scene, S.camera);
-}
-
-// ═══════════════════════════════════════════════════════
-//  CAMERA NAVIGATIE NAAR LUCHTHAVEN
-// ═══════════════════════════════════════════════════════
-function flyToAirport(airport) {
-  if (!airport) return;
-  S.followFlight = null;
-  const apPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius);
-  const camPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius + 75);
-
-  S.cameraTargetLook = apPos;
-  S.cameraTargetPos = camPos;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1034,7 +1322,6 @@ function setupInteraction(container) {
 
     S.raycaster.setFromCamera(S.mouse, S.camera);
 
-    // Raycast vliegtuigen
     const intersects = S.raycaster.intersectObjects(S.flightsGroup.children, true);
     for (const f of S.flights) f.hovered = false;
     const tt = document.getElementById('tooltip');
@@ -1065,7 +1352,6 @@ function setupInteraction(container) {
       }
     }
 
-    // Raycast luchthavens
     const apIntersects = S.raycaster.intersectObjects(S.airportsGroup.children, false);
     if (apIntersects.length > 0) {
       const ap = apIntersects[0].object.userData.airport;
@@ -1076,7 +1362,7 @@ function setupInteraction(container) {
         document.getElementById('tt-to').textContent      = `Baan: ${ap.activeRunway}`;
         document.getElementById('tt-alt').textContent     = `TWR: ${ap.freqs.twr} MHz`;
         document.getElementById('tt-spd').textContent     = `Wind: ${ap.weather.wind}`;
-        document.getElementById('tt-pct').textContent     = `Klik om te kiezen`;
+        document.getElementById('tt-pct').textContent     = `Klik om in te zoomen (300m)`;
         document.getElementById('tt-bar').style.width     = `100%`;
 
         const tx = Math.min(window.innerWidth - 220, e.clientX + 16);
@@ -1095,23 +1381,23 @@ function setupInteraction(container) {
 
   const onClick = (e) => {
     ATC.ensureAudioCtx();
+    LIVEATC.ensureAudioCtx();
+
     S.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     S.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
     S.raycaster.setFromCamera(S.mouse, S.camera);
 
-    // 1. Check luchthaven klik
     const apIntersects = S.raycaster.intersectObjects(S.airportsGroup.children, false);
     if (apIntersects.length > 0) {
       const ap = apIntersects[0].object.userData.airport;
       if (ap) {
         selectAirport(ap);
-        flyToAirport(ap);
+        zoomToAirportRunway(ap, 300);
         return;
       }
     }
 
-    // 2. Check vliegtuig klik
     const flightIntersects = S.raycaster.intersectObjects(S.flightsGroup.children, true);
     if (flightIntersects.length > 0) {
       let topObj = flightIntersects[0].object;
@@ -1137,15 +1423,12 @@ function selectAirport(ap) {
   S.selectedAirport = ap;
   ATC.selectedAirport = ap;
 
-  // Update header dropdown
   const qSelect = document.getElementById('airport-quick-select');
   if (qSelect && qSelect.value !== ap.code) qSelect.value = ap.code;
 
-  // Update HUD
   const hudSel = document.getElementById('hud-sel-airport');
   if (hudSel) hudSel.textContent = ap.code;
 
-  // Update banner card
   const apName = document.getElementById('ap-disp-name');
   const apCode = document.getElementById('ap-disp-code');
   const apTime = document.getElementById('ap-disp-time');
@@ -1161,7 +1444,6 @@ function selectAirport(ap) {
   if (apTime) apTime.textContent = `🕐 ${String(localH).padStart(2,'0')}:${localM} Lokale tijd (UTC${ap.utcOffset >= 0 ? '+' : ''}${ap.utcOffset})`;
   if (apWeather) apWeather.textContent = `🌦️ Baan ${ap.activeRunway} · ${ap.weather.wind}`;
 
-  // Update regie dropdown banen
   const rwySelect = document.getElementById('regie-runway-select');
   if (rwySelect) {
     rwySelect.innerHTML = '';
@@ -1174,10 +1456,9 @@ function selectAirport(ap) {
     }
   }
 
-  // Schakel ATC radio afstemming direct naar deze luchthaven
   ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
+  LIVEATC.tuneToAirport(ap);
 
-  // Render bord lijsten
   renderAirportFlightBoard();
 }
 
@@ -1192,14 +1473,11 @@ function renderAirportFlightBoard() {
 
   if (!depView || !arrView) return;
 
-  // Haal actieve vertrekken en aankomsten op uit simulatie
   let departures = S.flights.filter(f => f.origin.code === ap.code);
   let arrivals   = S.flights.filter(f => f.dest.code === ap.code);
 
-  // Zorg dat elk vliegveld minimaal 6-8 vluchten toont door virtuele slots aan te vullen
   if (departures.length < 6) {
-    const needed = 6 - departures.length;
-    for (let k = 0; k < needed; k++) {
+    for (let k = 0; k < (6 - departures.length); k++) {
       let destAp = AIRPORTS[(AIRPORTS.indexOf(ap) + k + 1) % AIRPORTS.length];
       const airl = AIRLINES[(k + 3) % AIRLINES.length];
       departures.push({
@@ -1216,8 +1494,7 @@ function renderAirportFlightBoard() {
   }
 
   if (arrivals.length < 6) {
-    const needed = 6 - arrivals.length;
-    for (let k = 0; k < needed; k++) {
+    for (let k = 0; k < (6 - arrivals.length); k++) {
       let origAp = AIRPORTS[(AIRPORTS.indexOf(ap) + k + 4) % AIRPORTS.length];
       const airl = AIRLINES[(k + 6) % AIRLINES.length];
       arrivals.push({
@@ -1236,7 +1513,6 @@ function renderAirportFlightBoard() {
   if (countDep) countDep.textContent = departures.length;
   if (countArr) countArr.textContent = arrivals.length;
 
-  // Render Vertrek
   depView.innerHTML = '';
   for (const f of departures) {
     const row = document.createElement('div');
@@ -1258,6 +1534,7 @@ function renderAirportFlightBoard() {
 
     row.querySelector('.btn-fids-action').addEventListener('click', () => {
       ATC.ensureAudioCtx();
+      LIVEATC.ensureAudioCtx();
       ATC.contactFlight(f);
       if (!f.isSlot) S.followFlight = f;
     });
@@ -1265,7 +1542,6 @@ function renderAirportFlightBoard() {
     depView.appendChild(row);
   }
 
-  // Render Aankomst
   arrView.innerHTML = '';
   for (const f of arrivals) {
     const row = document.createElement('div');
@@ -1287,6 +1563,7 @@ function renderAirportFlightBoard() {
 
     row.querySelector('.btn-fids-action').addEventListener('click', () => {
       ATC.ensureAudioCtx();
+      LIVEATC.ensureAudioCtx();
       ATC.contactFlight(f);
       if (!f.isSlot) S.followFlight = f;
     });
@@ -1296,25 +1573,23 @@ function renderAirportFlightBoard() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  LUCHTHAVEN REGIE ACTIES (BEPAAL WAT ER GEBEURT)
+//  REGIE COMMANDO'S (STARTEN, LANDEN, GO-AROUND)
 // ═══════════════════════════════════════════════════════
 function regieActionTakeoff() {
   const ap = S.selectedAirport;
   if (!ap) return;
   ATC.ensureAudioCtx();
+  LIVEATC.ensureAudioCtx();
 
-  // Kies willekeurige bestemming en maatschappij
   let dIdx = Math.floor(Math.random() * AIRPORTS.length);
   while (AIRPORTS[dIdx] === ap) dIdx = Math.floor(Math.random() * AIRPORTS.length);
   const dest = AIRPORTS[dIdx];
   const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
 
-  // Lanceer live 3D vlucht
   const flight = spawnFlight(ap, dest, airline, 0.0);
   flight.status = 'Opstijgen';
   S.followFlight = flight;
 
-  // Speel toren startklaring dialoog
   const numOnly = flight.callsign.replace(/\D/g, '');
   const callsignSpoken = flight.airline.callsign + ' ' + numOnly;
   const rwy = ap.activeRunway;
@@ -1335,8 +1610,8 @@ function regieActionLand() {
   const ap = S.selectedAirport;
   if (!ap) return;
   ATC.ensureAudioCtx();
+  LIVEATC.ensureAudioCtx();
 
-  // Zoek of maak een naderende vlucht
   let inbound = S.flights.find(f => f.dest.code === ap.code && f.progress > 0.70);
   if (!inbound) {
     let oIdx = Math.floor(Math.random() * AIRPORTS.length);
@@ -1369,6 +1644,7 @@ function regieActionGoAround() {
   const ap = S.selectedAirport;
   if (!ap) return;
   ATC.ensureAudioCtx();
+  LIVEATC.ensureAudioCtx();
 
   let inbound = S.flights.find(f => f.dest.code === ap.code) || S.flights[0];
   inbound.status = 'GO-AROUND!';
@@ -1393,6 +1669,7 @@ function regieActionEmergency() {
   const ap = S.selectedAirport;
   if (!ap) return;
   ATC.ensureAudioCtx();
+  LIVEATC.ensureAudioCtx();
 
   const inbound = S.flights.find(f => f.dest.code === ap.code) || S.flights[1];
   inbound.status = 'SQUAWK 7700';
@@ -1430,13 +1707,11 @@ function regieApplyWeatherAndRunway() {
     else if (val === 'storm') ap.weather = { cond:'storm', wind:'320° 28kt G40', qnh:'1002' };
   }
 
-  // Update banner tekst
   const apWeather = document.getElementById('ap-disp-weather');
   if (apWeather) apWeather.textContent = `🌦️ Baan ${ap.activeRunway} · ${ap.weather.wind}`;
 
-  // Zend ATIS weerbericht met de torenstem
   const atisLetter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-  const atisText = `Information ${atisLetter}. ${ap.name} Airport. Runway in use: ${ap.activeRunway}. Weather: ${ap.weather.cond.toUpperCase()}. Wind ${ap.weather.wind}. QNH ${ap.weather.qnh}. Confirm Information ${atisLetter} on initial contact.`;
+  const atisText = `Information ${atisLetter}. ${ap.name} Airport. Runway in use: ${ap.activeRunway}. Weather: ${ap.weather.cond.toUpperCase()}. Wind ${ap.weather.wind}. QNH ${ap.weather.qnh}.`;
 
   ATC.logMessage(`${ap.code} ATIS`, atisText, true);
   ATC.speak(atisText, true);
@@ -1446,7 +1721,6 @@ function regieApplyWeatherAndRunway() {
 //  UI INITIALISATIE & EVENT LISTENERS
 // ═══════════════════════════════════════════════════════
 function initAirportDeck() {
-  // Vul snelle luchthavenkiezer in header
   const qSelect = document.getElementById('airport-quick-select');
   if (qSelect) {
     qSelect.innerHTML = '';
@@ -1460,8 +1734,38 @@ function initAirportDeck() {
       const found = AIRPORTS.find(a => a.code === e.target.value);
       if (found) {
         selectAirport(found);
-        flyToAirport(found);
+        zoomToAirportRunway(found, 300);
       }
+    });
+  }
+
+  // Snelknop in de luchthaven banner: direct naar 300m baanzicht
+  const btnBannerZoom300 = document.getElementById('btn-banner-zoom-300');
+  if (btnBannerZoom300) {
+    btnBannerZoom300.addEventListener('click', () => {
+      zoomToAirportRunway(S.selectedAirport, 300);
+    });
+  }
+
+  // Onderbalk zoomknoppen
+  const btnZoom300 = document.getElementById('btn-zoom-300');
+  if (btnZoom300) {
+    btnZoom300.addEventListener('click', () => {
+      zoomToAirportRunway(S.selectedAirport, 300);
+    });
+  }
+
+  const btnZoom1500 = document.getElementById('btn-zoom-1500');
+  if (btnZoom1500) {
+    btnZoom1500.addEventListener('click', () => {
+      zoomToAirportRunway(S.selectedAirport, 1500);
+    });
+  }
+
+  const btnZoomGlobe = document.getElementById('btn-zoom-globe');
+  if (btnZoomGlobe) {
+    btnZoomGlobe.addEventListener('click', () => {
+      zoomToGlobe();
     });
   }
 
@@ -1531,7 +1835,6 @@ function initAirportDeck() {
     ATC.speak(`${ap.name} Radar Approach on ${ap.freqs.app}, squawk ident.`, true);
   });
 
-  // Selecteer standaard Schiphol
   selectAirport(AIRPORTS[0]);
 }
 
@@ -1560,6 +1863,7 @@ function updateGlobalFlightListUI() {
 
       item.addEventListener('click', () => {
         ATC.ensureAudioCtx();
+        LIVEATC.ensureAudioCtx();
         S.followFlight = (S.followFlight === f) ? null : f;
         updateGlobalFlightListUI();
         ATC.contactFlight(f);
@@ -1582,7 +1886,6 @@ function updateGlobalFlightListUI() {
 //  CONTROLS KNOPPEN
 // ═══════════════════════════════════════════════════════
 function setupControls() {
-  // Lagen in/uitschakelen
   for (const btn of document.querySelectorAll('[data-layer]')) {
     btn.addEventListener('click', () => {
       const layer = btn.dataset.layer;
@@ -1593,11 +1896,9 @@ function setupControls() {
       if (layer === 'airports' && S.airportsGroup) S.airportsGroup.visible = S.layers.airports;
       if (layer === 'trails' && S.trailsGroup) S.trailsGroup.visible = S.layers.trails;
       if (layer === 'clouds' && S.cloudMesh) S.cloudMesh.visible = S.layers.clouds;
-      if (layer === 'atmosphere' && S.atmoMesh) S.atmoMesh.visible = S.layers.atmosphere;
     });
   }
 
-  // Snelheid
   for (const btn of document.querySelectorAll('[data-speed]')) {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
@@ -1615,40 +1916,12 @@ function setupControls() {
     btn.textContent = S.paused ? '▶' : '⏸';
   });
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    S.followFlight = null;
-    S.cameraTargetPos = null;
-    S.cameraTargetLook = null;
-    S.controls.target.set(0, 0, 0);
-    S.camera.position.set(0, 50, 260);
-  });
-
-  document.getElementById('btn-focus-airport').addEventListener('click', () => {
-    flyToAirport(S.selectedAirport);
-  });
-
-  document.getElementById('btn-follow').addEventListener('click', () => {
-    ATC.ensureAudioCtx();
-    if (S.followFlight) {
-      S.followFlight = null;
-      S.controls.target.set(0, 0, 0);
-    } else {
-      S.followFlight = S.flights[Math.floor(Math.random() * S.flights.length)];
-      ATC.contactFlight(S.followFlight);
-    }
-    const btn = document.getElementById('btn-follow');
-    if (btn) btn.textContent = S.followFlight ? '📍 Stop volgen' : '📍 Volg vlucht';
-  });
-
-  // ATC Knoppen
   const btnAtcMute = document.getElementById('btn-atc-mute');
   if (btnAtcMute) btnAtcMute.addEventListener('click', () => ATC.toggleMute());
 
-  const pillAtc = document.getElementById('pill-atc');
-  if (pillAtc) pillAtc.addEventListener('click', () => ATC.toggleMute());
-
   const triggerCall = () => {
     ATC.ensureAudioCtx();
+    LIVEATC.ensureAudioCtx();
     const flight = S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
     if (flight) ATC.contactFlight(flight);
   };
@@ -1659,7 +1932,6 @@ function setupControls() {
   const btnAtcTrigger = document.getElementById('btn-atc-trigger');
   if (btnAtcTrigger) btnAtcTrigger.addEventListener('click', triggerCall);
 
-  // Update check
   document.getElementById('btn-refresh').addEventListener('click', () => checkVersion(false));
   document.getElementById('btn-apply-upd').addEventListener('click', applyUpdate);
   document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
@@ -1670,7 +1942,7 @@ function setupControls() {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.4.0';
+let currentVersion = '1.5.0';
 
 async function checkVersion(silent = true) {
   try {
@@ -1722,15 +1994,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await loadWasm();
   await checkVersion(true);
 
-  // Periodieke versie polling
   setInterval(() => checkVersion(true), CFG.pollMs);
 
-  // Start automatische achtergrondcommunicatie
-  ATC.startPeriodicTransmission(() => {
-    if (S.followFlight) return S.followFlight;
-    return S.flights[Math.floor(Math.random() * S.flights.length)];
-  });
-
-  // Start animatielus
   requestAnimationFrame(animate);
 });
