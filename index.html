@@ -33,10 +33,20 @@
       --border: rgba(56,189,248,0.26);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+    html, body {
+      width: 100vw; height: 100%; height: 100dvh; overflow: hidden;
+      background: var(--bg); color: var(--text); font-family: var(--sans);
+      -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    }
 
     /* ── WebGL Container ── */
-    #webgl-container { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; }
+    #webgl-container {
+      position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1;
+      touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+    }
+    #webgl-container canvas {
+      display: block; width: 100% !important; height: 100% !important; touch-action: none;
+    }
 
     /* ── Update Banner ── */
     #update-banner {
@@ -418,12 +428,296 @@
 
     @keyframes blink { 0%,100%{opacity:.7;transform:scale(.95)} 50%{opacity:1;transform:scale(1.25)} }
 
-    @media (max-width: 900px) {
-      #hud { display: none; }
-      #right-deck { width: 94vw; right: 3vw; top: 75px; max-height: 50vh; }
-      #atc-console { width: 94vw; left: 3vw; bottom: 75px; }
-      #controls { width: 96vw; overflow-x: auto; gap: 8px; padding: 8px 10px; }
-      .header-center { display: none; }
+    /* ── Deck Mobile/Tablet Close Bar ── */
+    .deck-mobile-close-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 6px;
+      margin-bottom: 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      font-family: var(--mono);
+    }
+
+    /* ── Mobile Navigation Bar (Smartphones & Small Screens) ── */
+    #mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 60;
+      background: rgba(6, 15, 30, 0.96);
+      border-top: 1px solid var(--border);
+      backdrop-filter: var(--blur);
+      padding: 5px 8px;
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
+      justify-content: space-around;
+      align-items: center;
+      box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.7);
+    }
+    .m-nav-btn {
+      flex: 1;
+      max-width: 78px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 4px 2px;
+      color: var(--muted);
+      font-size: 0.65rem;
+      font-family: var(--sans);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--ease);
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+    .m-nav-btn .m-nav-icon {
+      font-size: 1.18rem;
+      line-height: 1.1;
+    }
+    .m-nav-btn:hover {
+      color: #fff;
+    }
+    .m-nav-btn.active {
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+
+    /* ── Tablet Optimization (iPad: 641px - 1024px) ── */
+    @media (min-width: 641px) and (max-width: 1024px) {
+      #header {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+      }
+      .brand {
+        padding: 6px 12px;
+        gap: 8px;
+      }
+      .brand-sub {
+        font-size: 0.58rem;
+        letter-spacing: 1px;
+      }
+      .airport-quick-select {
+        font-size: 0.75rem;
+        padding: 5px 8px;
+      }
+      .pill {
+        padding: 5px 9px;
+        font-size: 0.70rem;
+      }
+      #hud {
+        width: 195px;
+        top: 68px;
+        left: 10px;
+        padding: 9px 11px;
+        font-size: 0.72rem;
+      }
+      #hud .hud-row {
+        font-size: 0.72rem;
+      }
+      #right-deck {
+        width: 325px;
+        top: 68px;
+        right: 10px;
+        max-height: calc(100vh - 130px);
+        padding: 10px 12px;
+      }
+      .deck-mobile-close-bar {
+        display: flex;
+      }
+      #atc-console {
+        width: 310px;
+        left: 10px;
+        bottom: 74px;
+        max-height: calc(100vh - 280px);
+        padding: 10px 12px;
+      }
+      #runway-cam-deck {
+        left: 10px;
+        top: 68px;
+        width: 350px;
+        max-width: calc(100vw - 355px);
+      }
+      .cam-view-wrap {
+        height: 200px;
+      }
+      #controls {
+        bottom: 12px;
+        padding: 6px 12px;
+        gap: 8px;
+        max-width: 90vw;
+        overflow-x: auto;
+      }
+    }
+
+    /* ── Smartphone Optimization (Mobile: <= 640px) ── */
+    @media (max-width: 640px) {
+      #mobile-nav {
+        display: flex;
+      }
+
+      #header {
+        top: max(6px, env(safe-area-inset-top));
+        left: 8px;
+        right: 8px;
+        gap: 6px;
+      }
+      .brand {
+        padding: 5px 8px;
+        gap: 6px;
+      }
+      .brand img {
+        width: 20px;
+        height: 20px;
+      }
+      .brand-name {
+        font-size: 0.88rem;
+      }
+      .brand-sub {
+        display: none;
+      }
+
+      .header-center {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        justify-content: center;
+      }
+      .airport-quick-select {
+        width: 100%;
+        max-width: 135px;
+        font-size: 0.68rem;
+        padding: 4px 6px;
+        border-radius: 8px;
+      }
+
+      .header-right {
+        gap: 4px;
+      }
+      /* Verberg overtollige header-knoppen op mobiel want ze zitten in de mobile nav */
+      .header-right .runwaycam-pill,
+      .header-right .daylight-pill,
+      .header-right .liveatc-pill,
+      .header-right #pill-live {
+        display: none !important;
+      }
+      .pill {
+        padding: 4px 7px;
+        font-size: 0.66rem;
+      }
+      .btn-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+      }
+
+      #hud {
+        display: none !important;
+      }
+
+      /* Scrollbare onderbalk net boven de mobiele navigatie */
+      #controls {
+        position: fixed;
+        bottom: calc(56px + max(8px, env(safe-area-inset-bottom)));
+        left: 8px;
+        right: 8px;
+        transform: none;
+        width: auto;
+        max-width: calc(100vw - 16px);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        white-space: nowrap;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 12px;
+      }
+      #controls::-webkit-scrollbar {
+        display: none;
+      }
+      .btn {
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        min-height: 34px;
+      }
+      .ctrl-label {
+        font-size: 0.54rem;
+      }
+      .sep {
+        height: 20px;
+      }
+
+      /* Panelen als comfortabele bottom sheets */
+      #right-deck {
+        display: none;
+        position: fixed;
+        top: auto;
+        bottom: calc(54px + max(6px, env(safe-area-inset-bottom)));
+        left: 6px;
+        right: 6px;
+        width: auto;
+        max-height: 74vh;
+        border-radius: 16px;
+        padding: 12px;
+        z-index: 45;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.35);
+      }
+      #right-deck.show-mobile {
+        display: flex;
+      }
+      .deck-mobile-close-bar {
+        display: flex;
+      }
+
+      #atc-console {
+        display: none;
+        position: fixed;
+        top: auto;
+        bottom: calc(54px + max(6px, env(safe-area-inset-bottom)));
+        left: 6px;
+        right: 6px;
+        width: auto;
+        max-height: 74vh;
+        border-radius: 16px;
+        padding: 12px;
+        z-index: 45;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.35);
+      }
+      #atc-console.show-mobile {
+        display: flex;
+      }
+
+      #runway-cam-deck {
+        position: fixed;
+        top: 56px;
+        left: 6px;
+        right: 6px;
+        width: auto;
+        max-width: calc(100vw - 12px);
+        max-height: 82vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        z-index: 48;
+      }
+      .cam-view-wrap {
+        height: 190px;
+      }
     }
   </style>
 </head>
@@ -432,7 +726,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.6.2</strong> beschikbaar &bull; <span id="upd-note">Volledig automatische LiveATC koppeling bij klik</span></span>
+      <span><strong id="upd-ver">v1.7.0</strong> beschikbaar &bull; <span id="upd-note">Geoptimaliseerd voor smartphone, iPad en laptop</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -468,7 +762,7 @@
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.6.2</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -486,7 +780,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.6.2</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.0</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -500,6 +794,7 @@
       <div class="atc-actions">
         <button class="btn-icon-sm" id="btn-atc-mute" title="Geluid Aan/Uit">🔊</button>
         <button class="btn-icon-sm" id="btn-atc-call" title="Zend Oproep (Tower ↔ Piloot)">🎙️</button>
+        <button class="btn-icon-sm" id="btn-close-atc" title="Sluit LiveATC venster">&times;</button>
       </div>
     </div>
 
@@ -583,6 +878,12 @@
 
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
   <div id="right-deck">
+    <!-- Mobile/Tablet Sheet Header -->
+    <div class="deck-mobile-close-bar">
+      <span class="dm-title">🏢 Luchthaven Bord & Regie</span>
+      <button class="btn-icon-sm" id="btn-close-right-deck" title="Sluit paneel">&times;</button>
+    </div>
+
     <!-- Main Deck Tabs -->
     <div class="deck-top-nav">
       <button class="deck-tab-btn active" id="tab-btn-airport">🏢 Luchthaven Bord & Regie</button>
@@ -741,6 +1042,30 @@
       </div>
     </div>
   </div>
+
+  <!-- Mobiele Navigatiebalk voor Smartphone & Tablet -->
+  <nav id="mobile-nav" class="mobile-nav-bar" aria-label="Mobiele navigatie">
+    <button class="m-nav-btn active" id="m-btn-globe" data-tab="globe" title="Toon 3D aardbol en baan overzicht">
+      <span class="m-nav-icon">🌍</span>
+      <span class="m-nav-label">3D Baan</span>
+    </button>
+    <button class="m-nav-btn" id="m-btn-flights" data-tab="flights" title="Luchthaven vluchtenbord & regie">
+      <span class="m-nav-icon">🏢</span>
+      <span class="m-nav-label">Vluchten</span>
+    </button>
+    <button class="m-nav-btn" id="m-btn-atc" data-tab="atc" title="LiveATC verkeersleiding radio">
+      <span class="m-nav-icon">📻</span>
+      <span class="m-nav-label">LiveATC</span>
+    </button>
+    <button class="m-nav-btn" id="m-btn-cam" data-tab="cam" title="Echte startbaan camera & satelliet">
+      <span class="m-nav-icon">📹</span>
+      <span class="m-nav-label">Baan Cam</span>
+    </button>
+    <button class="m-nav-btn" id="m-btn-daylight" data-tab="daylight" title="Schakel dag- of nachtzicht">
+      <span class="m-nav-icon">☀️</span>
+      <span class="m-nav-label">Dag</span>
+    </button>
+  </nav>
 
   <!-- Three.js en OrbitControls (lokaal gebundeld met CDN fallback) -->
   <script src="libs/three.min.js"></script>

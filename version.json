@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.6.2",
-  "build": 17,
-  "timestamp": "2026-11-07T21:22:37.895036+00:00",
-  "git_hash": "da13c41",
+  "version": "1.7.0",
+  "build": 18,
+  "timestamp": "2026-11-07T21:30:04.322819+00:00",
+  "git_hash": "17e6549",
   "features": [
+    "Volledige optimalisatie voor smartphone, iPad en laptop met mobiele navigatiebalk, touch controls en responsive drawers",
     "Volledig automatische LiveATC koppeling bij aanklikken vliegveld (geen handmatige koppeling meer)",
     "Directe echte verkeersleiding per vliegveld (San Francisco, JFK, Schiphol)",
     "Schiphol ATIS weerbandje volledig verwijderd bij andere luchthavens",

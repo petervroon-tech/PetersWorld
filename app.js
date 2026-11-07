@@ -722,6 +722,15 @@ class RunwayCamEngine {
     if (btnToggle) btnToggle.classList.add('active');
     if (this.currentCam) this.applyCam(this.currentCam);
     ATC.logMessage('BAAN CAM', `Echte beelden gestart: ${this.currentCam ? this.currentCam.name : 'Startbaancamera'}.`, false);
+
+    if (window.innerWidth <= 640) {
+      const deck = document.getElementById('right-deck');
+      const atc = document.getElementById('atc-console');
+      if (deck) deck.classList.remove('show-mobile');
+      if (atc) atc.classList.remove('show-mobile');
+      const btns = document.querySelectorAll('.m-nav-btn');
+      btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'cam'));
+    }
   }
 
   close() {
@@ -730,6 +739,11 @@ class RunwayCamEngine {
     const btnToggle = document.getElementById('btn-toggle-runwaycam');
     if (btnToggle) btnToggle.classList.remove('active');
     if (this.iframeEl) this.iframeEl.src = '';
+
+    if (window.innerWidth <= 640) {
+      const btns = document.querySelectorAll('.m-nav-btn');
+      btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'globe'));
+    }
   }
 
   toggle() {
@@ -1086,14 +1100,20 @@ function initThree() {
   S.renderer.toneMappingExposure = 1.05;
   container.appendChild(S.renderer.domElement);
 
-  // OrbitControls: minDistance op 0.002 (~125m) zodat inzoomen tot 300m soepel kan
+  // OrbitControls: geoptimaliseerd voor touch, tablet pinch-to-zoom en soepele navigatie
   S.controls = new THREE.OrbitControls(S.camera, S.renderer.domElement);
   S.controls.enableDamping = true;
-  S.controls.dampingFactor = 0.06;
+  S.controls.dampingFactor = 0.08;
   S.controls.minDistance = 0.002;
   S.controls.maxDistance = 500;
-  S.controls.rotateSpeed = 0.6;
-  S.controls.zoomSpeed = 0.9;
+  S.controls.rotateSpeed = window.innerWidth <= 768 ? 0.75 : 0.6;
+  S.controls.zoomSpeed = window.innerWidth <= 768 ? 1.05 : 0.9;
+  if (THREE.TOUCH) {
+    S.controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+  }
 
   // Object groepen
   S.earthGroup = new THREE.Group();
@@ -2353,6 +2373,135 @@ function setupControls() {
   document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
     document.getElementById('update-banner').classList.remove('show');
   });
+
+  // Start responsieve interface voor smartphones, tablets en laptops
+  initResponsiveUI();
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESPONSIEVE UI MANAGER (SMARTPHONE, IPAD & LAPTOP)
+// ═══════════════════════════════════════════════════════
+function initResponsiveUI() {
+  const btnGlobe = document.getElementById('m-btn-globe');
+  const btnFlights = document.getElementById('m-btn-flights');
+  const btnAtc = document.getElementById('m-btn-atc');
+  const btnCam = document.getElementById('m-btn-cam');
+  const btnDaylight = document.getElementById('m-btn-daylight');
+
+  const rightDeck = document.getElementById('right-deck');
+  const atcConsole = document.getElementById('atc-console');
+  const btnCloseRightDeck = document.getElementById('btn-close-right-deck');
+  const btnCloseAtc = document.getElementById('btn-close-atc');
+
+  const updateMobileTab = (activeTab) => {
+    const btns = document.querySelectorAll('.m-nav-btn');
+    btns.forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === activeTab);
+    });
+  };
+
+  const closeAllMobileSheets = () => {
+    if (rightDeck) rightDeck.classList.remove('show-mobile');
+    if (atcConsole) atcConsole.classList.remove('show-mobile');
+    if (RUNWAY_CAM && RUNWAY_CAM.isOpen) {
+      RUNWAY_CAM.close();
+    }
+  };
+
+  if (btnGlobe) {
+    btnGlobe.addEventListener('click', () => {
+      closeAllMobileSheets();
+      updateMobileTab('globe');
+    });
+  }
+
+  if (btnFlights) {
+    btnFlights.addEventListener('click', () => {
+      const isOpen = rightDeck && rightDeck.classList.contains('show-mobile');
+      if (isOpen) {
+        closeAllMobileSheets();
+        updateMobileTab('globe');
+      } else {
+        closeAllMobileSheets();
+        if (rightDeck) {
+          rightDeck.style.display = '';
+          rightDeck.classList.add('show-mobile');
+        }
+        updateMobileTab('flights');
+      }
+    });
+  }
+
+  if (btnAtc) {
+    btnAtc.addEventListener('click', () => {
+      const isOpen = atcConsole && atcConsole.classList.contains('show-mobile');
+      if (isOpen) {
+        closeAllMobileSheets();
+        updateMobileTab('globe');
+      } else {
+        closeAllMobileSheets();
+        if (atcConsole) {
+          atcConsole.style.display = '';
+          atcConsole.classList.add('show-mobile');
+        }
+        updateMobileTab('atc');
+      }
+    });
+  }
+
+  if (btnCam) {
+    btnCam.addEventListener('click', () => {
+      if (RUNWAY_CAM && RUNWAY_CAM.isOpen) {
+        RUNWAY_CAM.close();
+        updateMobileTab('globe');
+      } else {
+        closeAllMobileSheets();
+        if (RUNWAY_CAM) RUNWAY_CAM.open();
+        updateMobileTab('cam');
+      }
+    });
+  }
+
+  if (btnDaylight) {
+    btnDaylight.addEventListener('click', () => {
+      setDaylightMode(!S.daylightMode);
+    });
+  }
+
+  // Sluitknoppen in de vensters
+  if (btnCloseRightDeck) {
+    btnCloseRightDeck.addEventListener('click', () => {
+      if (rightDeck) {
+        rightDeck.classList.remove('show-mobile');
+        if (window.innerWidth <= 1024) rightDeck.style.display = 'none';
+      }
+      updateMobileTab('globe');
+    });
+  }
+
+  if (btnCloseAtc) {
+    btnCloseAtc.addEventListener('click', () => {
+      if (atcConsole) {
+        atcConsole.classList.remove('show-mobile');
+        if (window.innerWidth <= 1024) atcConsole.style.display = 'none';
+      }
+      updateMobileTab('globe');
+    });
+  }
+
+  // Reset display stijlen bij venster resize (bijv. van smartphone naar tablet/desktop)
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 640) {
+      if (rightDeck) {
+        rightDeck.classList.remove('show-mobile');
+        rightDeck.style.display = '';
+      }
+      if (atcConsole) {
+        atcConsole.classList.remove('show-mobile');
+        atcConsole.style.display = '';
+      }
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2373,6 +2522,7 @@ function setDaylightMode(enabled) {
   const btnHead = document.getElementById('btn-toggle-daylight');
   const txtHead = document.getElementById('txt-daylight');
   const btnCtrl = document.getElementById('btn-ctrl-daylight');
+  const btnMobileDay = document.getElementById('m-btn-daylight');
 
   if (S.daylightMode) {
     if (btnHead) btnHead.classList.add('active');
@@ -2380,6 +2530,13 @@ function setDaylightMode(enabled) {
     if (btnCtrl) {
       btnCtrl.classList.add('active');
       btnCtrl.textContent = '☀️ Dagzicht';
+    }
+    if (btnMobileDay) {
+      btnMobileDay.classList.add('active');
+      const label = btnMobileDay.querySelector('.m-nav-label');
+      const icon = btnMobileDay.querySelector('.m-nav-icon');
+      if (label) label.textContent = 'Dag';
+      if (icon) icon.textContent = '☀️';
     }
     ATC.logMessage('BELICHTING', 'Dagzicht geactiveerd: aarde, landingsbanen en vliegtuigen helder verlicht.', false);
   } else {
@@ -2389,6 +2546,13 @@ function setDaylightMode(enabled) {
       btnCtrl.classList.remove('active');
       btnCtrl.textContent = '🌙 Nachtzicht';
     }
+    if (btnMobileDay) {
+      btnMobileDay.classList.remove('active');
+      const label = btnMobileDay.querySelector('.m-nav-label');
+      const icon = btnMobileDay.querySelector('.m-nav-icon');
+      if (label) label.textContent = 'Nacht';
+      if (icon) icon.textContent = '🌙';
+    }
     ATC.logMessage('BELICHTING', 'Realistische zonbelichting & nachtschaduw geactiveerd.', false);
   }
 }
@@ -2396,7 +2560,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.6.2';
+let currentVersion = '1.7.0';
 
 async function checkVersion(silent = true) {
   try {
