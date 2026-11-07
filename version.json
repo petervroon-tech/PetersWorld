@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.6.1",
-  "build": 16,
-  "timestamp": "2026-11-07T21:18:44.342002+00:00",
-  "git_hash": "1ba4d86",
+  "version": "1.6.2",
+  "build": 17,
+  "timestamp": "2026-11-07T21:22:37.895036+00:00",
+  "git_hash": "da13c41",
   "features": [
+    "Volledig automatische LiveATC koppeling bij aanklikken vliegveld (geen handmatige koppeling meer)",
     "Directe echte verkeersleiding per vliegveld (San Francisco, JFK, Schiphol)",
     "Schiphol ATIS weerbandje volledig verwijderd bij andere luchthavens",
     "Laatst bezochte vliegveld lokaal onthouden bij openen van de app (localStorage)",

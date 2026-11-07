@@ -473,21 +473,61 @@ class LiveAtcEngine {
 
   tuneToAirport(airport, autoPlay = true) {
     if (!airport) return;
-    const select = document.getElementById('liveatc-station-select');
-    const targetStation = airport.liveAtcStation || 'eham_twr_rec';
-    this.currentStation = targetStation;
-    if (select) {
-      select.value = targetStation;
+    this.ensureAudioCtx();
+
+    // Bepaal automatisch het juiste radiostation voor dit vliegveld
+    let targetStation = 'eham_twr_rec';
+    if (airport.code === 'SFO') {
+      targetStation = 'ksfo_twr';
+    } else if (airport.code === 'JFK') {
+      targetStation = 'kjfk_twr';
+    } else if (airport.code === 'AMS') {
+      targetStation = 'eham_twr_rec';
+    } else if (airport.liveAtcStation && this.streams[airport.liveAtcStation]) {
+      targetStation = airport.liveAtcStation;
+    } else if (airport.country === 'Verenigde Staten' || airport.country === 'Canada') {
+      targetStation = (airport.lon < -100) ? 'ksfo_twr' : 'kjfk_twr';
+    } else {
+      targetStation = 'eham_twr_rec';
     }
-    const label = this.stationLabels[targetStation] || targetStation;
+
+    this.currentStation = targetStation;
+
+    // Koppel het LiveATC dropdown menu direct automatisch aan het vliegveld
+    const select = document.getElementById('liveatc-station-select');
+    if (select) {
+      let hasOption = false;
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === targetStation) {
+          select.selectedIndex = i;
+          hasOption = true;
+          break;
+        }
+      }
+      if (!hasOption) {
+        const opt = document.createElement('option');
+        opt.value = targetStation;
+        opt.textContent = `${airport.flag} ${airport.name} Toren (${airport.freqs ? airport.freqs.twr : '118.100'} MHz)`;
+        select.prepend(opt);
+        select.selectedIndex = 0;
+      }
+    }
+
+    // Update de Transceiver Display direct naar de toren van DIT vliegveld
+    const atcFreq = document.getElementById('atc-freq-disp');
+    const atcChan = document.getElementById('atc-channel-disp');
+    if (atcFreq) atcFreq.textContent = `${airport.freqs ? airport.freqs.twr : '118.100'} MHz`;
+    if (atcChan) atcChan.textContent = `${airport.name.toUpperCase()} TOWER`;
+
+    const label = this.stationLabels[targetStation] || `${airport.name} Toren`;
     const statusTxt = document.getElementById('liveatc-status-txt');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
     if (autoPlay || this.isPlaying) {
       this.playStream();
     } else {
-      if (statusTxt) statusTxt.textContent = `📻 Afgestemd op ${label} (Echte Stemmen)`;
-      if (hudStatus) hudStatus.textContent = airport.code + ' ' + (airport.freqs ? airport.freqs.twr : '');
+      if (statusTxt) statusTxt.textContent = `🔴 ${airport.flag} ${airport.name} Toren gekoppeld`;
+      if (hudStatus) hudStatus.textContent = `${airport.code} TWR`;
     }
   }
 }
@@ -1542,9 +1582,6 @@ function zoomToAirportRunway(airport, targetAltMeters = 300) {
   // Bouw en activeer het gedetailleerde 3D baanmodel
   buildDetailedAirportModel(airport);
 
-  // Schakel LiveATC radio af
-  LIVEATC.tuneToAirport(airport);
-
   // Update UI tekst
   const apAltDisp = document.getElementById('ap-disp-altitude');
   if (apAltDisp) apAltDisp.textContent = `📷 Hoogte: ${targetAltMeters} m (${airport.activeRunway})`;
@@ -2359,7 +2396,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.6.1';
+let currentVersion = '1.6.2';
 
 async function checkVersion(silent = true) {
   try {
