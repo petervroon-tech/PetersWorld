@@ -96,6 +96,9 @@
     .pill.daylight-pill { border-color: rgba(250,204,21,.5); background: rgba(250,204,21,.12); color: #fde047; }
     .pill.daylight-pill:hover { background: rgba(250,204,21,.25); border-color: var(--gold); }
     .pill.daylight-pill.active { background: rgba(250,204,21,.3); border-color: #facc15; color: #fff; box-shadow: 0 0 10px rgba(250,204,21,.4); }
+    .pill.runwaycam-pill { border-color: rgba(239,68,68,.6); background: rgba(239,68,68,.15); color: #fca5a5; }
+    .pill.runwaycam-pill:hover { background: rgba(239,68,68,.3); border-color: var(--red); color: #fff; box-shadow: 0 0 10px rgba(239,68,68,.4); }
+    .pill.runwaycam-pill.active { background: rgba(239,68,68,.35); border-color: var(--red); color: #fff; box-shadow: 0 0 12px rgba(239,68,68,.5); }
     .dot { width: 7px; height: 7px; border-radius: 50%; animation: blink 2s infinite; }
     .dot.green { background: var(--green); box-shadow: 0 0 7px var(--green); }
     .dot.gold  { background: var(--gold);  box-shadow: 0 0 7px var(--gold);  }
@@ -357,6 +360,62 @@
     .btn.radio-btn:hover { background: rgba(250,204,21,.25); border-color: var(--gold); }
     .sep { width: 1px; height: 28px; background: rgba(255,255,255,.1); }
 
+    /* ── Echte Baan Beelden (Runway Camera & Satellite Deck) ── */
+    #runway-cam-deck {
+      position: fixed; top: 80px; left: 260px; z-index: 25; width: 440px;
+      background: rgba(8, 18, 36, 0.96); border: 1px solid var(--cyan); border-radius: 14px;
+      backdrop-filter: var(--blur); padding: 12px 14px;
+      display: none; flex-direction: column; gap: 8px;
+      box-shadow: 0 16px 50px rgba(0,0,0,.85), 0 0 25px rgba(56,189,248,.25);
+      transition: all 0.25s ease;
+    }
+    #runway-cam-deck.show { display: flex; }
+    #runway-cam-deck.minimized .cam-view-wrap, #runway-cam-deck.minimized .cam-selector-bar { display: none; }
+    #runway-cam-deck.minimized { width: 340px; padding: 8px 12px; }
+    .cam-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(56,189,248,.25); padding-bottom: 6px;
+    }
+    .cam-title-wrap { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+    .cam-badge-live {
+      font-family: var(--mono); font-size: .62rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px; background: rgba(239,68,68,.3); color: #f87171;
+      border: 1px solid var(--red); text-transform: uppercase; letter-spacing: .5px; animation: blink 1.2s infinite;
+      white-space: nowrap;
+    }
+    .cam-title { font-size: .78rem; font-weight: 600; color: #fff; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cam-controls-top { display: flex; gap: 6px; }
+    .cam-view-wrap {
+      position: relative; width: 100%; height: 240px; background: #000;
+      border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,.1);
+    }
+    .cam-video-iframe { width: 100%; height: 100%; border: none; }
+    .cam-sat-img { width: 100%; height: 100%; object-fit: cover; }
+    .cam-osd-overlay {
+      position: absolute; top: 8px; left: 10px; right: 10px;
+      display: flex; justify-content: space-between; pointer-events: none;
+      font-family: var(--mono); font-size: .65rem; color: #38bdf8; text-shadow: 0 0 4px #000, 1px 1px 2px #000;
+    }
+    .cam-osd-bottom {
+      position: absolute; bottom: 8px; left: 10px; right: 10px;
+      display: flex; justify-content: space-between; pointer-events: none;
+      font-family: var(--mono); font-size: .62rem; color: #facc15; text-shadow: 0 0 4px #000, 1px 1px 2px #000;
+    }
+    .cam-selector-bar {
+      display: flex; gap: 6px; align-items: center; justify-content: space-between;
+    }
+    .cam-select {
+      flex: 1; background: rgba(2, 6, 23, 0.85); border: 1px solid rgba(56,189,248,.35);
+      color: #e2e8f0; font-size: .72rem; padding: 4px 8px; border-radius: 6px; font-family: var(--mono);
+    }
+    .cam-btn-tab {
+      background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border);
+      color: var(--muted); font-size: .68rem; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+      font-family: var(--mono); transition: all var(--ease);
+    }
+    .cam-btn-tab:hover { border-color: var(--cyan); color: #fff; }
+    .cam-btn-tab.active { background: rgba(56, 189, 248, 0.25); border-color: var(--cyan); color: var(--cyan); font-weight: 700; }
+
     @keyframes blink { 0%,100%{opacity:.7;transform:scale(.95)} 50%{opacity:1;transform:scale(1.25)} }
 
     @media (max-width: 900px) {
@@ -373,7 +432,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.5.3</strong> beschikbaar &bull; <span id="upd-note">Directe Communicatie bij klik & Dagzicht schakelaar</span></span>
+      <span><strong id="upd-ver">v1.6.0</strong> beschikbaar &bull; <span id="upd-note">Echte beelden van startbanen & Live Webcams</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -387,7 +446,7 @@
       <img src="favicon.svg" alt="logo" />
       <div>
         <div class="brand-name">PetersWorld</div>
-        <div class="brand-sub">3D Earth · 300m Baanzicht · LiveATC</div>
+        <div class="brand-sub">3D Earth · 300m Echte Baan · LiveATC</div>
       </div>
     </div>
 
@@ -397,6 +456,10 @@
     </div>
 
     <div class="header-right">
+      <div class="pill runwaycam-pill active" id="btn-toggle-runwaycam" title="Echte beelden & live webcams van de startbaan">
+        <span class="dot red"></span>
+        <span id="txt-runwaycam">📹 Echte Baan Cam</span>
+      </div>
       <div class="pill daylight-pill active" id="btn-toggle-daylight" title="Schakel tussen Realistische Nacht/Zon en Dagzicht">
         <span id="txt-daylight">☀️ Dagzicht: AAN</span>
       </div>
@@ -405,7 +468,7 @@
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.3</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.6.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -417,12 +480,13 @@
       <span id="hud-fps" class="hud-val cy">60 fps</span>
     </div>
     <div class="hud-row"><span class="hud-label">Camera hoogte</span><span class="hud-val cy" id="hud-cam-alt">300 m</span></div>
+    <div class="hud-row"><span class="hud-label">Echte Baan Cam</span><span class="hud-val gr" id="hud-cam-status">LIVE HD</span></div>
     <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">120</span></div>
     <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">14.280</span></div>
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.3</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.6.0</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -480,6 +544,45 @@
     <audio id="liveatc-audio-element" preload="none" crossorigin="anonymous"></audio>
   </div>
 
+  <!-- Echte Baan Beelden Deck (Live Webcam & Satelliet Beelden) -->
+  <div id="runway-cam-deck" class="show" aria-label="Echte Baan Beelden">
+    <div class="cam-header">
+      <div class="cam-title-wrap">
+        <span class="cam-badge-live" id="cam-badge">LIVE CAM</span>
+        <span class="cam-title" id="cam-title">🇳🇱 Schiphol Kaagbaan (Baan 24)</span>
+      </div>
+      <div class="cam-controls-top">
+        <button class="btn-icon-sm" id="btn-cam-min" title="Minimaliseer / Vergroot">–</button>
+        <button class="btn-icon-sm" id="btn-cam-close" title="Sluit Baan Camera">&times;</button>
+      </div>
+    </div>
+
+    <!-- Media View (Video Stream of Satelliet Foto) -->
+    <div class="cam-view-wrap" id="cam-view-container">
+      <iframe id="cam-iframe" class="cam-video-iframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <img id="cam-sat-img" class="cam-sat-img" src="textures/runways/schiphol_satellite_highres.jpg" alt="Echte Satelliet Luchtfoto van Startbaan" style="display:none;" />
+      
+      <!-- OSD Overlay -->
+      <div class="cam-osd-overlay">
+        <span id="cam-osd-topleft">CAM 01 · KAAGBAAN 24 · LIVE HD</span>
+        <span id="cam-osd-topright">REC ● 1080p 60fps</span>
+      </div>
+      <div class="cam-osd-bottom">
+        <span id="cam-osd-botleft">TWR 118.100 MHz · SCHIPHOL TOWER</span>
+        <span id="cam-osd-botright">WIND 220° 12kt · QNH 1014</span>
+      </div>
+    </div>
+
+    <!-- Camera Bediening & Modus -->
+    <div class="cam-selector-bar">
+      <select id="cam-select" class="cam-select" title="Kies startbaancamera"></select>
+      <div style="display:flex;gap:4px;">
+        <button class="cam-btn-tab active" id="btn-cam-mode-live">🎥 Live Video</button>
+        <button class="cam-btn-tab" id="btn-cam-mode-sat">🛰️ Satelliet</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
   <div id="right-deck">
     <!-- Main Deck Tabs -->
@@ -502,7 +605,10 @@
         </div>
         <div class="ap-zoom-action-bar">
           <span class="ap-alt-display" id="ap-disp-altitude">📷 Hoogte: 300 m (Kaagbaan)</span>
-          <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🔍 Baanzicht (300m)</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🔍 Baanzicht (300m)</button>
+            <button class="btn-zoom-300-quick" id="btn-banner-runwaycam" style="background:rgba(239,68,68,.25);border-color:var(--red);color:#fca5a5;">📹 Echte Baan Cam</button>
+          </div>
         </div>
       </div>
 
@@ -620,8 +726,9 @@
     </div>
     <div class="sep"></div>
     <div class="ctrl-group">
-      <span class="ctrl-label">LiveATC Radio</span>
+      <span class="ctrl-label">LiveATC & Baan Cam</span>
       <div class="btn-row">
+        <button class="btn radio-btn" id="btn-ctrl-runwaycam" style="border-color:rgba(239,68,68,.5);color:#fca5a5;">📹 Baan Cam</button>
         <button class="btn radio-btn" id="btn-atc-trigger">🎙️ Zend Oproep</button>
       </div>
     </div>
