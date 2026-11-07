@@ -358,26 +358,26 @@ class LiveAtcEngine {
 
     // Lokale authentieke radio-streams en kanalen voor Schiphol en Nederlandse velden
     this.streams = {
-      eham_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      eham_twr2: 'audio/eham_twr.m4a?v=2.0.0',
-      eham_gnd: 'audio/eham_twr.m4a?v=2.0.0',
-      eham_del: 'audio/eham_twr.m4a?v=2.0.0',
-      eham_app: 'audio/eham_twr.m4a?v=2.0.0',
-      eham_dep: 'audio/eham_twr.m4a?v=2.0.0',
-      ehrd_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      eheh_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehgg_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehbk_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehle_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehlw_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehvk_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehgr_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehwo_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehkd_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehse_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehtx_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehte_twr: 'audio/eham_twr.m4a?v=2.0.0',
-      ehhv_twr: 'audio/eham_twr.m4a?v=2.0.0',
+      eham_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_twr2: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_del: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_dep: 'audio/eham_twr.m4a?v=2.0.1',
+      ehrd_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      eheh_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgg_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehbk_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehle_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehlw_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehvk_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgr_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehwo_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehkd_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehse_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehtx_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehte_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehhv_twr: 'audio/eham_twr.m4a?v=2.0.1',
     };
     this.stationLabels = {
       eham_twr: '🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)',
@@ -513,7 +513,7 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation] || 'audio/eham_twr.m4a?v=2.0.0';
+    const streamSrc = this.streams[this.currentStation] || 'audio/eham_twr.m4a?v=2.0.1';
 
     try {
       this.audioEl.pause();
@@ -2644,7 +2644,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.0.0';
+let currentVersion = '2.0.1';
 
 async function checkVersion(silent = true) {
   try {
