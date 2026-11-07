@@ -1,4 +1,4 @@
-// PetersWorld Service Worker - Unregister & Clean v1.7.6
+// PetersWorld Service Worker - Unregister & Clean v1.7.7
 self.addEventListener('install', e => {
   self.skipWaiting();
   caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));

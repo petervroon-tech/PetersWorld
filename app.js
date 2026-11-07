@@ -231,25 +231,25 @@ class LiveAtcEngine {
 
     // Lokale authentieke radio-opnames van echte verkeerstorens (geen automatische weertapes meer)
     this.streams = {
-      ksfo_twr: 'audio/ksfo_twr.m4a?v=1.7.6',
-      kjfk_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      eham_twr_rec: 'audio/eham_twr.m4a?v=1.7.6',
-      cai_twr: 'audio/cai_twr.m4a?v=1.7.6',
-      egll_twr: 'audio/eham_twr.m4a?v=1.7.6',
-      lfpg_twr: 'audio/eham_twr.m4a?v=1.7.6',
-      eddf_twr: 'audio/eham_twr.m4a?v=1.7.6',
-      eham_gnd: 'audio/eham_twr.m4a?v=1.7.6',
-      eham_del: 'audio/eham_twr.m4a?v=1.7.6',
-      klax_twr: 'audio/ksfo_twr.m4a?v=1.7.6',
-      kord_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      katl_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      kmia_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      kdfw_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      cyyz_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      kewr_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      kbos_twr: 'audio/kjfk_twr.m4a?v=1.7.6',
-      yssy_twr: 'audio/ksfo_twr.m4a?v=1.7.6',
-      ymml_twr: 'audio/ksfo_twr.m4a?v=1.7.6',
+      ksfo_twr: 'audio/ksfo_twr.m4a?v=1.7.7',
+      kjfk_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      eham_twr_rec: 'audio/eham_twr.m4a?v=1.7.7',
+      cai_twr: 'audio/cai_twr.m4a?v=1.7.7',
+      egll_twr: 'audio/eham_twr.m4a?v=1.7.7',
+      lfpg_twr: 'audio/eham_twr.m4a?v=1.7.7',
+      eddf_twr: 'audio/eham_twr.m4a?v=1.7.7',
+      eham_gnd: 'audio/eham_twr.m4a?v=1.7.7',
+      eham_del: 'audio/eham_twr.m4a?v=1.7.7',
+      klax_twr: 'audio/ksfo_twr.m4a?v=1.7.7',
+      kord_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      katl_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      kmia_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      kdfw_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      cyyz_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      kewr_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      kbos_twr: 'audio/kjfk_twr.m4a?v=1.7.7',
+      yssy_twr: 'audio/ksfo_twr.m4a?v=1.7.7',
+      ymml_twr: 'audio/ksfo_twr.m4a?v=1.7.7',
     };
     this.stationLabels = {
       ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)',
@@ -281,9 +281,12 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
 
     if (this.audioEl) {
-      // Native looping: naadloos herhalen zonder asynchrone timers
-      this.audioEl.loop = true;
-      this.audioEl.preload = 'auto';
+      // Geen eindeloze loop meer: audio stopt netjes na afloop van de transmissie
+      this.audioEl.loop = false;
+      this.audioEl.preload = 'none';
+      this.audioEl.addEventListener('ended', () => {
+        this.stop();
+      });
     }
 
     if (select) {
@@ -382,7 +385,7 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation] || 'audio/cai_twr.m4a?v=1.7.6';
+    const streamSrc = this.streams[this.currentStation] || 'audio/cai_twr.m4a?v=1.7.7';
 
     // 1. Onderbreek het vorige afgespeelde fragment onmiddellijk en spoel terug
     try {
@@ -948,12 +951,6 @@ class AtcRadioEngine {
     this.playMicClick(true);
     this.setTxIndicator(isTower ? 'tower' : 'pilot');
 
-    // Start direct de echte LiveATC audiofeed met menselijke stemmen indien nog niet gestart
-    if (LIVEATC && !LIVEATC.isPlaying) {
-      LIVEATC.tuneToAirport(this.selectedAirport || (S && S.selectedAirport));
-      LIVEATC.playStream();
-    }
-
     setTimeout(() => {
       this.playMicClick(false);
       this.setTxIndicator('idle');
@@ -991,10 +988,10 @@ class AtcRadioEngine {
 
     this.exchangeDialogue(sector.code, towerText, towerText, flight.callsign, pilotText, pilotText);
 
-    // Zorg dat de radio stream van dit vliegveld direct hoorbaar afspeelt
+    // Zorg dat de radio display afgestemd staat op dit vliegveld
     const ap = flight.origin || flight.dest || S.selectedAirport;
     if (ap && LIVEATC) {
-      LIVEATC.tuneToAirport(ap, true);
+      LIVEATC.tuneToAirport(ap, false);
     }
   }
 
@@ -1021,12 +1018,8 @@ class AtcRadioEngine {
   toggleMute() {
     this.enabled = !this.enabled;
     this.ensureAudioCtx();
-    if (LIVEATC) {
-      if (!this.enabled && LIVEATC.isPlaying) {
-        LIVEATC.stop();
-      } else if (this.enabled && !LIVEATC.isPlaying) {
-        LIVEATC.playStream();
-      }
+    if (LIVEATC && !this.enabled && LIVEATC.isPlaying) {
+      LIVEATC.stop();
     }
     const btnMute = document.getElementById('btn-atc-mute');
     if (btnMute) btnMute.textContent = this.enabled ? '🔊' : '🔇';
@@ -1881,7 +1874,7 @@ function selectAirport(ap) {
   }
 
   ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
-  LIVEATC.tuneToAirport(ap, true);
+  LIVEATC.tuneToAirport(ap, false);
   if (typeof RUNWAY_CAM !== 'undefined' && RUNWAY_CAM) {
     RUNWAY_CAM.tuneToAirport(ap);
   }
@@ -1965,10 +1958,10 @@ function renderAirportFlightBoard() {
         ATC.ensureAudioCtx();
         LIVEATC.ensureAudioCtx();
 
-        // 1. Schakel altijd direct de radio in voor dit vliegveld
+        // 1. Stem de radio af op dit vliegveld (zonder oude bandjes te starten)
         const targetAirport = S.selectedAirport || f.origin || f.dest;
         if (targetAirport) {
-          LIVEATC.tuneToAirport(targetAirport, true);
+          LIVEATC.tuneToAirport(targetAirport, false);
         }
 
         // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
@@ -2024,10 +2017,10 @@ function renderAirportFlightBoard() {
         ATC.ensureAudioCtx();
         LIVEATC.ensureAudioCtx();
 
-        // 1. Schakel altijd direct de radio in voor dit vliegveld
+        // 1. Stem de radio af op dit vliegveld (zonder oude bandjes te starten)
         const targetAirport = S.selectedAirport || f.dest || f.origin;
         if (targetAirport) {
-          LIVEATC.tuneToAirport(targetAirport, true);
+          LIVEATC.tuneToAirport(targetAirport, false);
         }
 
         // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
@@ -2199,8 +2192,8 @@ function regieApplyWeatherAndRunway() {
 
   ATC.logMessage(`${ap.code} TWR`, `${ap.name} Tower: Runway in use ${ap.activeRunway}, wind ${ap.weather.wind}. Active for all arrivals and departures.`, true);
   ATC.playMicClick(true);
-  if (LIVEATC && !LIVEATC.isPlaying) {
-    LIVEATC.tuneToAirport(ap, true);
+  if (LIVEATC) {
+    LIVEATC.tuneToAirport(ap, false);
   }
 }
 
@@ -2416,10 +2409,6 @@ function setupControls() {
   const triggerCall = () => {
     ATC.ensureAudioCtx();
     LIVEATC.ensureAudioCtx();
-    if (!LIVEATC.isPlaying) {
-      LIVEATC.tuneToAirport(S.selectedAirport);
-      LIVEATC.playStream();
-    }
     const flight = S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
     if (flight) ATC.contactFlight(flight);
   };
@@ -2630,7 +2619,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.7.6';
+let currentVersion = '1.7.7';
 
 async function checkVersion(silent = true) {
   try {

@@ -1,12 +1,12 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.7.6",
-  "build": 26,
-  "timestamp": "2026-11-07T22:26:21.145181+00:00",
-  "git_hash": "0613d8d",
+  "version": "1.7.7",
+  "build": 27,
+  "timestamp": "2026-11-07T22:50:07.251856+00:00",
+  "git_hash": "17b6f34",
   "features": [
-    "Definitieve nucleaire cache-purge en reset.html om elk apparaat direct te ontdoen van oude herhalende opnames",
-    "Schone directe torenradiocommunicatie op alle wereldwijde vliegvelden zonder ATIS weerberichten",
+    "Einde aan audio-loops: automatische bandjes en herhalingen 100% uitgeschakeld",
+    "Vlucht Luister-knop gekoppeld aan de exacte vlucht op het scherm (geen tegenstrijdige audio meer)",
     "Automatische instant-cache purge in browser: laadt altijd 100% verse live radio zonder oude browsercache",
     "Amerikaanse torens (SFO, JFK, LAX, ORD, ATL, DFW, MIA) 100% gezuiverd van automatisch weerbericht/ATIS - directe authentieke verkeersleider/piloot communicatie",
     "Audio cache-busting (?v=1.7.4) op alle torenfeeds zodat browsers direct de nieuwste menselijke radio afspelen",
