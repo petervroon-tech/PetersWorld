@@ -1,8 +1,14 @@
-// PetersWorld Service Worker v1.1
-const CACHE = 'petersworld-v1.1';
+// PetersWorld Service Worker v1.3 - Real 3D Globe & ATC Radio
+const CACHE = 'petersworld-v1.3';
 const ASSETS = [
-  './', './index.html', './app.js', './petersworld.wasm',
-  './favicon.svg', './manifest.json'
+  './',
+  './index.html',
+  './app.js',
+  './petersworld.wasm',
+  './favicon.svg',
+  './manifest.json',
+  './libs/three.min.js',
+  './libs/OrbitControls.js'
 ];
 
 self.addEventListener('install', e =>
@@ -18,7 +24,7 @@ self.addEventListener('activate', e =>
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // version.json altijd live ophalen (geen cache)
+  // version.json altijd live ophalen (nooit uit de cache)
   if (url.pathname.endsWith('version.json')) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(() =>

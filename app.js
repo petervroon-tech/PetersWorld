@@ -1,7 +1,7 @@
 /**
- * PetersWorld – Global Flight Radar & Live ATC Radio Communicator
- * WebAssembly-aangedreven 3D wereldbol met live vluchten en luchtverkeersleiding communicatie.
- * Versie: 1.2.0
+ * PetersWorld – Real 3D Globe, Global Flight Radar & Live ATC Radio
+ * Fotorealistische 3D wereldbol met Three.js (NASA Blue Marble), WebAssembly en Web Audio ATC.
+ * Versie: 1.3.0
  */
 
 'use strict';
@@ -13,12 +13,12 @@ const CFG = {
   wasmFile: 'petersworld.wasm',
   versionFile: 'version.json',
   pollMs: 30_000,
-  flightCount: 120,         // aantal gesimuleerde vluchten
-  globeRadius: 180,
+  flightCount: 120,
+  globeRadius: 100,
 };
 
 // ═══════════════════════════════════════════════════════
-//  VLUCHTEN DATABASE – echte routes, luchthavens & airlines
+//  LUCHTHAVENS & AIRLINES DATABASE
 // ═══════════════════════════════════════════════════════
 const AIRPORTS = [
   // Europa
@@ -64,25 +64,46 @@ const AIRPORTS = [
 ];
 
 const AIRLINES = [
-  { code:'KLM',  callsign:'KLM',       name:'KLM Royal Dutch Airlines', color:'#00a1de', types:['Boeing 737','Boeing 777','Airbus A330'] },
-  { code:'DLH',  callsign:'Lufthansa', name:'Lufthansa',                 color:'#f9ba00', types:['Airbus A320','Airbus A350','Boeing 747'] },
-  { code:'BAW',  callsign:'Speedbird', name:'British Airways',           color:'#075aaa', types:['Boeing 777','Airbus A380','Boeing 787'] },
-  { code:'AFR',  callsign:'Air France',name:'Air France',                color:'#002157', types:['Airbus A320','Airbus A380','Boeing 777'] },
-  { code:'UAE',  callsign:'Emirates',  name:'Emirates',                  color:'#c8102e', types:['Boeing 777','Airbus A380'] },
-  { code:'UAL',  callsign:'United',    name:'United Airlines',           color:'#005daa', types:['Boeing 737','Boeing 777','Boeing 787'] },
-  { code:'AAL',  callsign:'American',  name:'American Airlines',         color:'#c8102e', types:['Boeing 737','Boeing 777','Airbus A321'] },
-  { code:'DAL',  callsign:'Delta',     name:'Delta Air Lines',           color:'#9d1f26', types:['Boeing 737','Airbus A330','Boeing 767'] },
-  { code:'ANA',  callsign:'All Nippon',name:'All Nippon Airways',        color:'#13448f', types:['Boeing 787','Boeing 777','Airbus A380'] },
-  { code:'SIA',  callsign:'Singapore', name:'Singapore Airlines',        color:'#172e69', types:['Airbus A350','Airbus A380','Boeing 777'] },
-  { code:'QFA',  callsign:'Qantas',    name:'Qantas',                    color:'#e8111a', types:['Boeing 737','Airbus A380','Boeing 787'] },
-  { code:'TKA',  callsign:'Turkish',   name:'Turkish Airlines',          color:'#c70000', types:['Boeing 737','Airbus A330','Boeing 777'] },
-  { code:'RYR',  callsign:'Ryanair',   name:'Ryanair',                   color:'#073590', types:['Boeing 737'] },
-  { code:'EZY',  callsign:'easyJet',   name:'easyJet',                   color:'#ff6600', types:['Airbus A319','Airbus A320'] },
-  { code:'TUI',  callsign:'TUI',       name:'TUI Airways',               color:'#c0022b', types:['Boeing 737','Boeing 767'] },
+  { code:'KLM',  callsign:'KLM',       name:'KLM Royal Dutch Airlines', color:0x00a1de, hex:'#00a1de', types:['Boeing 737','Boeing 777','Airbus A330'] },
+  { code:'DLH',  callsign:'Lufthansa', name:'Lufthansa',                 color:0xf9ba00, hex:'#f9ba00', types:['Airbus A320','Airbus A350','Boeing 747'] },
+  { code:'BAW',  callsign:'Speedbird', name:'British Airways',           color:0x075aaa, hex:'#075aaa', types:['Boeing 777','Airbus A380','Boeing 787'] },
+  { code:'AFR',  callsign:'Air France',name:'Air France',                color:0x002157, hex:'#002157', types:['Airbus A320','Airbus A380','Boeing 777'] },
+  { code:'UAE',  callsign:'Emirates',  name:'Emirates',                  color:0xc8102e, hex:'#c8102e', types:['Boeing 777','Airbus A380'] },
+  { code:'UAL',  callsign:'United',    name:'United Airlines',           color:0x005daa, hex:'#005daa', types:['Boeing 737','Boeing 777','Boeing 787'] },
+  { code:'AAL',  callsign:'American',  name:'American Airlines',         color:0xc8102e, hex:'#c8102e', types:['Boeing 737','Boeing 777','Airbus A321'] },
+  { code:'DAL',  callsign:'Delta',     name:'Delta Air Lines',           color:0x9d1f26, hex:'#9d1f26', types:['Boeing 737','Airbus A330','Boeing 767'] },
+  { code:'ANA',  callsign:'All Nippon',name:'All Nippon Airways',        color:0x13448f, hex:'#13448f', types:['Boeing 787','Boeing 777','Airbus A380'] },
+  { code:'SIA',  callsign:'Singapore', name:'Singapore Airlines',        color:0x172e69, hex:'#172e69', types:['Airbus A350','Airbus A380','Boeing 777'] },
+  { code:'QFA',  callsign:'Qantas',    name:'Qantas',                    color:0xe8111a, hex:'#e8111a', types:['Boeing 737','Airbus A380','Boeing 787'] },
+  { code:'TKA',  callsign:'Turkish',   name:'Turkish Airlines',          color:0xc70000, hex:'#c70000', types:['Boeing 737','Airbus A330','Boeing 777'] },
+  { code:'RYR',  callsign:'Ryanair',   name:'Ryanair',                   color:0x073590, hex:'#073590', types:['Boeing 737'] },
+  { code:'EZY',  callsign:'easyJet',   name:'easyJet',                   color:0xff6600, hex:'#ff6600', types:['Airbus A319','Airbus A320'] },
+  { code:'TUI',  callsign:'TUI',       name:'TUI Airways',               color:0xc0022b, hex:'#c0022b', types:['Boeing 737','Boeing 767'] },
 ];
 
 // ═══════════════════════════════════════════════════════
-//  ATC RADIO ENGINE (Verkeerstoren & Cockpit)
+//  WISKUNDIGE 3D PROJECTIE OP BOL
+// ═══════════════════════════════════════════════════════
+function latLonToVector3(lat, lon, r = CFG.globeRadius) {
+  const phi = lat * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
+  const x = -r * Math.cos(phi) * Math.cos(theta);
+  const y = r * Math.sin(phi);
+  const z = r * Math.cos(phi) * Math.sin(theta);
+  return new THREE.Vector3(x, y, z);
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ═══════════════════════════════════════════════════════
+//  ATC RADIO ENGINE
 // ═══════════════════════════════════════════════════════
 class AtcRadioEngine {
   constructor() {
@@ -138,7 +159,7 @@ class AtcRadioEngine {
       filter.Q.setValueAtTime(isStart ? 4 : 2, now);
 
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(isStart ? 0.22 : 0.32, now);
+      gain.gain.setValueAtTime(isStart ? 0.20 : 0.30, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
       noise.connect(filter);
@@ -215,10 +236,10 @@ class AtcRadioEngine {
       }
 
       if (isTower) {
-        utt.rate = 1.12;   // Vlot en helder zoals echte ATC
+        utt.rate = 1.12;
         utt.pitch = 1.05;
       } else {
-        utt.rate = 1.04;   // Cockpit readback
+        utt.rate = 1.04;
         utt.pitch = 0.88;
       }
 
@@ -255,10 +276,8 @@ class AtcRadioEngine {
     const callsignSpoken = flight.airline.callsign + ' ' + numOnly;
     const dialogue = this.generateDialogue(flight, sector, callsignSpoken);
 
-    // 1. Toren spreekt
     this.logMessage(sector.code, dialogue.towerText, true);
     this.speak(dialogue.towerSpeech, true, () => {
-      // 2. Piloot geeft readback
       setTimeout(() => {
         this.logMessage(flight.callsign, dialogue.pilotText, false);
         this.speak(dialogue.pilotSpeech, false, () => {
@@ -403,178 +422,405 @@ class AtcRadioEngine {
 const ATC = new AtcRadioEngine();
 
 // ═══════════════════════════════════════════════════════
-//  VLUCHT GENERATOR
+//  THREE.JS REAL 3D EARTH SCENE
 // ═══════════════════════════════════════════════════════
-function seededRng(seed) {
-  let s = seed >>> 0;
-  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0xFFFFFFFF; };
-}
+const S = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  controls: null,
+  raycaster: new THREE.Raycaster(),
+  mouse: new THREE.Vector2(),
 
-function generateFlights(count) {
-  const rng = seededRng(0xDEADBEEF);
-  const flights = [];
+  // Object groepen
+  earthGroup: null,
+  earthMesh: null,
+  cloudMesh: null,
+  atmoMesh: null,
+  airportsGroup: null,
+  flightsGroup: null,
+  trailsGroup: null,
 
-  for (let i = 0; i < count; i++) {
-    const originIdx  = Math.floor(rng() * AIRPORTS.length);
-    let   destIdx    = Math.floor(rng() * AIRPORTS.length);
-    while (destIdx === originIdx) destIdx = Math.floor(rng() * AIRPORTS.length);
-
-    const airline = AIRLINES[Math.floor(rng() * AIRLINES.length)];
-    const aircraft = airline.types[Math.floor(rng() * airline.types.length)];
-
-    const o = AIRPORTS[originIdx];
-    const d = AIRPORTS[destIdx];
-
-    const gcArc = computeGreatCircleArc(o.lat, o.lon, d.lat, d.lon, 48);
-    const altitude = 9000 + Math.floor(rng() * 3500);
-    const speedKmh = 800 + Math.floor(rng() * 160);
-    const distKm = haversineKm(o.lat, o.lon, d.lat, d.lon);
-    const durationH = distKm / speedKmh;
-    const startProgress = rng();
-
-    flights.push({
-      id: i,
-      callsign: `${airline.code}${Math.floor(rng() * 9000) + 1000}`,
-      airline,
-      aircraft,
-      origin: o,
-      dest: d,
-      altitude,
-      speedKmh,
-      durationH,
-      progress: startProgress,
-      progressRate: 1 / (durationH * 3600 * 60),
-      arc: gcArc,
-      color: airline.color,
-      hovered: false,
-      selected: false,
-      trail: [],
-      trailMaxLen: 20,
-    });
-  }
-
-  return flights;
-}
-
-function haversineKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function computeGreatCircleArc(lat1, lon1, lat2, lon2, steps) {
-  const toXYZ = (la, lo) => {
-    const φ = la * Math.PI / 180, λ = lo * Math.PI / 180;
-    return [Math.cos(φ)*Math.sin(λ), -Math.sin(φ), Math.cos(φ)*Math.cos(λ)];
-  };
-  const toLaLo = ([x, y, z]) => {
-    const la = -Math.asin(Math.max(-1, Math.min(1, y))) * 180 / Math.PI;
-    const lo = Math.atan2(x, z) * 180 / Math.PI;
-    return [la, lo];
-  };
-
-  const p1 = toXYZ(lat1, lon1);
-  const p2 = toXYZ(lat2, lon2);
-  const dot = p1[0]*p2[0] + p1[1]*p2[1] + p1[2]*p2[2];
-  const theta = Math.acos(Math.max(-1, Math.min(1, dot)));
-
-  const arc = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    if (theta < 1e-6) { arc.push([lat1, lon1]); continue; }
-    const sinT = Math.sin(theta);
-    const w1 = Math.sin((1 - t) * theta) / sinT;
-    const w2 = Math.sin(t * theta) / sinT;
-    const pt = [w1*p1[0]+w2*p2[0], w1*p1[1]+w2*p2[1], w1*p1[2]+w2*p2[2]];
-    arc.push(toLaLo(pt));
-  }
-  return arc;
-}
-
-function getPositionOnArc(arc, t) {
-  const idx = Math.min(arc.length - 2, Math.floor(t * (arc.length - 1)));
-  const frac = t * (arc.length - 1) - idx;
-  const a = arc[idx], b = arc[idx + 1];
-  return [a[0] + (b[0] - a[0]) * frac, a[1] + (b[1] - a[1]) * frac];
-}
-
-// ═══════════════════════════════════════════════════════
-//  WORLD STATE
-// ═══════════════════════════════════════════════════════
-const W = {
-  wasm: null,
-  canvas: null,
-  ctx: null,
-  w: 0, h: 0,
-  dpr: window.devicePixelRatio || 1,
-
-  // Camera
-  rotY: 0.4, rotX: 0.3,
-  targetRotY: 0.4, targetRotX: 0.3,
-  zoom: 1.0, targetZoom: 1.0,
-  isDragging: false, lastX: 0, lastY: 0,
-  velX: 0, velY: 0,
-  autoRotate: true,
-  autoRotateSpeed: 0.00025,
-
-  // Simulatie
+  // Simulatie state
+  flights: [],
+  followFlight: null,
   paused: false,
   speed: 1,
   tick: 0,
-  flights: [],
-  layers: { flights: true, airports: true, trails: true, grid: true },
-
-  // Versie
-  currentVersion: '1.2.0',
-  currentBuild: 6,
-  remoteData: null,
-
-  // Follow
-  followFlight: null,
+  layers: { flights: true, airports: true, trails: true, clouds: true, atmosphere: true },
 
   // FPS
-  lastFrame: 0,
-  fps: 60,
+  lastTime: 0,
   fpsCount: 0,
   fpsLast: 0,
 };
 
-// ═══════════════════════════════════════════════════════
-//  3D PROJECTIE
-// ═══════════════════════════════════════════════════════
-function project3D(latDeg, lonDeg, r) {
-  const φ = latDeg * Math.PI / 180;
-  const λ = lonDeg * Math.PI / 180;
+function initThreeScene() {
+  const container = document.getElementById('webgl-container');
 
-  let x = r * Math.cos(φ) * Math.sin(λ);
-  let y = -r * Math.sin(φ);
-  let z = r * Math.cos(φ) * Math.cos(λ);
+  // Scene
+  S.scene = new THREE.Scene();
 
-  const cY = Math.cos(W.rotY), sY = Math.sin(W.rotY);
-  const x1 = x * cY + z * sY;
-  const z1 = -x * sY + z * cY;
+  // Camera
+  S.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
+  S.camera.position.set(0, 50, 260);
 
-  const cX = Math.cos(W.rotX), sX = Math.sin(W.rotX);
-  const y2 = y * cX - z1 * sX;
-  const z2 = y * sX + z1 * cX;
+  // Renderer
+  S.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  S.renderer.setSize(window.innerWidth, window.innerHeight);
+  S.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(S.renderer.domElement);
 
-  const sc = W.zoom;
-  const cx = W.w / 2, cy = W.h / 2;
-  return {
-    x: cx + x1 * sc,
-    y: cy + y2 * sc,
-    z: z2,
-    visible: z2 > -r * 0.1,
-    front: z2 > 0,
+  // OrbitControls
+  S.controls = new THREE.OrbitControls(S.camera, S.renderer.domElement);
+  S.controls.enableDamping = true;
+  S.controls.dampingFactor = 0.05;
+  S.controls.minDistance = 115;
+  S.controls.maxDistance = 600;
+  S.controls.rotateSpeed = 0.6;
+  S.controls.zoomSpeed = 0.8;
+
+  // Verlichting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
+  S.scene.add(ambientLight);
+
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.25);
+  sunLight.position.set(300, 100, 200);
+  S.scene.add(sunLight);
+
+  // Starfield
+  createStarfield();
+
+  // Earth Group
+  S.earthGroup = new THREE.Group();
+  S.scene.add(S.earthGroup);
+
+  // Realistische Aardbol & Atmosfeer
+  createRealEarth(sunLight.position);
+
+  // Groepen voor luchthavens en vluchten
+  S.airportsGroup = new THREE.Group();
+  S.flightsGroup = new THREE.Group();
+  S.trailsGroup = new THREE.Group();
+  S.earthGroup.add(S.airportsGroup);
+  S.earthGroup.add(S.flightsGroup);
+  S.earthGroup.add(S.trailsGroup);
+
+  // Render luchthavens & vluchten
+  build3DAirports();
+  build3DFlights();
+
+  // Resize handler
+  window.addEventListener('resize', onWindowResize);
+}
+
+function onWindowResize() {
+  S.camera.aspect = window.innerWidth / window.innerHeight;
+  S.camera.updateProjectionMatrix();
+  S.renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function createStarfield() {
+  const count = 1600;
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+
+  for (let i = 0; i < count; i++) {
+    const r = 700 + Math.random() * 500;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(Math.random() * 2 - 1);
+    positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+
+    const shade = 0.7 + Math.random() * 0.3;
+    colors[i * 3] = shade;
+    colors[i * 3 + 1] = shade * (0.9 + Math.random() * 0.1);
+    colors[i * 3 + 2] = 1.0;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 1.8,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85
+  });
+
+  const stars = new THREE.Points(geometry, material);
+  S.scene.add(stars);
+}
+
+function createRealEarth(sunPos) {
+  const textureLoader = new THREE.TextureLoader();
+
+  // Textures laden
+  const dayMap      = textureLoader.load('textures/earth_atmos_2048.jpg');
+  const nightMap    = textureLoader.load('textures/earth_lights_2048.png');
+  const normalMap   = textureLoader.load('textures/earth_normal_2048.jpg');
+  const specularMap = textureLoader.load('textures/earth_specular_2048.jpg');
+  const cloudsMap   = textureLoader.load('textures/earth_clouds_1024.png');
+
+  // Shader die dag-satellietfoto overdag toont, oceanen laat glinsteren en 's nachts stadslichten aandoet
+  const earthShader = {
+    uniforms: {
+      dayTexture:      { value: dayMap },
+      nightTexture:    { value: nightMap },
+      specularTexture: { value: specularMap },
+      sunDirection:    { value: sunPos.clone().normalize() }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vUv = uv;
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D dayTexture;
+      uniform sampler2D nightTexture;
+      uniform sampler2D specularTexture;
+      uniform vec3 sunDirection;
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+
+      void main() {
+        vec3 normal = normalize(vNormal);
+        vec3 sunDir = normalize(sunDirection);
+        float NdotL = dot(normal, sunDir);
+
+        float dayFactor = clamp(NdotL * 1.5 + 0.15, 0.0, 1.0);
+        float nightFactor = clamp(-NdotL * 1.5 + 0.25, 0.0, 1.0);
+
+        vec4 dayColor = texture2D(dayTexture, vUv);
+        vec4 nightColor = texture2D(nightTexture, vUv);
+        float specFactor = texture2D(specularTexture, vUv).r;
+
+        // Oceaan glans
+        vec3 viewDir = normalize(-vPosition);
+        vec3 halfDir = normalize(sunDir + viewDir);
+        float spec = pow(max(dot(normal, halfDir), 0.0), 30.0) * specFactor * 0.55 * dayFactor;
+
+        vec3 ambient = vec3(0.06, 0.08, 0.12);
+        vec3 color = dayColor.rgb * (dayFactor + ambient) + spec + (nightColor.rgb * nightFactor * 1.6);
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `
   };
+
+  const earthGeo = new THREE.SphereGeometry(CFG.globeRadius, 64, 64);
+  const earthMat = new THREE.ShaderMaterial({
+    uniforms: earthShader.uniforms,
+    vertexShader: earthShader.vertexShader,
+    fragmentShader: earthShader.fragmentShader
+  });
+
+  S.earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  S.earthGroup.add(S.earthMesh);
+
+  // Wolkenlaag
+  const cloudGeo = new THREE.SphereGeometry(CFG.globeRadius + 0.8, 64, 64);
+  const cloudMat = new THREE.MeshLambertMaterial({
+    map: cloudsMap,
+    transparent: true,
+    opacity: 0.42,
+    blending: THREE.AdditiveBlending
+  });
+  S.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+  S.earthGroup.add(S.cloudMesh);
+
+  // Atmosfeer gloed shader (Fresnel Rayleigh halo)
+  const atmoGeo = new THREE.SphereGeometry(CFG.globeRadius + 2.8, 64, 64);
+  const atmoMat = new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vec3 viewDir = normalize(-vPosition);
+        float fresnel = 1.0 - dot(vNormal, viewDir);
+        fresnel = pow(fresnel, 2.8);
+        vec3 atmoColor = vec3(0.24, 0.65, 1.0);
+        gl_FragColor = vec4(atmoColor, fresnel * 0.75);
+      }
+    `,
+    side: THREE.BackSide,
+    transparent: true,
+    blending: THREE.AdditiveBlending
+  });
+  S.atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
+  S.earthGroup.add(S.atmoMesh);
+}
+
+function build3DAirports() {
+  const hubMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  const smallMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+  const hubGeo = new THREE.SphereGeometry(0.75, 12, 12);
+  const smallGeo = new THREE.SphereGeometry(0.45, 8, 8);
+
+  for (const ap of AIRPORTS) {
+    const pos = latLonToVector3(ap.lat, ap.lon, CFG.globeRadius + 0.2);
+    const mesh = new THREE.Mesh(ap.hub ? hubGeo : smallGeo, ap.hub ? hubMat : smallMat);
+    mesh.position.copy(pos);
+    mesh.userData = { isAirport: true, airport: ap };
+    S.airportsGroup.add(mesh);
+
+    if (ap.hub) {
+      // Pulserende radar ring voor hubs
+      const ringGeo = new THREE.RingGeometry(0.9, 1.4, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.copy(pos);
+      ring.lookAt(new THREE.Vector3(0, 0, 0));
+      S.airportsGroup.add(ring);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
-//  WASM BRUG
+//  3D VLIEGTUIG MESH & TRAJECTEN
 // ═══════════════════════════════════════════════════════
+function createAirplaneMesh(colorHex) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshPhongMaterial({
+    color: colorHex,
+    shininess: 60,
+    emissive: colorHex,
+    emissiveIntensity: 0.15
+  });
+
+  // Romp (Fuselage)
+  const bodyGeo = new THREE.CylinderGeometry(0.28, 0.22, 2.6, 8);
+  bodyGeo.rotateX(Math.PI / 2);
+  const body = new THREE.Mesh(bodyGeo, mat);
+  group.add(body);
+
+  // Vleugels (Swept wings)
+  const wingGeo = new THREE.BoxGeometry(3.4, 0.05, 0.7);
+  const wing = new THREE.Mesh(wingGeo, mat);
+  wing.position.set(0, 0, 0.1);
+  group.add(wing);
+
+  // Staart (Tail fin)
+  const tailGeo = new THREE.BoxGeometry(0.08, 0.9, 0.6);
+  const tail = new THREE.Mesh(tailGeo, mat);
+  tail.position.set(0, 0.5, -1.0);
+  group.add(tail);
+
+  // Straalmotoren
+  const engGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.7, 6);
+  engGeo.rotateX(Math.PI / 2);
+  const engL = new THREE.Mesh(engGeo, mat);
+  engL.position.set(-0.75, -0.15, 0.1);
+  const engR = new THREE.Mesh(engGeo, mat);
+  engR.position.set(0.75, -0.15, 0.1);
+  group.add(engL);
+  group.add(engR);
+
+  // Navigatielichten (Rood op bakboord links, Groen op stuurboord rechts)
+  const redMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
+  const greenMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+  const lightGeo = new THREE.SphereGeometry(0.12, 6, 6);
+
+  const redLight = new THREE.Mesh(lightGeo, redMat);
+  redLight.position.set(-1.7, 0, 0.1);
+  const greenLight = new THREE.Mesh(lightGeo, greenMat);
+  greenLight.position.set(1.7, 0, 0.1);
+  group.add(redLight);
+  group.add(greenLight);
+
+  return group;
+}
+
+function build3DFlights() {
+  const count = CFG.flightCount;
+  S.flights = [];
+
+  for (let i = 0; i < count; i++) {
+    const oIdx = Math.floor(Math.random() * AIRPORTS.length);
+    let dIdx = Math.floor(Math.random() * AIRPORTS.length);
+    while (dIdx === oIdx) dIdx = Math.floor(Math.random() * AIRPORTS.length);
+
+    const origin = AIRPORTS[oIdx];
+    const dest = AIRPORTS[dIdx];
+    const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
+    const aircraft = airline.types[Math.floor(Math.random() * airline.types.length)];
+
+    const oVec = latLonToVector3(origin.lat, origin.lon, CFG.globeRadius);
+    const dVec = latLonToVector3(dest.lat, dest.lon, CFG.globeRadius);
+
+    // 3D Parabolische boogcurve
+    const dist = oVec.distanceTo(dVec);
+    const mid = oVec.clone().add(dVec).multiplyScalar(0.5);
+    const alt = CFG.globeRadius + 3.0 + (dist * 0.08); // Hoogtepiek
+    mid.normalize().multiplyScalar(alt);
+
+    const curve = new THREE.QuadraticBezierCurve3(oVec, mid, dVec);
+
+    // Vluchtboog grafisch visualiseren
+    const points = curve.getPoints(36);
+    const arcGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const arcMat = new THREE.LineBasicMaterial({
+      color: airline.color,
+      transparent: true,
+      opacity: 0.28,
+      linewidth: 1
+    });
+    const arcLine = new THREE.Line(arcGeo, arcMat);
+    S.trailsGroup.add(arcLine);
+
+    // Vliegtuig 3D mesh
+    const planeMesh = createAirplaneMesh(airline.color);
+    planeMesh.userData = { isFlight: true, flightId: i };
+    S.flightsGroup.add(planeMesh);
+
+    const distKm = haversineKm(origin.lat, origin.lon, dest.lat, dest.lon);
+    const speedKmh = 800 + Math.floor(Math.random() * 160);
+    const durationH = distKm / speedKmh;
+
+    const flight = {
+      id: i,
+      callsign: `${airline.code}${Math.floor(Math.random() * 9000) + 1000}`,
+      airline,
+      aircraft,
+      origin,
+      dest,
+      altitude: 9000 + Math.floor(Math.random() * 3500),
+      speedKmh,
+      durationH,
+      progress: Math.random(),
+      progressRate: 1 / (durationH * 3600 * 60),
+      curve,
+      arcLine,
+      planeMesh,
+      hovered: false
+    };
+
+    planeMesh.userData.flight = flight;
+    S.flights.push(flight);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  WASM BRUG & UPDATE
+// ═══════════════════════════════════════════════════════
+let wasmInstance = null;
 async function loadWasm() {
   try {
     const url = `${CFG.wasmFile}?v=${Date.now()}`;
@@ -591,584 +837,181 @@ async function loadWasm() {
       const buf = await (await fetch(url)).arrayBuffer();
       instance = (await WebAssembly.instantiate(buf, {})).instance;
     }
-    W.wasm = instance.exports;
-    W.wasm.init_world(0xBEEF);
-    const ver = W.wasm.get_version();
-    document.getElementById('hud-wasm').textContent = `v${(ver/100).toFixed(2)}`;
-    console.log(`[WASM] PetersWorld engine v${(ver/100).toFixed(2)} geladen.`);
+    wasmInstance = instance.exports;
+    wasmInstance.init_world(0x1234);
+    const ver = wasmInstance.get_version();
+    const hudWasm = document.getElementById('hud-wasm');
+    if (hudWasm) hudWasm.textContent = `v${(ver/100).toFixed(2)}`;
   } catch (e) {
-    console.error('[WASM] Laad fout:', e);
+    console.warn('[WASM] Laden:', e);
   }
 }
 
 // ═══════════════════════════════════════════════════════
-//  VERSIE MANAGER
+//  ANIMATIE & SIMULATIE LOOP
 // ═══════════════════════════════════════════════════════
-async function checkVersion(isInit = false) {
-  try {
-    const r = await fetch(`${CFG.versionFile}?_t=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-    });
-    if (!r.ok) return;
-    const data = await r.json();
-    W.remoteData = data;
+function animate(now) {
+  requestAnimationFrame(animate);
 
-    const remoteBuild = parseInt(data.build || 0, 10);
-    const remoteVer   = data.version || W.currentVersion;
+  const dt = Math.min(100, now - (S.lastTime || now));
+  S.lastTime = now;
 
-    document.getElementById('ver-txt').textContent = `v${W.currentVersion}`;
+  // FPS berekening
+  S.fpsCount++;
+  if (now - S.fpsLast >= 1000) {
+    const hudFps = document.getElementById('hud-fps');
+    if (hudFps) hudFps.textContent = `${S.fpsCount} fps`;
+    S.fpsCount = 0;
+    S.fpsLast = now;
+  }
 
-    if (isInit && !localStorage.getItem('pw_build')) {
-      localStorage.setItem('pw_build', remoteBuild);
-      localStorage.setItem('pw_ver',   remoteVer);
-      setVerDot(false);
-      return;
-    }
-
-    const storedBuild = parseInt(localStorage.getItem('pw_build') || '0', 10);
-    const newer = remoteBuild > storedBuild || remoteVer !== (localStorage.getItem('pw_ver') || W.currentVersion);
-
-    if (newer) {
-      showUpdateBanner(data);
-      setVerDot(true);
+  // Simulatietick & WASM
+  if (!S.paused) {
+    if (wasmInstance) {
+      S.tick = wasmInstance.update(Math.round(dt), S.speed) || S.tick + 1;
     } else {
-      setVerDot(false);
+      S.tick++;
     }
-  } catch {}
-}
-
-function setVerDot(hasUpdate) {
-  const dot = document.getElementById('ver-dot');
-  if (!dot) return;
-  if (hasUpdate) {
-    dot.style.background = '#facc15';
-    dot.style.boxShadow  = '0 0 8px #facc15';
-  } else {
-    dot.style.background = '#22c55e';
-    dot.style.boxShadow  = '0 0 7px #22c55e';
   }
-}
 
-function showUpdateBanner(data) {
-  const banner = document.getElementById('update-banner');
-  document.getElementById('upd-ver').textContent  = `v${data.version} build #${data.build}`;
-  if (data.features && data.features[0]) {
-    document.getElementById('upd-note').textContent = data.features[0];
+  const hudTick = document.getElementById('hud-tick');
+  if (hudTick) hudTick.textContent = S.tick;
+
+  // Wolken en aarde langzaam laten roteren
+  if (S.cloudMesh && S.layers.clouds) {
+    S.cloudMesh.rotation.y += 0.00015;
   }
-  banner.classList.add('show');
-}
 
-async function applyUpdate() {
-  if (W.remoteData) {
-    localStorage.setItem('pw_build', W.remoteData.build);
-    localStorage.setItem('pw_ver',   W.remoteData.version);
-  }
-  if ('caches' in window) {
-    for (const k of await caches.keys()) await caches.delete(k);
-  }
-  if (navigator.serviceWorker?.controller) {
-    navigator.serviceWorker.controller.postMessage({ action: 'skipWaiting' });
-  }
-  const url = new URL(location.href);
-  url.searchParams.set('v', Date.now());
-  location.href = url.toString();
-}
-
-// ═══════════════════════════════════════════════════════
-//  RENDER ENGINE
-// ═══════════════════════════════════════════════════════
-function resize() {
-  W.w = window.innerWidth;
-  W.h = window.innerHeight;
-  W.canvas.width  = W.w * W.dpr;
-  W.canvas.height = W.h * W.dpr;
-  W.ctx.scale(W.dpr, W.dpr);
-}
-
-let _globeR = CFG.globeRadius;
-function globeR() { return _globeR * W.zoom; }
-
-function drawBackground() {
-  const { ctx, w, h } = W;
-  const cx = w/2, cy = h/2;
-  const bg = ctx.createRadialGradient(cx, cy, 60, cx, cy, Math.max(w, h));
-  bg.addColorStop(0,   '#091525');
-  bg.addColorStop(0.5, '#060e1a');
-  bg.addColorStop(1,   '#030810');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-
-  if (!W._stars) {
-    const rng = seededRng(0xCAFE);
-    W._stars = Array.from({length: 320}, () => ({
-      x: rng() * w, y: rng() * h,
-      r: rng() * 1.4,
-      a: 0.3 + rng() * 0.7
-    }));
-  }
-  for (const s of W._stars) {
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${s.a})`;
-    ctx.fill();
-  }
-}
-
-function drawAtmosphere() {
-  const { ctx, w, h } = W;
-  const cx = w/2, cy = h/2;
-  const r  = globeR();
-  const atmo = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.3);
-  atmo.addColorStop(0,   'rgba(56,189,248,0.40)');
-  atmo.addColorStop(0.4, 'rgba(56,189,248,0.12)');
-  atmo.addColorStop(1,   'rgba(56,189,248,0)');
-  ctx.fillStyle = atmo;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 1.3, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawGlobe() {
-  const { ctx, w, h } = W;
-  const cx = w/2, cy = h/2;
-  const r  = globeR();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.clip();
-
-  ctx.fillStyle = '#071324';
-  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
-
-  const ocean = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
-  ocean.addColorStop(0,   '#0f3a6e');
-  ocean.addColorStop(0.6, '#0a2550');
-  ocean.addColorStop(1,   '#071324');
-  ctx.fillStyle = ocean;
-  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
-
-  const termGrad = ctx.createLinearGradient(cx - r, cy, cx + r, cy);
-  termGrad.addColorStop(0,   'rgba(0,0,0,0.65)');
-  termGrad.addColorStop(0.42,'rgba(0,0,0,0.35)');
-  termGrad.addColorStop(0.5, 'rgba(255,170,80,0.08)');
-  termGrad.addColorStop(0.58,'rgba(255,255,255,0.0)');
-  termGrad.addColorStop(1,   'rgba(255,255,255,0.0)');
-  ctx.fillStyle = termGrad;
-  ctx.fillRect(cx - r - 2, cy - r - 2, r * 2 + 4, r * 2 + 4);
-
-  ctx.restore();
-
-  ctx.strokeStyle = 'rgba(56,189,248,0.6)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.stroke();
-}
-
-function drawGrid() {
-  if (!W.layers.grid) return;
-  const { ctx } = W;
-  const r = _globeR;
-  ctx.strokeStyle = 'rgba(56,189,248,0.10)';
-  ctx.lineWidth = 0.8;
-
-  for (const lat of [-60, -30, 0, 30, 60]) {
-    ctx.beginPath();
-    let started = false;
-    for (let lo = -180; lo <= 180; lo += 4) {
-      const p = project3D(lat, lo, r);
-      if (p.visible) {
-        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-        else ctx.lineTo(p.x, p.y);
-      } else started = false;
+  // Update positie en oriëntatie van alle 3D vliegtuigen
+  const dtSim = dt * S.speed;
+  for (const f of S.flights) {
+    if (!S.paused) {
+      f.progress += f.progressRate * dtSim;
+      if (f.progress >= 1.0) f.progress = 0;
     }
-    ctx.stroke();
-  }
 
-  for (let lo = -180; lo < 180; lo += 30) {
-    ctx.beginPath();
-    let started = false;
-    for (let la = -88; la <= 88; la += 4) {
-      const p = project3D(la, lo, r);
-      if (p.visible) {
-        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-        else ctx.lineTo(p.x, p.y);
-      } else started = false;
-    }
-    ctx.stroke();
-  }
-}
+    // 3D positie op de boog
+    const p = f.curve.getPointAt(f.progress);
+    f.planeMesh.position.copy(p);
 
-const CONTINENT_SHAPES = [
-  [[71,25],[70,19],[63,10],[58,-5],[43,-9],[36,-5],[38,15],[42,21],[46,30],[48,40],[55,37],[60,30],[65,25],[68,20]],
-  [[37,10],[34,32],[30,32],[14,42],[-5,41],[-25,33],[-34,19],[-28,17],[-20,13],[0,10],[8,2],[15,-17],[30,-10],[35,-5]],
-  [[72,60],[71,140],[60,165],[35,140],[22,115],[8,105],[20,85],[30,60],[47,40],[55,37],[60,30],[70,38]],
-  [[72,-140],[70,-95],[60,-65],[47,-54],[30,-81],[23,-107],[28,-111],[32,-118],[48,-125],[60,-140]],
-  [[12,-72],[7,-52],[-5,-35],[-10,-38],[-25,-48],[-45,-65],[-55,-68],[-33,-71],[-18,-70],[-5,-80]],
-  [[-12,130],[-15,145],[-28,154],[-38,145],[-35,118],[-20,115]],
-  [[83,-45],[77,-18],[72,-24],[75,-57],[81,-57]],
-  [[44,145],[42,142],[35,137],[34,130],[37,136],[40,141]],
-  [[59,-3],[57,-6],[51,-5],[51,2],[54,0],[58,-5]],
-];
+    // Tangens vector (vliegrichting)
+    const tangent = f.curve.getTangentAt(f.progress).normalize();
+    // Buitenwaartse normaal vanaf het centrum van de aarde
+    const up = p.clone().normalize();
 
-function drawContinents() {
-  const { ctx } = W;
-  const r = _globeR;
+    // Richt de neus van het vliegtuig langs de vliegrichting
+    const matrix = new THREE.Matrix4();
+    const zAxis = tangent.clone();
+    const yAxis = up.clone();
+    const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
+    yAxis.crossVectors(zAxis, xAxis).normalize();
 
-  ctx.fillStyle   = 'rgba(34,197,94,0.22)';
-  ctx.strokeStyle = 'rgba(74,222,128,0.70)';
-  ctx.lineWidth   = 1.2;
+    matrix.makeBasis(xAxis, yAxis, zAxis);
+    f.planeMesh.quaternion.setFromRotationMatrix(matrix);
 
-  for (const poly of CONTINENT_SHAPES) {
-    ctx.beginPath();
-    let visCount = 0;
-    let first = true;
-    for (const [la, lo] of poly) {
-      const p = project3D(la, lo, r + 0.5);
-      if (p.front) visCount++;
-      if (first) { ctx.moveTo(p.x, p.y); first = false; }
-      else ctx.lineTo(p.x, p.y);
-    }
-    ctx.closePath();
-    if (visCount > 1) { ctx.fill(); ctx.stroke(); }
-  }
-}
-
-function drawAirports() {
-  if (!W.layers.airports) return;
-  const { ctx } = W;
-  const now = Date.now() / 1000;
-  const r = _globeR;
-
-  for (const ap of AIRPORTS) {
-    const p = project3D(ap.lat, ap.lon, r + 1);
-    if (!p.front) continue;
-
-    const alpha = 0.5 + p.z / (r * 1.5) * 0.5;
-    const isHub = ap.hub;
-
-    if (isHub) {
-      const pulse = (Math.sin(now * 1.8 + ap.lat) + 1) / 2;
-      ctx.strokeStyle = `rgba(250,204,21,${0.4 + pulse * 0.5})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 4 + pulse * 5, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = `rgba(250,204,21,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.font = 'bold 9px monospace';
-      ctx.fillStyle = `rgba(250,204,21,${alpha * 0.9})`;
-      ctx.fillText(ap.code, p.x + 6, p.y - 4);
+    // Lijnkleur markeren indien geselecteerd
+    if (f === S.followFlight) {
+      f.arcLine.material.opacity = 0.85;
+      f.arcLine.material.color.setHex(0xfacc15);
+    } else if (f.hovered) {
+      f.arcLine.material.opacity = 0.65;
     } else {
-      ctx.fillStyle = `rgba(148,163,184,${alpha * 0.6})`;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
-      ctx.fill();
+      f.arcLine.material.opacity = S.layers.trails ? 0.28 : 0.0;
+      f.arcLine.material.color.setHex(f.airline.color);
     }
   }
-}
 
-function drawFlightTrail(flight) {
-  if (!W.layers.trails || flight.trail.length < 2) return;
-  const { ctx } = W;
+  // Camera track modus (volg geselecteerd vliegtuig)
+  if (S.followFlight) {
+    const targetPos = S.followFlight.planeMesh.position;
+    S.controls.target.lerp(targetPos, 0.08);
 
-  ctx.beginPath();
-  let first = true;
-  for (let i = 0; i < flight.trail.length; i++) {
-    const [la, lo] = flight.trail[i];
-    const p = project3D(la, lo, _globeR + 1);
-    if (p.front && p.visible) {
-      if (first) { ctx.moveTo(p.x, p.y); first = false; }
-      else ctx.lineTo(p.x, p.y);
-    } else { first = true; }
+    // Camera soepel laten meebewegen
+    const offset = targetPos.clone().normalize().multiplyScalar(40);
+    const idealCamPos = targetPos.clone().add(offset);
+    S.camera.position.lerp(idealCamPos, 0.04);
   }
 
-  const isSelected = flight === W.followFlight;
-  ctx.strokeStyle = isSelected
-    ? `rgba(250,204,21,0.6)`
-    : hexToRgba(flight.color, 0.4);
-  ctx.lineWidth = isSelected ? 2 : 1;
-  ctx.stroke();
-}
+  // OrbitControls bijwerken
+  S.controls.update();
 
-function drawFlight(flight, pos) {
-  if (!W.layers.flights) return;
-  const { ctx } = W;
-
-  const p = project3D(pos[0], pos[1], _globeR + 2);
-  if (!p.visible) return;
-
-  flight._screenX = p.x;
-  flight._screenY = p.y;
-  flight._front   = p.front;
-
-  const alpha = p.front ? 1.0 : 0.25;
-  const isSelected = flight === W.followFlight;
-  const isHovered  = flight.hovered;
-
-  const size = isSelected ? 7 : (isHovered ? 6 : 4);
-
-  const nextT = Math.min(1, flight.progress + 0.01);
-  const nextPos = getPositionOnArc(flight.arc, nextT);
-  const pNext = project3D(nextPos[0], nextPos[1], _globeR + 2);
-  const angle = Math.atan2(pNext.y - p.y, pNext.x - p.x);
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.translate(p.x, p.y);
-  ctx.rotate(angle);
-
-  ctx.fillStyle = isSelected ? '#facc15' : (isHovered ? '#fff' : flight.color);
-  ctx.beginPath();
-  ctx.moveTo(size, 0);
-  ctx.lineTo(-size * 0.4, size * 1.1);
-  ctx.lineTo(-size * 0.6, size * 0.3);
-  ctx.lineTo(-size, 0);
-  ctx.lineTo(-size * 0.6, -size * 0.3);
-  ctx.lineTo(-size * 0.4, -size * 1.1);
-  ctx.closePath();
-  ctx.fill();
-
-  if (isSelected || isHovered) {
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 0.8;
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-function drawFlightArcPreview(flight) {
-  if (flight !== W.followFlight && !flight.hovered) return;
-  const { ctx } = W;
-
-  ctx.beginPath();
-  let first = true;
-  for (let i = 0; i <= flight.arc.length - 1; i++) {
-    const [la, lo] = flight.arc[i];
-    const p = project3D(la, lo, _globeR + 1);
-    if (p.visible) {
-      if (first) { ctx.moveTo(p.x, p.y); first = false; }
-      else ctx.lineTo(p.x, p.y);
-    } else first = true;
-  }
-  ctx.strokeStyle = flight === W.followFlight
-    ? 'rgba(250,204,21,0.35)'
-    : hexToRgba(flight.color, 0.25);
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Renderen
+  S.renderer.render(S.scene, S.camera);
 }
 
 // ═══════════════════════════════════════════════════════
-//  SIMULATIE UPDATE
-// ═══════════════════════════════════════════════════════
-function updateSimulation(dt) {
-  if (W.paused) return;
-
-  if (W.wasm) {
-    W.tick = W.wasm.update(Math.round(dt), W.speed) || W.tick + 1;
-  } else {
-    W.tick++;
-  }
-
-  const dtSim = dt * W.speed;
-
-  for (const f of W.flights) {
-    f.progress += f.progressRate * dtSim;
-    if (f.progress >= 1) {
-      f.progress = 0;
-      f.trail = [];
-    }
-
-    const pos = getPositionOnArc(f.arc, f.progress);
-    f.trail.push(pos);
-    if (f.trail.length > f.trailMaxLen) f.trail.shift();
-  }
-
-  if (W.followFlight) {
-    const pos = getPositionOnArc(W.followFlight.arc, W.followFlight.progress);
-    const tLon = pos[1] * Math.PI / 180;
-    const tLat = -pos[0] * Math.PI / 180;
-    W.targetRotY += ((-tLon) - W.targetRotY) * 0.03;
-    W.targetRotX += (tLat - W.targetRotX) * 0.03;
-  } else if (W.autoRotate && !W.isDragging) {
-    W.targetRotY += W.autoRotateSpeed * dtSim * W.speed;
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  HOOFD RENDER LOOP
-// ═══════════════════════════════════════════════════════
-function render(now) {
-  requestAnimationFrame(render);
-
-  const dt = Math.min(100, now - (W.lastFrame || now));
-  W.lastFrame = now;
-
-  W.fpsCount++;
-  if (now - W.fpsLast >= 1000) {
-    W.fps = W.fpsCount;
-    W.fpsCount = 0;
-    W.fpsLast = now;
-    document.getElementById('hud-fps').textContent = `${W.fps} fps`;
-  }
-
-  W.rotY += (W.targetRotY - W.rotY) * 0.1;
-  W.rotX += (W.targetRotX - W.rotX) * 0.1;
-  W.zoom += (W.targetZoom  - W.zoom)  * 0.12;
-
-  updateSimulation(dt);
-
-  document.getElementById('hud-tick').textContent = W.tick;
-  if (W.wasm) {
-    document.getElementById('hud-flights').textContent = W.wasm.get_stat(6);
-    document.getElementById('hud-pax').textContent     = Number(W.wasm.get_stat(9)).toLocaleString('nl-NL');
-  }
-
-  const { ctx, w, h } = W;
-  ctx.clearRect(0, 0, w, h);
-
-  drawBackground();
-  drawAtmosphere();
-  drawGlobe();
-  drawGrid();
-  drawContinents();
-  drawAirports();
-
-  for (const f of W.flights) {
-    drawFlightTrail(f);
-  }
-  for (const f of W.flights) {
-    if (f === W.followFlight || f.hovered) drawFlightArcPreview(f);
-  }
-  for (const f of W.flights) {
-    const pos = getPositionOnArc(f.arc, f.progress);
-    drawFlight(f, pos);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  INTERACTIE
+//  INTERACTIE & RAYCASTING
 // ═══════════════════════════════════════════════════════
 function setupInteraction() {
-  const canvas = W.canvas;
+  const container = document.getElementById('webgl-container');
 
-  canvas.addEventListener('mousedown', e => {
-    W.isDragging = true;
-    W.autoRotate = false;
-    W.lastX = e.clientX; W.lastY = e.clientY;
-    W.velX = 0; W.velY = 0;
-    ATC.ensureAudioCtx();
-  });
+  const onPointerMove = (e) => {
+    S.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    S.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-  window.addEventListener('mousemove', e => {
-    if (W.isDragging) {
-      const dx = e.clientX - W.lastX, dy = e.clientY - W.lastY;
-      W.targetRotY += dx * 0.005;
-      W.targetRotX = Math.max(-1.3, Math.min(1.3, W.targetRotX + dy * 0.005));
-      W.velX = dx * 0.005; W.velY = dy * 0.005;
-      W.lastX = e.clientX; W.lastY = e.clientY;
-    } else {
-      checkHover(e.clientX, e.clientY);
+    S.raycaster.setFromCamera(S.mouse, S.camera);
+    const intersects = S.raycaster.intersectObjects(S.flightsGroup.children, true);
+
+    for (const f of S.flights) f.hovered = false;
+    const tt = document.getElementById('tooltip');
+
+    if (intersects.length > 0) {
+      let topObj = intersects[0].object;
+      while (topObj.parent && !topObj.userData.flight) {
+        topObj = topObj.parent;
+      }
+
+      const flight = topObj.userData.flight;
+      if (flight) {
+        flight.hovered = true;
+        const pct = (flight.progress * 100).toFixed(0);
+        document.getElementById('tt-route').textContent   = flight.callsign;
+        document.getElementById('tt-airline').textContent = `${flight.airline.name} · ${flight.aircraft}`;
+        document.getElementById('tt-from').textContent    = flight.origin.code;
+        document.getElementById('tt-to').textContent      = flight.dest.code;
+        document.getElementById('tt-alt').textContent     = `${Number(flight.altitude).toLocaleString('nl-NL')} m`;
+        document.getElementById('tt-spd').textContent     = `${flight.speedKmh} km/h`;
+        document.getElementById('tt-pct').textContent     = `${pct}%`;
+        document.getElementById('tt-bar').style.width     = `${pct}%`;
+
+        const tx = Math.min(window.innerWidth - 220, e.clientX + 16);
+        const ty = Math.min(window.innerHeight - 180, e.clientY - 10);
+        tt.style.left = `${tx}px`;
+        tt.style.top  = `${ty}px`;
+        tt.classList.add('show');
+        container.style.cursor = 'pointer';
+        return;
+      }
     }
-  });
 
-  window.addEventListener('mouseup', e => {
-    if (W.isDragging) {
-      W.isDragging = false;
-      const movedDist = Math.hypot(W.velX, W.velY);
-      if (movedDist < 0.005) handleClick(e.clientX, e.clientY);
-    }
-  });
-
-  canvas.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) {
-      W.isDragging = true;
-      W.autoRotate = false;
-      W.lastX = e.touches[0].clientX;
-      W.lastY = e.touches[0].clientY;
-      ATC.ensureAudioCtx();
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchmove', e => {
-    if (W.isDragging && e.touches.length === 1) {
-      const dx = e.touches[0].clientX - W.lastX;
-      const dy = e.touches[0].clientY - W.lastY;
-      W.targetRotY += dx * 0.005;
-      W.targetRotX = Math.max(-1.3, Math.min(1.3, W.targetRotX + dy * 0.005));
-      W.lastX = e.touches[0].clientX;
-      W.lastY = e.touches[0].clientY;
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchend', () => { W.isDragging = false; });
-
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    W.targetZoom = Math.max(0.55, Math.min(3.0, W.targetZoom - e.deltaY * 0.001));
-  }, { passive: false });
-}
-
-function findFlightAt(cx, cy) {
-  let best = null, bestD = 18;
-  for (const f of W.flights) {
-    if (!f._front) continue;
-    const d = Math.hypot((f._screenX || -999) - cx, (f._screenY || -999) - cy);
-    if (d < bestD) { bestD = d; best = f; }
-  }
-  return best;
-}
-
-function checkHover(mx, my) {
-  const hit = findFlightAt(mx, my);
-  for (const f of W.flights) f.hovered = false;
-  const tt = document.getElementById('tooltip');
-
-  if (hit) {
-    hit.hovered = true;
-    const pct = (hit.progress * 100).toFixed(0);
-    document.getElementById('tt-route').textContent   = hit.callsign;
-    document.getElementById('tt-airline').textContent = `${hit.airline.name} · ${hit.aircraft}`;
-    document.getElementById('tt-from').textContent    = hit.origin.code;
-    document.getElementById('tt-to').textContent      = hit.dest.code;
-    document.getElementById('tt-alt').textContent     = `${Number(hit.altitude).toLocaleString('nl-NL')} m`;
-    document.getElementById('tt-spd').textContent     = `${hit.speedKmh} km/h`;
-    document.getElementById('tt-pct').textContent     = `${pct}%`;
-    document.getElementById('tt-bar').style.width     = `${pct}%`;
-
-    const tx = Math.min(W.w - 220, mx + 15);
-    const ty = Math.min(W.h - 180, my - 10);
-    tt.style.left = tx + 'px';
-    tt.style.top  = ty + 'px';
-    tt.classList.add('show');
-    W.canvas.style.cursor = 'pointer';
-  } else {
     tt.classList.remove('show');
-    W.canvas.style.cursor = W.isDragging ? 'grabbing' : 'grab';
-  }
-}
+    container.style.cursor = 'grab';
+  };
 
-function handleClick(mx, my) {
-  const hit = findFlightAt(mx, my);
-  if (hit) {
-    W.followFlight = (W.followFlight === hit) ? null : hit;
-    updateFlightPanel();
-    // Directe live communicatie opstarten met het geselecteerde toestel!
-    ATC.contactFlight(hit);
-  } else {
-    W.followFlight = null;
-    W.autoRotate = true;
-    updateFlightPanel();
-  }
+  const onClick = (e) => {
+    ATC.ensureAudioCtx();
+    S.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    S.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    S.raycaster.setFromCamera(S.mouse, S.camera);
+    const intersects = S.raycaster.intersectObjects(S.flightsGroup.children, true);
+
+    if (intersects.length > 0) {
+      let topObj = intersects[0].object;
+      while (topObj.parent && !topObj.userData.flight) {
+        topObj = topObj.parent;
+      }
+      const flight = topObj.userData.flight;
+      if (flight) {
+        S.followFlight = (S.followFlight === flight) ? null : flight;
+        updateFlightPanelUI();
+        ATC.contactFlight(flight);
+      }
+    }
+  };
+
+  container.addEventListener('mousemove', onPointerMove);
+  container.addEventListener('click', onClick);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1176,9 +1019,10 @@ function handleClick(mx, my) {
 // ═══════════════════════════════════════════════════════
 function buildFlightPanel() {
   const list = document.getElementById('flight-list');
+  if (!list) return;
   list.innerHTML = '';
 
-  for (const f of W.flights) {
+  for (const f of S.flights) {
     const item = document.createElement('div');
     item.className = 'flight-item';
     item.dataset.id = f.id;
@@ -1187,15 +1031,16 @@ function buildFlightPanel() {
     item.innerHTML = `
       <span class="fi-icon">✈</span>
       <div class="fi-info">
-        <div class="fi-route" style="color:${f.color}">${f.callsign} · ${f.origin.code}→${f.dest.code}</div>
+        <div class="fi-route" style="color:${f.airline.hex}">${f.callsign} · ${f.origin.code}→${f.dest.code}</div>
         <div class="fi-label">${f.airline.name} · ${f.aircraft}</div>
       </div>
       <span class="fi-prog" id="fp-pct-${f.id}">${pct}%</span>
     `;
 
     item.addEventListener('click', () => {
-      W.followFlight = (W.followFlight === f) ? null : f;
-      updateFlightPanel();
+      ATC.ensureAudioCtx();
+      S.followFlight = (S.followFlight === f) ? null : f;
+      updateFlightPanelUI();
       ATC.contactFlight(f);
     });
 
@@ -1204,72 +1049,77 @@ function buildFlightPanel() {
   }
 }
 
-function updateFlightPanel() {
-  for (const f of W.flights) {
+function updateFlightPanelUI() {
+  for (const f of S.flights) {
     if (!f._listItem) continue;
-    f._listItem.classList.toggle('active', f === W.followFlight);
-
+    f._listItem.classList.toggle('active', f === S.followFlight);
     const pctEl = document.getElementById(`fp-pct-${f.id}`);
     if (pctEl) pctEl.textContent = `${(f.progress * 100).toFixed(0)}%`;
   }
 
   const btn = document.getElementById('btn-follow');
-  if (btn) btn.textContent = W.followFlight ? '📍 Stop volgen' : '📍 Volg vlucht';
+  if (btn) btn.textContent = S.followFlight ? '📍 Stop volgen' : '📍 Volg vlucht';
 }
 
-setInterval(updateFlightPanel, 500);
+setInterval(updateFlightPanelUI, 500);
 
 // ═══════════════════════════════════════════════════════
 //  CONTROLS KNOPPEN
 // ═══════════════════════════════════════════════════════
 function setupControls() {
+  // Lagen in/uitschakelen
   for (const btn of document.querySelectorAll('[data-layer]')) {
     btn.addEventListener('click', () => {
       const layer = btn.dataset.layer;
-      W.layers[layer] = !W.layers[layer];
-      btn.classList.toggle('active', W.layers[layer]);
+      S.layers[layer] = !S.layers[layer];
+      btn.classList.toggle('active', S.layers[layer]);
+
+      if (layer === 'flights' && S.flightsGroup) S.flightsGroup.visible = S.layers.flights;
+      if (layer === 'airports' && S.airportsGroup) S.airportsGroup.visible = S.layers.airports;
+      if (layer === 'trails' && S.trailsGroup) S.trailsGroup.visible = S.layers.trails;
+      if (layer === 'clouds' && S.cloudMesh) S.cloudMesh.visible = S.layers.clouds;
+      if (layer === 'atmosphere' && S.atmoMesh) S.atmoMesh.visible = S.layers.atmosphere;
     });
   }
 
+  // Snelheid
   for (const btn of document.querySelectorAll('[data-speed]')) {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      W.speed = parseInt(btn.dataset.speed, 10);
-      W.paused = false;
+      S.speed = parseInt(btn.dataset.speed, 10);
+      S.paused = false;
       document.getElementById('btn-pause').classList.remove('active');
     });
   }
 
   document.getElementById('btn-pause').addEventListener('click', () => {
-    W.paused = !W.paused;
-    document.getElementById('btn-pause').classList.toggle('active', W.paused);
-    document.getElementById('btn-pause').textContent = W.paused ? '▶' : '⏸';
+    S.paused = !S.paused;
+    const btn = document.getElementById('btn-pause');
+    btn.classList.toggle('active', S.paused);
+    btn.textContent = S.paused ? '▶' : '⏸';
   });
 
   document.getElementById('btn-reset').addEventListener('click', () => {
-    W.targetRotY = 0.4; W.targetRotX = 0.3; W.targetZoom = 1.0;
-    W.followFlight = null;
-    W.autoRotate = true;
-    updateFlightPanel();
+    S.followFlight = null;
+    S.controls.target.set(0, 0, 0);
+    S.camera.position.set(0, 50, 260);
+    updateFlightPanelUI();
   });
 
   document.getElementById('btn-follow').addEventListener('click', () => {
-    if (W.followFlight) {
-      W.followFlight = null;
-      W.autoRotate = true;
+    ATC.ensureAudioCtx();
+    if (S.followFlight) {
+      S.followFlight = null;
+      S.controls.target.set(0, 0, 0);
     } else {
-      const front = W.flights.filter(f => f._front);
-      if (front.length) {
-        W.followFlight = front[Math.floor(Math.random() * front.length)];
-        W.autoRotate = false;
-        ATC.contactFlight(W.followFlight);
-      }
+      S.followFlight = S.flights[Math.floor(Math.random() * S.flights.length)];
+      ATC.contactFlight(S.followFlight);
     }
-    updateFlightPanel();
+    updateFlightPanelUI();
   });
 
-  // ATC knoppen
+  // ATC Knoppen
   const btnAtcMute = document.getElementById('btn-atc-mute');
   if (btnAtcMute) btnAtcMute.addEventListener('click', () => ATC.toggleMute());
 
@@ -1278,7 +1128,7 @@ function setupControls() {
 
   const triggerCall = () => {
     ATC.ensureAudioCtx();
-    const flight = W.followFlight || W.flights.find(f => f._front) || W.flights[0];
+    const flight = S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
     if (flight) ATC.contactFlight(flight);
   };
 
@@ -1288,7 +1138,7 @@ function setupControls() {
   const btnAtcTrigger = document.getElementById('btn-atc-trigger');
   if (btnAtcTrigger) btnAtcTrigger.addEventListener('click', triggerCall);
 
-  // Header & Update
+  // Update check
   document.getElementById('btn-refresh').addEventListener('click', () => checkVersion(false));
   document.getElementById('btn-apply-upd').addEventListener('click', applyUpdate);
   document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
@@ -1296,50 +1146,81 @@ function setupControls() {
   });
 }
 
-function hexToRgba(hex, alpha) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
+// ═══════════════════════════════════════════════════════
+//  VERSIE CONTROLE (GitHub Pages Auto-Detect)
+// ═══════════════════════════════════════════════════════
+async function checkVersion(isInit = false) {
+  try {
+    const r = await fetch(`${CFG.versionFile}?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+
+    const remoteBuild = parseInt(data.build || 0, 10);
+    const remoteVer = data.version || '1.3.0';
+
+    const verTxt = document.getElementById('ver-txt');
+    if (verTxt) verTxt.textContent = `v${remoteVer}`;
+
+    const storedBuild = parseInt(localStorage.getItem('pw_build') || '0', 10);
+    if (isInit && !localStorage.getItem('pw_build')) {
+      localStorage.setItem('pw_build', remoteBuild);
+      localStorage.setItem('pw_ver', remoteVer);
+      return;
+    }
+
+    if (remoteBuild > storedBuild) {
+      const banner = document.getElementById('update-banner');
+      document.getElementById('upd-ver').textContent = `v${remoteVer} (Build #${remoteBuild})`;
+      if (data.features && data.features[0]) {
+        document.getElementById('upd-note').textContent = data.features[0];
+      }
+      banner.classList.add('show');
+      const dot = document.getElementById('ver-dot');
+      if (dot) {
+        dot.style.background = '#facc15';
+        dot.style.boxShadow = '0 0 8px #facc15';
+      }
+    }
+  } catch {}
+}
+
+async function applyUpdate() {
+  if ('caches' in window) {
+    for (const k of await caches.keys()) await caches.delete(k);
+  }
+  const url = new URL(location.href);
+  url.searchParams.set('v', Date.now());
+  location.href = url.toString();
 }
 
 // ═══════════════════════════════════════════════════════
 //  INITIALISATIE
 // ═══════════════════════════════════════════════════════
 async function init() {
-  W.canvas = document.getElementById('canvas');
-  W.ctx    = W.canvas.getContext('2d');
-
-  resize();
-  window.addEventListener('resize', () => { W._stars = null; resize(); });
-
-  W.flights = generateFlights(CFG.flightCount);
-  console.log(`[PetersWorld] ${W.flights.length} vluchten gegenereerd over ${AIRPORTS.length} luchthavens.`);
+  initThreeScene();
+  setupInteraction();
+  setupControls();
+  buildFlightPanel();
 
   await loadWasm();
 
-  // Initialiseer ATC Radio Engine
   ATC.init();
   ATC.startPeriodicTransmission(() => {
-    return W.followFlight || W.flights[Math.floor(Math.random() * W.flights.length)];
+    return S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
   });
 
   await checkVersion(true);
   setInterval(() => checkVersion(false), CFG.pollMs);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkVersion(false);
-  });
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  setupInteraction();
-  setupControls();
-  buildFlightPanel();
-
-  requestAnimationFrame(render);
-  console.log('[PetersWorld] ✈  Klaar voor vlucht & ATC Radio actief!');
+  requestAnimationFrame(animate);
+  console.log('🌍 [PetersWorld] Fotorealistische 3D Earth & Global Flight Radar gereed!');
 }
 
 document.addEventListener('DOMContentLoaded', init);

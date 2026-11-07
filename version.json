@@ -1,14 +1,15 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.2.0",
-  "build": 7,
-  "timestamp": "2026-11-07T19:16:08.504869+00:00",
-  "git_hash": "d2d04f1",
+  "version": "1.3.0",
+  "build": 8,
+  "timestamp": "2026-11-07T19:25:00.061750+00:00",
+  "git_hash": "dev-local",
   "features": [
+    "Fotorealistische 3D NASA Blue Marble Wereldbol met 3D Vliegtuigen",
     "Live ATC Radio Communicatie (Verkeerstoren & Cockpit audio)",
+    "Nachtelijke stadsverlichting & dynamische wolkenlaag",
     "Wereldbol Vluchten Radar (Global Live Aircraft Traffic)",
-    "Realtime 3D vliegtuig projecties & Great Circle trajecten",
-    "Schiphol AMS en 30+ wereldwijde internationale hubs",
+    "Schiphol AMS en 35+ wereldwijde internationale hubs",
     "Automatische versie-detectie bij laden in browser",
     "Continuous Deployment naar GitHub Pages & Auto-Push"
   ]
