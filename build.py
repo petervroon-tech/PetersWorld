@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.7.2"
+DEFAULT_VERSION = "1.7.3"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -253,6 +253,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Permanente verwijdering oude Amsterdam ATIS-tape: authentieke torenradiostreams (m4a) voor Caïro, Schiphol, JFK en SFO",
             "Directe LiveATC radio voor Cairo en alle wereldwijde luchthavens + directe 3D vliegtuigvolging bij Luister-knop",
             "Cache busting en automatische service worker purge zodat updates direct zichtbaar zijn",
             "Royale 3D klik-hitbox voor alle luchthavens (incl. Cairo, Nairobi, etc.)",

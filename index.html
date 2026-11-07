@@ -741,7 +741,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.7.2</strong> beschikbaar &bull; <span id="upd-note">Cairo & alle luchthavens directe LiveATC radio en 3D vliegtuigvolging</span></span>
+      <span><strong id="upd-ver">v1.7.3</strong> beschikbaar &bull; <span id="upd-note">Caïro & Schiphol directe authentieke verkeersleiding radio</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -777,7 +777,7 @@
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.2</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.3</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -795,7 +795,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.2</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.3</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -818,6 +818,7 @@
       <div class="liveatc-row-top">
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies LiveATC station">
           <option value="eham_twr_rec">🇳🇱 Schiphol Toren (Directe Verkeersleiding - Echte Stemmen)</option>
+          <option value="cai_twr">🇪🇬 Cairo Toren (118.150 MHz - Echte Stemmen)</option>
           <option value="ksfo_twr">🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)</option>
           <option value="kjfk_twr">🇺🇸 New York JFK Toren (119.100 MHz - Echte Stemmen)</option>
           <option value="eham_gnd">🇳🇱 Schiphol Grond (121.905 MHz LiveATC)</option>
@@ -1096,6 +1097,6 @@
     }
   </script>
 
-  <script src="app.js?v=1.7.2"></script>
+  <script src="app.js?v=1.7.3"></script>
 </body>
 </html>

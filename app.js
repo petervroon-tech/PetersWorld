@@ -229,27 +229,27 @@ class LiveAtcEngine {
     this.animVizId = null;
     this.sessionId = 0; // Monotone teller: isoleert asynchrone audio verzoeken en voorkomt dat snelle wissels blijven hangen
 
-    // Lokale authentieke radio-opnames van echte verkeerstorens
+    // Lokale authentieke radio-opnames van echte verkeerstorens (geen automatische weertapes meer)
     this.streams = {
-      ksfo_twr: 'audio/ksfo_twr.ogg',
-      kjfk_twr: 'audio/kjfk_twr.ogg',
-      eham_twr_rec: 'audio/eham_twr.mp3',
-      cai_twr: 'audio/eham_twr.mp3',
-      egll_twr: 'audio/eham_twr.mp3',
-      lfpg_twr: 'audio/eham_twr.mp3',
-      eddf_twr: 'audio/eham_twr.mp3',
-      eham_gnd: 'audio/eham_twr.mp3',
-      eham_del: 'audio/eham_twr.mp3',
-      klax_twr: 'audio/ksfo_twr.ogg',
-      kord_twr: 'audio/kjfk_twr.ogg',
-      katl_twr: 'audio/kjfk_twr.ogg',
-      kmia_twr: 'audio/kjfk_twr.ogg',
-      kdfw_twr: 'audio/kjfk_twr.ogg',
-      cyyz_twr: 'audio/kjfk_twr.ogg',
-      kewr_twr: 'audio/kjfk_twr.ogg',
-      kbos_twr: 'audio/kjfk_twr.ogg',
-      yssy_twr: 'audio/ksfo_twr.ogg',
-      ymml_twr: 'audio/ksfo_twr.ogg',
+      ksfo_twr: 'audio/ksfo_twr.m4a',
+      kjfk_twr: 'audio/kjfk_twr.m4a',
+      eham_twr_rec: 'audio/eham_twr.m4a',
+      cai_twr: 'audio/cai_twr.m4a',
+      egll_twr: 'audio/eham_twr.m4a',
+      lfpg_twr: 'audio/eham_twr.m4a',
+      eddf_twr: 'audio/eham_twr.m4a',
+      eham_gnd: 'audio/eham_twr.m4a',
+      eham_del: 'audio/eham_twr.m4a',
+      klax_twr: 'audio/ksfo_twr.m4a',
+      kord_twr: 'audio/kjfk_twr.m4a',
+      katl_twr: 'audio/kjfk_twr.m4a',
+      kmia_twr: 'audio/kjfk_twr.m4a',
+      kdfw_twr: 'audio/kjfk_twr.m4a',
+      cyyz_twr: 'audio/kjfk_twr.m4a',
+      kewr_twr: 'audio/kjfk_twr.m4a',
+      kbos_twr: 'audio/kjfk_twr.m4a',
+      yssy_twr: 'audio/ksfo_twr.m4a',
+      ymml_twr: 'audio/ksfo_twr.m4a',
     };
     this.stationLabels = {
       ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)',
@@ -382,7 +382,7 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation] || 'audio/eham_twr.mp3';
+    const streamSrc = this.streams[this.currentStation] || 'audio/cai_twr.m4a';
 
     // 1. Onderbreek het vorige afgespeelde fragment onmiddellijk en spoel terug
     try {

@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.7.2",
-  "build": 20,
-  "timestamp": "2026-11-07T21:47:54.946425+00:00",
-  "git_hash": "c7d88eb",
+  "version": "1.7.3",
+  "build": 22,
+  "timestamp": "2026-11-07T21:55:18.034855+00:00",
+  "git_hash": "22a4d81",
   "features": [
+    "Permanente verwijdering oude Amsterdam ATIS-tape: authentieke torenradiostreams (m4a) voor Caïro, Schiphol, JFK en SFO",
     "Directe LiveATC radio voor Cairo en alle wereldwijde luchthavens + directe 3D vliegtuigvolging bij Luister-knop",
     "Cache busting en automatische service worker purge zodat updates direct zichtbaar zijn",
     "Royale 3D klik-hitbox voor alle luchthavens (incl. Cairo, Nairobi, etc.)",
