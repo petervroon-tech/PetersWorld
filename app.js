@@ -231,25 +231,25 @@ class LiveAtcEngine {
 
     // Lokale authentieke radio-opnames van echte verkeerstorens (geen automatische weertapes meer)
     this.streams = {
-      ksfo_twr: 'audio/ksfo_twr.m4a?v=1.7.4',
-      kjfk_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      eham_twr_rec: 'audio/eham_twr.m4a?v=1.7.4',
-      cai_twr: 'audio/cai_twr.m4a?v=1.7.4',
-      egll_twr: 'audio/eham_twr.m4a?v=1.7.4',
-      lfpg_twr: 'audio/eham_twr.m4a?v=1.7.4',
-      eddf_twr: 'audio/eham_twr.m4a?v=1.7.4',
-      eham_gnd: 'audio/eham_twr.m4a?v=1.7.4',
-      eham_del: 'audio/eham_twr.m4a?v=1.7.4',
-      klax_twr: 'audio/ksfo_twr.m4a?v=1.7.4',
-      kord_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      katl_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      kmia_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      kdfw_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      cyyz_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      kewr_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      kbos_twr: 'audio/kjfk_twr.m4a?v=1.7.4',
-      yssy_twr: 'audio/ksfo_twr.m4a?v=1.7.4',
-      ymml_twr: 'audio/ksfo_twr.m4a?v=1.7.4',
+      ksfo_twr: 'audio/ksfo_twr.m4a?v=1.7.5',
+      kjfk_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      eham_twr_rec: 'audio/eham_twr.m4a?v=1.7.5',
+      cai_twr: 'audio/cai_twr.m4a?v=1.7.5',
+      egll_twr: 'audio/eham_twr.m4a?v=1.7.5',
+      lfpg_twr: 'audio/eham_twr.m4a?v=1.7.5',
+      eddf_twr: 'audio/eham_twr.m4a?v=1.7.5',
+      eham_gnd: 'audio/eham_twr.m4a?v=1.7.5',
+      eham_del: 'audio/eham_twr.m4a?v=1.7.5',
+      klax_twr: 'audio/ksfo_twr.m4a?v=1.7.5',
+      kord_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      katl_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      kmia_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      kdfw_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      cyyz_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      kewr_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      kbos_twr: 'audio/kjfk_twr.m4a?v=1.7.5',
+      yssy_twr: 'audio/ksfo_twr.m4a?v=1.7.5',
+      ymml_twr: 'audio/ksfo_twr.m4a?v=1.7.5',
     };
     this.stationLabels = {
       ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)',
@@ -382,7 +382,7 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation] || 'audio/cai_twr.m4a?v=1.7.4';
+    const streamSrc = this.streams[this.currentStation] || 'audio/cai_twr.m4a?v=1.7.5';
 
     // 1. Onderbreek het vorige afgespeelde fragment onmiddellijk en spoel terug
     try {
@@ -2630,7 +2630,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.7.4';
+let currentVersion = '1.7.5';
 
 async function checkVersion(silent = true) {
   try {
@@ -2684,7 +2684,7 @@ async function applyUpdate() {
 
   // Forceer harde reload met verse timestamp query parameter zodat de browser NOOIT cache pakt
   const url = new URL(window.location.href);
-  url.searchParams.set('v', '1.7.4');
+  url.searchParams.set('v', '1.7.5');
   url.searchParams.set('t', Date.now().toString());
   window.location.replace(url.toString());
 }

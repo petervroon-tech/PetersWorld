@@ -12,7 +12,7 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="manifest.json" />
   <script>
-    // Zorg dat oude service worker caches per direct worden verwijderd
+    // 1. Zorg dat oude service worker caches per direct worden verwijderd
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for (var r of registrations) {
@@ -24,6 +24,14 @@
       caches.keys().then(function(names) {
         for (var name of names) caches.delete(name);
       });
+    }
+    // 2. Als de pagina niet met de nieuwste versie-query is geopend, forceer directe netwerklading
+    var TARGET_VER = '1.7.5';
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('v') !== TARGET_VER) {
+      urlParams.set('v', TARGET_VER);
+      urlParams.set('t', Date.now().toString());
+      window.location.replace(window.location.pathname + '?' + urlParams.toString());
     }
   </script>
   <style>
@@ -741,10 +749,10 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.7.4</strong> beschikbaar &bull; <span id="upd-note">Amerikaanse & Wereldwijde Torens 100% Menselijke Radio Zonder Weerberichten</span></span>
+      <span><strong id="upd-ver">v1.7.5</strong> beschikbaar &bull; <span id="upd-note">Alle luchthavens 100% menselijke verkeersleiding (geen automatische bandjes meer)</span></span>
     </div>
     <div class="upd-right">
-      <button class="btn-upd" id="btn-apply-upd" onclick="this.textContent='Bezig...';if('caches' in window){caches.keys().then(function(k){return Promise.all(k.map(function(c){return caches.delete(c);}));}).finally(function(){var u=new URL(location.href);u.searchParams.set('v','1.7.4');u.searchParams.set('t',Date.now().toString());location.replace(u.toString());});}else{location.reload(true);}">Nu bijwerken</button>
+      <button class="btn-upd" id="btn-apply-upd" onclick="this.textContent='Bezig...';if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var r of regs) r.unregister();});}if('caches' in window){caches.keys().then(function(k){return Promise.all(k.map(function(c){return caches.delete(c);}));}).finally(function(){var u=new URL(location.href);u.searchParams.set('v','1.7.5');u.searchParams.set('t',Date.now().toString());location.replace(u.toString());});}else{var u=new URL(location.href);u.searchParams.set('v','1.7.5');u.searchParams.set('t',Date.now().toString());location.replace(u.toString());}">Nu bijwerken</button>
       <button class="btn-dismiss" id="btn-dismiss-upd">&times;</button>
     </div>
   </div>
@@ -777,7 +785,7 @@
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.4</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.5</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -795,7 +803,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.4</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.5</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -1097,6 +1105,6 @@
     }
   </script>
 
-  <script src="app.js?v=1.7.4"></script>
+  <script src="app.js?v=1.7.5"></script>
 </body>
 </html>
