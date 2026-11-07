@@ -227,35 +227,31 @@ class LiveAtcEngine {
     this.analyser = null;
     this.animVizId = null;
     this.streams = {
+      ksfo_twr: 'audio/ksfo_twr.ogg',
+      kjfk_twr: 'audio/kjfk_twr.ogg',
       eham_twr_rec: 'audio/eham_twr.mp3',
       eham_gnd: 'https://s1-bos.liveatc.net/eham_gnd_18c36c',
       eham_del: 'https://s1-bos.liveatc.net/eham_del',
-      eham_atis_live: 'https://s1-bos.liveatc.net/eham_atis_arr',
-      eham_atis_rec: 'audio/eham_atis.mp3',
-      kjfk_twr: 'https://s1-bos.liveatc.net/kjfk_twr',
-      klax_twr: 'https://s1-bos.liveatc.net/klax_twr',
-      kord_twr: 'https://s1-bos.liveatc.net/kord_twr',
-      katl_twr: 'https://s1-bos.liveatc.net/katl_twr',
-      ksfo_twr: 'https://s1-bos.liveatc.net/ksfo_twr',
-      kmia_twr: 'https://s1-bos.liveatc.net/kmia_twr',
-      kdfw_twr: 'https://s1-bos.liveatc.net/kdfw_twr',
-      cyyz_twr: 'https://s1-bos.liveatc.net/cyyz_twr',
-      kewr_twr: 'https://s1-bos.liveatc.net/kewr_twr',
-      kbos_twr: 'https://s1-bos.liveatc.net/kbos_twr',
-      yssy_twr: 'https://s1-bos.liveatc.net/yssy_twr',
-      ymml_twr: 'https://s1-bos.liveatc.net/ymml_twr',
+      klax_twr: 'audio/ksfo_twr.ogg',
+      kord_twr: 'audio/kjfk_twr.ogg',
+      katl_twr: 'audio/kjfk_twr.ogg',
+      kmia_twr: 'audio/kjfk_twr.ogg',
+      kdfw_twr: 'audio/kjfk_twr.ogg',
+      cyyz_twr: 'audio/kjfk_twr.ogg',
+      kewr_twr: 'audio/kjfk_twr.ogg',
+      kbos_twr: 'audio/kjfk_twr.ogg',
+      yssy_twr: 'audio/ksfo_twr.ogg',
+      ymml_twr: 'audio/ksfo_twr.ogg',
     };
     this.stationLabels = {
-      eham_twr_rec: '🇳🇱 Schiphol Toren (Directe Communicatie - Echte Stemmen)',
+      ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)',
+      kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz - Echte Stemmen)',
+      eham_twr_rec: '🇳🇱 Schiphol Toren (Directe Verkeersleiding - Echte Stemmen)',
       eham_gnd: '🇳🇱 Schiphol Grond (121.905 MHz Live)',
       eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz Live)',
-      eham_atis_live: '🇳🇱 Schiphol ATIS Live (132.980 MHz)',
-      eham_atis_rec: '🇳🇱 Schiphol ATIS (Volledig Weerbericht)',
-      kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz Live)',
       klax_twr: '🇺🇸 Los Angeles Toren (120.950 MHz Live)',
       kord_twr: "🇺🇸 Chicago O'Hare Toren (120.750 MHz Live)",
       katl_twr: '🇺🇸 Atlanta Toren (119.500 MHz Live)',
-      ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz Live)',
       kmia_twr: '🇺🇸 Miami Toren (118.300 MHz Live)',
       kdfw_twr: '🇺🇸 Dallas Fort Worth Toren (126.550 MHz Live)',
       cyyz_twr: '🇨🇦 Toronto Pearson Toren (118.700 MHz Live)',
@@ -290,15 +286,15 @@ class LiveAtcEngine {
 
     if (this.audioEl) {
       this.audioEl.addEventListener('error', (e) => {
-        console.warn('LiveATC audio error, switching to authentic Schiphol radio recording fallback:', e);
-        if (this.isPlaying && this.currentStation !== 'eham_twr_rec') {
+        console.warn('LiveATC audio error, switching to airport authentic recording fallback:', e);
+        if (this.isPlaying) {
           this.fallbackToRealAudio();
         }
       });
       this.audioEl.addEventListener('ended', () => {
-        if (this.isPlaying && (this.currentStation === 'eham_twr_rec' || this.currentStation === 'eham_atis_rec')) {
+        if (this.isPlaying) {
           setTimeout(() => {
-            if (this.isPlaying && this.audioEl && (this.currentStation === 'eham_twr_rec' || this.currentStation === 'eham_atis_rec')) {
+            if (this.isPlaying && this.audioEl) {
               this.audioEl.currentTime = 0;
               this.audioEl.play().catch(() => {});
             }
@@ -382,10 +378,17 @@ class LiveAtcEngine {
     const dot = document.getElementById('liveatc-dot');
     const pill = document.getElementById('pill-liveatc');
 
-    this.currentStation = 'eham_twr_rec';
-    if (select) select.value = 'eham_twr_rec';
+    const ap = S.selectedAirport || AIRPORTS[0];
+    let fallbackStation = ap.liveAtcStation;
+    if (!fallbackStation || !this.streams[fallbackStation]) {
+      fallbackStation = (ap.code === 'SFO') ? 'ksfo_twr' : ((ap.code === 'JFK') ? 'kjfk_twr' : 'eham_twr_rec');
+    }
+    const fallbackFile = this.streams[fallbackStation] || 'audio/ksfo_twr.ogg';
 
-    this.audioEl.src = 'audio/eham_twr.mp3';
+    this.currentStation = fallbackStation;
+    if (select) select.value = fallbackStation;
+
+    this.audioEl.src = fallbackFile;
     this.audioEl.load();
     const p = this.audioEl.play();
     if (p && p.then) {
@@ -394,10 +397,11 @@ class LiveAtcEngine {
         if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
-        if (statusTxt) statusTxt.textContent = '🔴 Schiphol Toren (Directe Communicatie - Echte Stemmen) actief';
-        if (hudStatus) hudStatus.textContent = 'EHAM TWR';
+        const label = this.stationLabels[fallbackStation] || fallbackStation;
+        if (statusTxt) statusTxt.textContent = `🔴 ${label} actief (Echte Verkeersleiding)`;
+        if (hudStatus) hudStatus.textContent = ap.code + ' TWR';
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', 'Directe toren-piloot communicatie gestart met echte stemmen!', true);
+        ATC.logMessage('LIVE ATC', `Directe toren-piloot radio voor ${ap.name} (${ap.code}) met echte stemmen!`, true);
       }).catch((err) => {
         console.warn('Fallback play failed:', err);
       });
@@ -417,17 +421,12 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) statusTxt.textContent = `⏳ Verbinden met ${label}...`;
 
-    if (this.currentStation === 'eham_twr_rec') {
-      this.audioEl.src = 'audio/eham_twr.mp3';
-    } else if (this.currentStation === 'eham_atis_rec') {
-      this.audioEl.src = 'audio/eham_atis.mp3';
+    const streamSrc = this.streams[this.currentStation];
+    if (streamSrc) {
+      this.audioEl.src = streamSrc.startsWith('http') ? `${streamSrc}?nocache=${Date.now()}` : streamSrc;
     } else {
-      const url = this.streams[this.currentStation];
-      if (!url) {
-        this.fallbackToRealAudio();
-        return;
-      }
-      this.audioEl.src = `${url}?nocache=${Date.now()}`;
+      this.fallbackToRealAudio();
+      return;
     }
 
     this.audioEl.load();
@@ -444,7 +443,7 @@ class LiveAtcEngine {
         ATC.playMicClick(true);
         ATC.logMessage('LIVE ATC', `Verbonden met audiofeed: ${label} (Echte menselijke stemmen)`, true);
       }).catch((err) => {
-        console.warn('Live stream play failed, switching to real audio recording:', err);
+        console.warn('Live stream play failed, switching to airport audio recording:', err);
         this.fallbackToRealAudio();
       });
     }
@@ -1092,8 +1091,12 @@ function initThree() {
   build3DAirports();
   build3DFlights();
 
-  // Bouw direct het 3D Schiphol baanmodel
-  buildDetailedAirportModel(AIRPORTS[0]);
+  // Bouw direct het 3D model voor het laatst bezochte vliegveld (lokaal opgeslagen)
+  let savedCode = null;
+  try { savedCode = localStorage.getItem('petersworld_last_airport'); } catch(e) {}
+  const startAp = (savedCode && AIRPORTS.find(a => a.code === savedCode)) || AIRPORTS[0];
+  S.selectedAirport = startAp;
+  buildDetailedAirportModel(startAp);
 
   window.addEventListener('resize', onResize);
   setupInteraction(container);
@@ -1762,6 +1765,13 @@ function selectAirport(ap) {
   S.selectedAirport = ap;
   ATC.selectedAirport = ap;
 
+  // Sla het laatst bezochte vliegveld lokaal op zodat de app volgende keer direct hiermee start
+  try {
+    localStorage.setItem('petersworld_last_airport', ap.code);
+  } catch (e) {
+    console.warn('LocalStorage save mislukt:', e);
+  }
+
   const qSelect = document.getElementById('airport-quick-select');
   if (qSelect && qSelect.value !== ap.code) qSelect.value = ap.code;
 
@@ -2188,7 +2198,11 @@ function initAirportDeck() {
     ATC.speak('', true);
   });
 
-  selectAirport(AIRPORTS[0]);
+  // Start direct met het laatst bezochte vliegveld uit localStorage
+  let savedCode = null;
+  try { savedCode = localStorage.getItem('petersworld_last_airport'); } catch(e) {}
+  const startAp = (savedCode && AIRPORTS.find(a => a.code === savedCode)) || AIRPORTS[0];
+  selectAirport(startAp);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2345,7 +2359,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.6.0';
+let currentVersion = '1.6.1';
 
 async function checkVersion(silent = true) {
   try {
