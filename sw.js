@@ -1,4 +1,4 @@
-// PetersWorld Service Worker - Cache Purge & Live Forward v1.7.2
+// PetersWorld Service Worker - Cache Purge & Live Forward v1.7.4
 self.addEventListener('install', e => {
   self.skipWaiting();
 });
