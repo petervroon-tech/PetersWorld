@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PetersWorld – Real 3D Globe, Airport 300m Zoom & Live ATC Radio</title>
-  <meta name="description" content="Fotorealistische 3D wereldbol met live vluchten, inzoomen tot 300 meter boven vliegvelden, 3D landingsbanen en echte LiveATC radio communicatie." />
+  <title>PetersWorld – Schiphol & Nederlandse Luchthavens Live Radar & ATC Radio</title>
+  <meta name="description" content="Fotorealistische 3D radar van Schiphol en Nederlandse luchthavens, 300 meter baan-zoom en directe Schiphol verkeerstoren, nadering en grond radio communicatie." />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -26,7 +26,7 @@
       });
     }
     // 2. Als de pagina niet met de nieuwste versie-query is geopend, forceer directe netwerklading
-    var TARGET_VER = '1.7.7';
+    var TARGET_VER = '2.0.0';
     var urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('v') !== TARGET_VER) {
       urlParams.set('v', TARGET_VER);
@@ -749,7 +749,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.7.7</strong> beschikbaar &bull; <span id="upd-note">Audio-looping uitgeschakeld & accurate radio</span></span>
+      <span><strong id="upd-ver">v2.0.0</strong> beschikbaar &bull; <span id="upd-note">100% Schiphol & Nederlandse luchthavens</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -763,7 +763,7 @@
       <img src="favicon.svg" alt="logo" />
       <div>
         <div class="brand-name">PetersWorld</div>
-        <div class="brand-sub">3D Earth · 300m Echte Baan · LiveATC</div>
+        <div class="brand-sub">Schiphol & Nederland · 300m Baan · Live Radio</div>
       </div>
     </div>
 
@@ -782,10 +782,10 @@
       </div>
       <div class="pill liveatc-pill" id="pill-liveatc" title="LiveATC radio streaming aan/uitzetten">
         <span class="dot red" id="liveatc-dot"></span>
-        <span id="liveatc-txt">🔴 LiveATC Radio</span>
+        <span id="liveatc-txt">🔴 Live Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.7.7</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.0.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -798,12 +798,12 @@
     </div>
     <div class="hud-row"><span class="hud-label">Camera hoogte</span><span class="hud-val cy" id="hud-cam-alt">300 m</span></div>
     <div class="hud-row"><span class="hud-label">Echte Baan Cam</span><span class="hud-val gr" id="hud-cam-status">LIVE HD</span></div>
-    <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">120</span></div>
-    <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">14.280</span></div>
-    <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
+    <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">60</span></div>
+    <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">7.420</span></div>
+    <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
-    <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.7.7</span></div>
+    <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.0.0</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -824,23 +824,31 @@
     <!-- LiveATC Stream Deck (Net zoals de LiveATC App) -->
     <div class="liveatc-deck">
       <div class="liveatc-row-top">
-        <select id="liveatc-station-select" class="liveatc-station-select" title="Kies LiveATC station">
-          <option value="eham_twr_rec">🇳🇱 Schiphol Toren (Directe Verkeersleiding - Echte Stemmen)</option>
-          <option value="cai_twr">🇪🇬 Cairo Toren (118.150 MHz - Echte Stemmen)</option>
-          <option value="ksfo_twr">🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)</option>
-          <option value="kjfk_twr">🇺🇸 New York JFK Toren (119.100 MHz - Echte Stemmen)</option>
-          <option value="eham_gnd">🇳🇱 Schiphol Grond (121.905 MHz LiveATC)</option>
-          <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz LiveATC)</option>
-          <option value="klax_twr">🇺🇸 Los Angeles Toren (120.950 MHz LiveATC)</option>
-          <option value="kord_twr">🇺🇸 Chicago O'Hare Toren (120.750 MHz LiveATC)</option>
-          <option value="katl_twr">🇺🇸 Atlanta Toren (119.500 MHz LiveATC)</option>
-          <option value="kmia_twr">🇺🇸 Miami Toren (118.300 MHz LiveATC)</option>
-          <option value="kdfw_twr">🇺🇸 Dallas Fort Worth Toren (126.550 MHz LiveATC)</option>
-          <option value="cyyz_twr">🇨🇦 Toronto Pearson Toren (118.700 MHz LiveATC)</option>
-          <option value="kewr_twr">🇺🇸 Newark Liberty Toren (118.300 MHz LiveATC)</option>
-          <option value="kbos_twr">🇺🇸 Boston Logan Toren (119.100 MHz LiveATC)</option>
-          <option value="yssy_twr">🇦🇺 Sydney Kingsford Toren (120.500 MHz LiveATC)</option>
-          <option value="ymml_twr">🇦🇺 Melbourne Toren (120.500 MHz LiveATC)</option>
+        <select id="liveatc-station-select" class="liveatc-station-select" title="Kies radiostation">
+          <optgroup label="🇳🇱 Schiphol Luchtverkeersleiding (EHAM)">
+            <option value="eham_twr" selected>🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)</option>
+            <option value="eham_twr2">🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)</option>
+            <option value="eham_gnd">🇳🇱 Schiphol Grond (121.700 MHz - Taxiën & Platform)</option>
+            <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz - Vluchtklaringen)</option>
+            <option value="eham_app">🇳🇱 Schiphol Approach (119.050 MHz - Nadering & Radar)</option>
+            <option value="eham_dep">🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Nederlandse Regionale & Militaire Velden">
+            <option value="ehrd_twr">🇳🇱 Rotterdam The Hague Toren (118.200 MHz)</option>
+            <option value="eheh_twr">🇳🇱 Eindhoven Airport Toren (131.000 MHz)</option>
+            <option value="ehgg_twr">🇳🇱 Groningen Airport Eelde Toren (118.700 MHz)</option>
+            <option value="ehbk_twr">🇳🇱 Maastricht Aachen Toren (119.475 MHz)</option>
+            <option value="ehle_twr">🇳🇱 Lelystad Airport Toren (125.675 MHz)</option>
+            <option value="ehlw_twr">🇳🇱 Vliegbasis Leeuwarden (120.700 MHz - F-35)</option>
+            <option value="ehvk_twr">🇳🇱 Vliegbasis Volkel (124.625 MHz - F-35)</option>
+            <option value="ehgr_twr">🇳🇱 Vliegbasis Gilze-Rijen (125.075 MHz - DHC)</option>
+            <option value="ehwo_twr">🇳🇱 Vliegbasis Woensdrecht (122.100 MHz)</option>
+            <option value="ehkd_twr">🇳🇱 Den Helder De Kooy (118.850 MHz)</option>
+            <option value="ehse_twr">🇳🇱 Breda Seppe (120.655 MHz)</option>
+            <option value="ehtx_twr">🇳🇱 Texel Airport (119.855 MHz)</option>
+            <option value="ehte_twr">🇳🇱 Teuge Airport (120.255 MHz)</option>
+            <option value="ehhv_twr">🇳🇱 Hilversum Radio (121.205 MHz)</option>
+          </optgroup>
         </select>
         <button id="btn-liveatc-toggle" class="liveatc-play-btn">▶ PLAY</button>
       </div>
@@ -853,7 +861,7 @@
 
     <div id="atc-log" class="atc-log-box">
       <div class="atc-msg-line">
-        <span class="atc-speaker">📻 RADIO:</span> Schiphol Toren 118.100 MHz actief. Klik op ▶ PLAY voor LiveATC stream of zoom in tot 300m!
+        <span class="atc-speaker">📻 RADIO:</span> Schiphol Toren 118.100 MHz actief. Schakel tussen Schiphol kanalen of klik ▶ PLAY voor directe audio!
       </div>
     </div>
 
@@ -1016,10 +1024,10 @@
 
   <!-- Tooltip -->
   <div id="tooltip">
-    <div class="tt-route" id="tt-route">KL0641</div>
-    <div class="tt-airline" id="tt-airline">KLM · Boeing 777</div>
+    <div class="tt-route" id="tt-route">KL1424</div>
+    <div class="tt-airline" id="tt-airline">KLM · Airbus A321neo</div>
     <div class="tt-row"><span class="tt-key">Van</span><span class="tt-val" id="tt-from">AMS</span></div>
-    <div class="tt-row"><span class="tt-key">Naar</span><span class="tt-val" id="tt-to">JFK</span></div>
+    <div class="tt-row"><span class="tt-key">Naar</span><span class="tt-val" id="tt-to">RTM</span></div>
     <div class="tt-row"><span class="tt-key">Hoogte</span><span class="tt-val" id="tt-alt">11.280 m</span></div>
     <div class="tt-row"><span class="tt-key">Snelheid</span><span class="tt-val" id="tt-spd">920 km/h</span></div>
     <div class="tt-row"><span class="tt-key">Voortgang</span><span class="tt-val" id="tt-pct">0%</span></div>
@@ -1105,6 +1113,6 @@
     }
   </script>
 
-  <script src="app.js?v=1.7.7"></script>
+  <script src="app.js?v=2.0.0"></script>
 </body>
 </html>

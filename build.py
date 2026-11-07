@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.7.7"
+DEFAULT_VERSION = "2.0.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (177 voor v1.7.7)
-    code0 = bytes([0]) + i32_const(177) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (200 voor v2.0.0)
+    code0 = bytes([0]) + i32_const(200) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,30 +253,15 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "100% Nederlandse luchthavens en vliegbases: Schiphol, Rotterdam, Eindhoven, Groningen, Maastricht, Lelystad, Leeuwarden, Volkel, Gilze-Rijen, Woensdrecht, Den Helder, Breda, Texel, Teuge, Hilversum",
+            "Alle buitenlandse vliegvelden 100% verwijderd uit database en 3D wereldbol",
+            "Volledige Schiphol radio suite: Kaagbaan Toren (118.100), Polderbaan Toren (118.275), Grond (121.700), Delivery (121.980), Approach (119.050) en Departure (121.200)",
+            "Camera bij het openen van de app direct scherp gecentreerd op Nederland en Schiphol",
+            "Nederlandse vloot: KLM, KLM Cityhopper, Transavia, TUI fly, Martinair Cargo, Corendon en Koninklijke Luchtmacht (F-35A, Chinook, A330 MRTT)",
             "Einde aan audio-loops: automatische bandjes en herhalingen 100% uitgeschakeld",
-            "Vlucht Luister-knop gekoppeld aan de exacte vlucht op het scherm (geen tegenstrijdige audio meer)",
-            "Automatische instant-cache purge in browser: laadt altijd 100% verse live radio zonder oude browsercache",
-            "Amerikaanse torens (SFO, JFK, LAX, ORD, ATL, DFW, MIA) 100% gezuiverd van automatisch weerbericht/ATIS - directe authentieke verkeersleider/piloot communicatie",
-            "Audio cache-busting (?v=1.7.4) op alle torenfeeds zodat browsers direct de nieuwste menselijke radio afspelen",
-            "Permanente verwijdering oude Amsterdam ATIS-tape: authentieke torenradiostreams (m4a) voor Caïro, Schiphol, JFK en SFO",
-            "Directe LiveATC radio voor Cairo en alle wereldwijde luchthavens + directe 3D vliegtuigvolging bij Luister-knop",
-            "Cache busting en automatische service worker purge zodat updates direct zichtbaar zijn",
-            "Royale 3D klik-hitbox voor alle luchthavens (incl. Cairo, Nairobi, etc.)",
-            "Oplossing voor snel wisselen tussen vliegvelden: directe sessie-isolatie en onmiddellijke audio-wissel",
-            "Volledige optimalisatie voor smartphone, iPad en laptop met mobiele navigatiebalk, touch controls en responsive drawers",
-            "Volledig automatische LiveATC koppeling bij aanklikken vliegveld (geen handmatige koppeling meer)",
-            "Directe echte verkeersleiding per vliegveld (San Francisco, JFK, Schiphol)",
-            "Laatst bezochte vliegveld lokaal onthouden bij openen van de app (localStorage)",
-            "Echte beelden van startbanen: authentieke hoge-resolutie satelliet luchtfoto's op 300m",
-            "Geen computer graphics meer: echte asfaltstructuur, rubberafdrukken en taxibanen",
-            "Live Baan Camera console met realtime webcams (Schiphol Kaagbaan, Polderbaan, JFK, LHR)",
-            "Dagzicht-modus: aarde, vliegvelden en banen op elk moment in helder daglicht",
-            "Echte live menselijke stemmen voor alle wereldwijde luchthavens (LiveATC)",
-            "Volledige uitfasering computergestuurde spraak: 100% authentieke radio streams",
-            "Inzoomen tot 300 meter boven landingsbanen met fotorealistische textuur",
-            "Luchthaven Vluchtenbord (Live Vertrek & Aankomst per vliegveld)",
-            "Luchthaven Regie: bepaal zelf vertrek, landing, doorstart & weer",
-            "Continuous Deployment naar GitHub Pages & Auto-Push"
+            "Nauwkeurige 3D hitboxen afgestemd op Nederlandse vliegveldafstanden",
+            "Vlucht Luister-knop gekoppeld aan de exacte vlucht op het scherm met authentieke mic-clicks",
+            "Automatische instant-cache purge in browser: laadt altijd 100% verse app zonder oude browsercache"
         ]
     }
 
@@ -314,7 +299,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 177) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 200) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
