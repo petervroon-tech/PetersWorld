@@ -1,6 +1,8 @@
-// PetersWorld Service Worker - Cache Purge & Live Forward v1.7.5
+// PetersWorld Service Worker - Unregister & Clean v1.7.6
 self.addEventListener('install', e => {
   self.skipWaiting();
+  caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+  self.registration.unregister();
 });
 
 self.addEventListener('activate', e => {
@@ -12,5 +14,6 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+  // Stuur elk verzoek direct door naar het live netwerk, nooit uit de cache
+  e.respondWith(fetch(e.request));
 });

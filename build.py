@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.7.5"
+DEFAULT_VERSION = "1.7.6"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (175 voor v1.7.5)
-    code0 = bytes([0]) + i32_const(175) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (176 voor v1.7.6)
+    code0 = bytes([0]) + i32_const(176) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,7 +253,8 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
-            "Definitieve verwijdering van alle automatische bandjes en weertapes bij ALLE 35 wereldwijde vliegvelden",
+            "Definitieve nucleaire cache-purge en reset.html om elk apparaat direct te ontdoen van oude herhalende opnames",
+            "Schone directe torenradiocommunicatie op alle wereldwijde vliegvelden zonder ATIS weerberichten",
             "Automatische instant-cache purge in browser: laadt altijd 100% verse live radio zonder oude browsercache",
             "Amerikaanse torens (SFO, JFK, LAX, ORD, ATL, DFW, MIA) 100% gezuiverd van automatisch weerbericht/ATIS - directe authentieke verkeersleider/piloot communicatie",
             "Audio cache-busting (?v=1.7.4) op alle torenfeeds zodat browsers direct de nieuwste menselijke radio afspelen",
@@ -313,7 +314,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 175) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 176) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
