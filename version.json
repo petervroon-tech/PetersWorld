@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.1.0",
-  "build": 5,
-  "timestamp": "2026-11-05T15:59:32.664361+00:00",
-  "git_hash": "9ea04ae",
+  "version": "1.2.0",
+  "build": 7,
+  "timestamp": "2026-11-07T19:16:08.504869+00:00",
+  "git_hash": "d2d04f1",
   "features": [
+    "Live ATC Radio Communicatie (Verkeerstoren & Cockpit audio)",
     "Wereldbol Vluchten Radar (Global Live Aircraft Traffic)",
     "Realtime 3D vliegtuig projecties & Great Circle trajecten",
     "Schiphol AMS en 30+ wereldwijde internationale hubs",
