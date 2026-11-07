@@ -1,53 +1,16 @@
-// PetersWorld Service Worker v1.3 - Real 3D Globe & ATC Radio
-const CACHE = 'petersworld-v1.3';
-const ASSETS = [
-  './',
-  './index.html',
-  './app.js',
-  './petersworld.wasm',
-  './favicon.svg',
-  './manifest.json',
-  './libs/three.min.js',
-  './libs/OrbitControls.js'
-];
+// PetersWorld Service Worker - Cache Purge & Live Forward v1.7.2
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
 
-self.addEventListener('install', e =>
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()))
-);
-
-self.addEventListener('activate', e =>
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ).then(() => self.clients.claim()))
-);
-
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-
-  // version.json altijd live ophalen (nooit uit de cache)
-  if (url.pathname.endsWith('version.json')) {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' }).catch(() =>
-        new Response(JSON.stringify({ status: 'offline' }), { headers: { 'Content-Type': 'application/json' }})
-      )
-    );
-    return;
-  }
-
-  // Stale-while-revalidate voor overige assets
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fresh = fetch(e.request).then(res => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fresh;
-    })
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.registration.unregister())
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('message', e => {
-  if (e.data?.action === 'skipWaiting') self.skipWaiting();
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

@@ -154,9 +154,9 @@ const AIRPORTS = [
     runways:['Runway 06', 'Runway 24'], activeRunway:'Runway 06',
     rwyNumbers:['06','24'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'120.100' }, utcOffset:3, weather:{ cond:'cavok', wind:'050° 10kt', qnh:'1017' } },
-  { code:'CAI', flag:'🇪🇬', name:'Cairo International', city:'Caïro', country:'Egypte', lat: 30.12, lon: 31.41, hub:false,
+  { code:'CAI', flag:'🇪🇬', name:'Cairo International', city:'Caïro', country:'Egypte', lat: 30.12, lon: 31.41, hub:true,
     runways:['Runway 05C', 'Runway 05L', 'Runway 23R'], activeRunway:'Runway 05C',
-    rwyNumbers:['05C','23L'], liveAtcStation:'katl_twr',
+    rwyNumbers:['05C','23L'], liveAtcStation:'cai_twr',
     freqs:{ twr:'118.150', gnd:'121.900', app:'119.050' }, utcOffset:2, weather:{ cond:'cavok', wind:'340° 10kt', qnh:'1016' } },
   { code:'GRU', flag:'🇧🇷', name:'São Paulo Guarulhos', city:'São Paulo', country:'Brazilië', lat:-23.43, lon: -46.47, hub:false,
     runways:['Runway 09R', 'Runway 09L', 'Runway 27L'], activeRunway:'Runway 09R',
@@ -234,6 +234,10 @@ class LiveAtcEngine {
       ksfo_twr: 'audio/ksfo_twr.ogg',
       kjfk_twr: 'audio/kjfk_twr.ogg',
       eham_twr_rec: 'audio/eham_twr.mp3',
+      cai_twr: 'audio/eham_twr.mp3',
+      egll_twr: 'audio/eham_twr.mp3',
+      lfpg_twr: 'audio/eham_twr.mp3',
+      eddf_twr: 'audio/eham_twr.mp3',
       eham_gnd: 'audio/eham_twr.mp3',
       eham_del: 'audio/eham_twr.mp3',
       klax_twr: 'audio/ksfo_twr.ogg',
@@ -251,6 +255,10 @@ class LiveAtcEngine {
       ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz - Echte Stemmen)',
       kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz - Echte Stemmen)',
       eham_twr_rec: '🇳🇱 Schiphol Toren (Directe Verkeersleiding - Echte Stemmen)',
+      cai_twr: '🇪🇬 Cairo Toren (118.150 MHz - Echte Verkeersleiding)',
+      egll_twr: '🇬🇧 London Heathrow Toren (118.500 MHz - Echte Stemmen)',
+      lfpg_twr: '🇫🇷 Paris CDG Toren (118.650 MHz - Echte Stemmen)',
+      eddf_twr: '🇩🇪 Frankfurt Toren (119.900 MHz - Echte Stemmen)',
       eham_gnd: '🇳🇱 Schiphol Grond (121.905 MHz Live)',
       eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz Live)',
       klax_twr: '🇺🇸 Los Angeles Toren (120.950 MHz Live)',
@@ -458,6 +466,14 @@ class LiveAtcEngine {
       targetStation = 'kjfk_twr';
     } else if (airport.code === 'AMS') {
       targetStation = 'eham_twr_rec';
+    } else if (airport.code === 'CAI') {
+      targetStation = 'cai_twr';
+    } else if (airport.code === 'LHR') {
+      targetStation = 'egll_twr';
+    } else if (airport.code === 'CDG') {
+      targetStation = 'lfpg_twr';
+    } else if (airport.code === 'FRA') {
+      targetStation = 'eddf_twr';
     } else if (airport.liveAtcStation && this.streams[airport.liveAtcStation]) {
       targetStation = airport.liveAtcStation;
     } else if (airport.country === 'Verenigde Staten' || airport.country === 'Canada') {
@@ -968,21 +984,38 @@ class AtcRadioEngine {
     const sector = this.determineSector(flight);
     this.setFrequency(sector.freq, sector.name);
 
-    const rwy = flight.origin.activeRunway || '24';
-    const towerText = `${flight.callsign}, ${sector.name}, wind 220 at 12 knots, ${rwy}, cleared for takeoff.`;
+    const rwy = (flight.origin && flight.origin.activeRunway) || (S.selectedAirport && S.selectedAirport.activeRunway) || '24';
+    const wind = (flight.origin && flight.origin.weather && flight.origin.weather.wind) || '220° 12kt';
+    const towerText = `${flight.callsign}, ${sector.name}, wind ${wind}, ${rwy}, cleared for takeoff.`;
     const pilotText = `Cleared for takeoff ${rwy}, ${flight.callsign}.`;
 
     this.exchangeDialogue(sector.code, towerText, towerText, flight.callsign, pilotText, pilotText);
+
+    // Zorg dat de radio stream van dit vliegveld direct hoorbaar afspeelt
+    const ap = flight.origin || flight.dest || S.selectedAirport;
+    if (ap && LIVEATC) {
+      LIVEATC.tuneToAirport(ap, true);
+    }
   }
 
   determineSector(flight) {
-    if (flight.origin.code === 'AMS' || flight.dest.code === 'AMS') {
+    const origCode = flight.origin ? flight.origin.code : (S.selectedAirport ? S.selectedAirport.code : 'AMS');
+    const destCode = flight.dest ? flight.dest.code : '';
+    if (origCode === 'AMS' || destCode === 'AMS') {
       return { name: 'SCHIPHOL TOWER', code: 'AMS TWR', freq: '118.100' };
     }
-    if (flight.origin.code === 'JFK' || flight.dest.code === 'JFK') {
+    if (origCode === 'JFK' || destCode === 'JFK') {
       return { name: 'NEW YORK TOWER', code: 'JFK TWR', freq: '119.100' };
     }
-    return { name: `${flight.origin.code} TOWER`, code: `${flight.origin.code} TWR`, freq: flight.origin.freqs.twr };
+    if (origCode === 'SFO' || destCode === 'SFO') {
+      return { name: 'SAN FRANCISCO TOWER', code: 'SFO TWR', freq: '120.500' };
+    }
+    if (origCode === 'CAI' || destCode === 'CAI') {
+      return { name: 'CAIRO TOWER', code: 'CAI TWR', freq: '118.150' };
+    }
+    const targetAp = flight.origin || S.selectedAirport;
+    const twrFreq = (targetAp && targetAp.freqs && targetAp.freqs.twr) ? targetAp.freqs.twr : '118.100';
+    return { name: `${origCode} TOWER`, code: `${origCode} TWR`, freq: twrFreq };
   }
 
   toggleMute() {
@@ -1216,6 +1249,10 @@ function build3DAirports() {
   const hubGeo = new THREE.SphereGeometry(0.85, 12, 12);
   const smallGeo = new THREE.SphereGeometry(0.50, 8, 8);
 
+  // Royale onzichtbare hitbox geometrie voor touch & muisklikken op mobiel, tablet en desktop
+  const hitGeo = new THREE.SphereGeometry(2.8, 8, 8);
+  const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+
   for (const ap of AIRPORTS) {
     const pos = latLonToVector3(ap.lat, ap.lon, CFG.globeRadius + 0.25);
     const mesh = new THREE.Mesh(ap.hub ? hubGeo : smallGeo, ap.hub ? hubMat : smallMat);
@@ -1223,6 +1260,12 @@ function build3DAirports() {
     mesh.userData = { isAirport: true, airport: ap };
     S.airportsGroup.add(mesh);
     ap._marker = mesh;
+
+    // Royale hitbox zodat elk vliegveld (zoals Cairo, Nairobi, Bogota) direct 100% raak wordt aangeraakt
+    const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+    hitMesh.position.copy(pos);
+    hitMesh.userData = { isAirport: true, airport: ap };
+    S.airportsGroup.add(hitMesh);
 
     if (ap.hub) {
       const ringGeo = new THREE.RingGeometry(1.0, 1.6, 24);
@@ -1916,16 +1959,42 @@ function renderAirportFlightBoard() {
       </div>
     `;
 
-    row.querySelector('.btn-fids-action').addEventListener('click', () => {
-      ATC.ensureAudioCtx();
-      LIVEATC.ensureAudioCtx();
-      if (!LIVEATC.isPlaying) {
-        LIVEATC.tuneToAirport(S.selectedAirport || f.dest || f.origin);
-        LIVEATC.playStream();
-      }
-      ATC.contactFlight(f);
-      if (!f.isSlot) S.followFlight = f;
-    });
+    const listenBtn = row.querySelector('.btn-fids-action');
+    if (listenBtn) {
+      listenBtn.addEventListener('click', () => {
+        ATC.ensureAudioCtx();
+        LIVEATC.ensureAudioCtx();
+
+        // 1. Schakel altijd direct de radio in voor dit vliegveld
+        const targetAirport = S.selectedAirport || f.origin || f.dest;
+        if (targetAirport) {
+          LIVEATC.tuneToAirport(targetAirport, true);
+        }
+
+        // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
+        let liveFlight = f;
+        if (f.isSlot) {
+          liveFlight = spawnFlight(f.origin, f.dest, f.airline, f.progress || 0.05);
+          liveFlight.callsign = f.callsign;
+          liveFlight.status = f.status;
+          f.isSlot = false;
+        }
+
+        // 3. Volg het vliegtuig direct met de 3D camera
+        S.followFlight = liveFlight;
+
+        // 4. Zend torencommunicatie met de piloot
+        ATC.contactFlight(liveFlight);
+
+        // 5. Op mobiel/tablet: sluit de sheet zodat de 3D vlucht direct zichtbaar is
+        if (window.innerWidth <= 768) {
+          const deck = document.getElementById('right-deck');
+          if (deck) deck.classList.remove('show-mobile');
+          const btns = document.querySelectorAll('.m-nav-btn');
+          btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'globe'));
+        }
+      });
+    }
 
     depView.appendChild(row);
   }
@@ -1949,16 +2018,42 @@ function renderAirportFlightBoard() {
       </div>
     `;
 
-    row.querySelector('.btn-fids-action').addEventListener('click', () => {
-      ATC.ensureAudioCtx();
-      LIVEATC.ensureAudioCtx();
-      if (!LIVEATC.isPlaying) {
-        LIVEATC.tuneToAirport(S.selectedAirport || f.dest || f.origin);
-        LIVEATC.playStream();
-      }
-      ATC.contactFlight(f);
-      if (!f.isSlot) S.followFlight = f;
-    });
+    const listenBtn = row.querySelector('.btn-fids-action');
+    if (listenBtn) {
+      listenBtn.addEventListener('click', () => {
+        ATC.ensureAudioCtx();
+        LIVEATC.ensureAudioCtx();
+
+        // 1. Schakel altijd direct de radio in voor dit vliegveld
+        const targetAirport = S.selectedAirport || f.dest || f.origin;
+        if (targetAirport) {
+          LIVEATC.tuneToAirport(targetAirport, true);
+        }
+
+        // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
+        let liveFlight = f;
+        if (f.isSlot) {
+          liveFlight = spawnFlight(f.origin, f.dest, f.airline, f.progress || 0.85);
+          liveFlight.callsign = f.callsign;
+          liveFlight.status = f.status;
+          f.isSlot = false;
+        }
+
+        // 3. Volg het vliegtuig direct met de 3D camera
+        S.followFlight = liveFlight;
+
+        // 4. Zend torencommunicatie met de piloot
+        ATC.contactFlight(liveFlight);
+
+        // 5. Op mobiel/tablet: sluit de sheet zodat de 3D vlucht direct zichtbaar is
+        if (window.innerWidth <= 768) {
+          const deck = document.getElementById('right-deck');
+          if (deck) deck.classList.remove('show-mobile');
+          const btns = document.querySelectorAll('.m-nav-btn');
+          btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'globe'));
+        }
+      });
+    }
 
     arrView.appendChild(row);
   }
@@ -2535,7 +2630,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.7.1';
+let currentVersion = '1.7.2';
 
 async function checkVersion(silent = true) {
   try {
