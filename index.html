@@ -370,7 +370,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v1.5.1</strong> beschikbaar &bull; <span id="upd-note">Schiphol LiveATC Echte Stemmen & 300m Baan-zoom</span></span>
+      <span><strong id="upd-ver">v1.5.2</strong> beschikbaar &bull; <span id="upd-note">LiveATC Echte Stemmen voor alle luchthavens</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -399,7 +399,7 @@
         <span id="liveatc-txt">🔴 LiveATC Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.1</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v1.5.2</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -416,7 +416,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens</span><span class="hud-val" id="hud-airports">35</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">LiveATC stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.1</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v1.5.2</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -437,15 +437,22 @@
     <div class="liveatc-deck">
       <div class="liveatc-row-top">
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies LiveATC station">
-          <option value="eham_gnd" selected>🇳🇱 Schiphol Grond (121.905 MHz LiveATC Echte Stemmen)</option>
-          <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz LiveATC Echte Stemmen)</option>
-          <option value="eham_atis_live">🇳🇱 Schiphol ATIS (132.980 MHz LiveATC Echte Stemmen)</option>
-          <option value="eham_atis_rec">🇳🇱 Schiphol ATIS Radio (Lokale Echte Opname)</option>
-          <option value="kjfk_twr">🇺🇸 New York JFK Toren (119.100 MHz LiveATC Echte Stemmen)</option>
-          <option value="ksfo_twr">🇺🇸 San Francisco Toren (120.500 MHz LiveATC Echte Stemmen)</option>
-          <option value="katl_twr">🇺🇸 Atlanta Tower (119.500 MHz LiveATC Echte Stemmen)</option>
-          <option value="kewr_twr">🇺🇸 Newark Liberty Toren (118.300 MHz LiveATC Echte Stemmen)</option>
-          <option value="kbos_twr">🇺🇸 Boston Logan Toren (119.100 MHz LiveATC Echte Stemmen)</option>
+          <option value="eham_gnd" selected>🇳🇱 Schiphol Grond (121.905 MHz LiveATC)</option>
+          <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz LiveATC)</option>
+          <option value="eham_atis_live">🇳🇱 Schiphol ATIS Live (132.980 MHz LiveATC)</option>
+          <option value="eham_atis_rec">🇳🇱 Schiphol Radio (Lokale Echte Stemmen Opname)</option>
+          <option value="kjfk_twr">🇺🇸 New York JFK Toren (119.100 MHz LiveATC)</option>
+          <option value="klax_twr">🇺🇸 Los Angeles Toren (120.950 MHz LiveATC)</option>
+          <option value="kord_twr">🇺🇸 Chicago O'Hare Toren (120.750 MHz LiveATC)</option>
+          <option value="katl_twr">🇺🇸 Atlanta Toren (119.500 MHz LiveATC)</option>
+          <option value="ksfo_twr">🇺🇸 San Francisco Toren (120.500 MHz LiveATC)</option>
+          <option value="kmia_twr">🇺🇸 Miami Toren (118.300 MHz LiveATC)</option>
+          <option value="kdfw_twr">🇺🇸 Dallas Fort Worth Toren (126.550 MHz LiveATC)</option>
+          <option value="cyyz_twr">🇨🇦 Toronto Pearson Toren (118.700 MHz LiveATC)</option>
+          <option value="kewr_twr">🇺🇸 Newark Liberty Toren (118.300 MHz LiveATC)</option>
+          <option value="kbos_twr">🇺🇸 Boston Logan Toren (119.100 MHz LiveATC)</option>
+          <option value="yssy_twr">🇦🇺 Sydney Kingsford Toren (120.500 MHz LiveATC)</option>
+          <option value="ymml_twr">🇦🇺 Melbourne Toren (120.500 MHz LiveATC)</option>
         </select>
         <button id="btn-liveatc-toggle" class="liveatc-play-btn">▶ PLAY</button>
       </div>

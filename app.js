@@ -2,7 +2,7 @@
  * PetersWorld – Real 3D Globe, Airport 300m Zoom, Ground Layout & LiveATC Radio
  * Fotorealistische 3D wereldbol met Three.js (NASA Blue Marble), WebAssembly,
  * 300 meter baan-zoom met gedetailleerde landingsbanen en echte LiveATC radio streaming.
- * Versie: 1.5.1
+ * Versie: 1.5.2
  */
 
 'use strict';
@@ -23,38 +23,38 @@ const CFG = {
 //  LUCHTHAVENS DATABASE (35 INTERNATIONALE HUBS)
 // ═══════════════════════════════════════════════════════
 const AIRPORTS = [
-  // Europa
+  // Europa (Koppeling met Live Schiphol Grond / West-Europa Radar feeds)
   { code:'AMS', flag:'🇳🇱', name:'Amsterdam Schiphol', city:'Amsterdam', country:'Nederland', lat: 52.31, lon: 4.76, hub:true,
     runways:['Kaagbaan 24', 'Polderbaan 36L', 'Zwanenburgerbaan 18C', 'Aalsmeerbaan 18L', 'Buitenveldertbaan 09'], activeRunway:'Kaagbaan 24',
     rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.050' }, utcOffset:1, weather:{ cond:'cavok', wind:'220° 12kt', qnh:'1014' } },
   { code:'LHR', flag:'🇬🇧', name:'London Heathrow', city:'Londen', country:'Verenigd Koninkrijk', lat: 51.47, lon: -0.46, hub:true,
     runways:['Runway 27L', 'Runway 27R', 'Runway 09L', 'Runway 09R'], activeRunway:'Runway 27L',
-    rwyNumbers:['27L','09R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['27L','09R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.500', gnd:'121.900', app:'120.400' }, utcOffset:0, weather:{ cond:'rain', wind:'250° 16kt', qnh:'1011' } },
   { code:'CDG', flag:'🇫🇷', name:'Paris Charles de Gaulle', city:'Parijs', country:'Frankrijk', lat: 49.01, lon: 2.55, hub:true,
     runways:['Runway 26L', 'Runway 26R', 'Runway 08L', 'Runway 08R'], activeRunway:'Runway 26L',
-    rwyNumbers:['26L','08R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['26L','08R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.650', gnd:'121.800', app:'121.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'190° 09kt', qnh:'1016' } },
   { code:'FRA', flag:'🇩🇪', name:'Frankfurt am Main', city:'Frankfurt', country:'Duitsland', lat: 50.03, lon: 8.57, hub:true,
     runways:['Runway 25C', 'Runway 25L', 'Runway 18', 'Runway 07R'], activeRunway:'Runway 25C',
-    rwyNumbers:['25C','07C'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['25C','07C'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'119.900', gnd:'121.950', app:'120.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'240° 11kt', qnh:'1015' } },
   { code:'MAD', flag:'🇪🇸', name:'Madrid Barajas', city:'Madrid', country:'Spanje', lat: 40.47, lon: -3.57, hub:false,
     runways:['Runway 32L', 'Runway 32R', 'Runway 14L', 'Runway 14R'], activeRunway:'Runway 32L',
-    rwyNumbers:['32L','14R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['32L','14R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.150', gnd:'121.700', app:'118.400' }, utcOffset:1, weather:{ cond:'cavok', wind:'160° 06kt', qnh:'1019' } },
   { code:'FCO', flag:'🇮🇹', name:'Rome Fiumicino', city:'Rome', country:'Italië', lat: 41.80, lon: 12.25, hub:false,
     runways:['Runway 16L', 'Runway 16R', 'Runway 25'], activeRunway:'Runway 16L',
-    rwyNumbers:['16L','34R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['16L','34R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.700', gnd:'121.900', app:'125.500' }, utcOffset:1, weather:{ cond:'cavok', wind:'140° 08kt', qnh:'1017' } },
   { code:'ARN', flag:'🇸🇪', name:'Stockholm Arlanda', city:'Stockholm', country:'Zweden', lat: 59.65, lon: 17.93, hub:false,
     runways:['Runway 01L', 'Runway 01R', 'Runway 19L', 'Runway 26'], activeRunway:'Runway 01L',
-    rwyNumbers:['01L','19R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['01L','19R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.500', gnd:'121.600', app:'123.750' }, utcOffset:1, weather:{ cond:'rain', wind:'340° 14kt', qnh:'1008' } },
   { code:'ZRH', flag:'🇨🇭', name:'Zürich Kloten', city:'Zürich', country:'Zwitserland', lat: 47.46, lon: 8.55, hub:false,
     runways:['Runway 14', 'Runway 16', 'Runway 28'], activeRunway:'Runway 14',
-    rwyNumbers:['14','32'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['14','32'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.100', gnd:'121.900', app:'118.000' }, utcOffset:1, weather:{ cond:'cavok', wind:'110° 04kt', qnh:'1020' } },
   { code:'BRU', flag:'🇧🇪', name:'Brussels Airport', city:'Brussel', country:'België', lat: 50.90, lon: 4.48, hub:false,
     runways:['Runway 25L', 'Runway 25R', 'Runway 01'], activeRunway:'Runway 25L',
@@ -62,7 +62,7 @@ const AIRPORTS = [
     freqs:{ twr:'118.600', gnd:'121.875', app:'118.250' }, utcOffset:1, weather:{ cond:'cavok', wind:'210° 10kt', qnh:'1014' } },
   { code:'VIE', flag:'🇦🇹', name:'Vienna International', city:'Wenen', country:'Oostenrijk', lat: 48.11, lon: 16.57, hub:false,
     runways:['Runway 16', 'Runway 29', 'Runway 11'], activeRunway:'Runway 16',
-    rwyNumbers:['16','34'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['16','34'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'119.400', gnd:'121.600', app:'118.775' }, utcOffset:1, weather:{ cond:'cavok', wind:'130° 07kt', qnh:'1018' } },
 
   // Noord-Amerika (Met directe LiveATC Icecast streams)
@@ -72,11 +72,11 @@ const AIRPORTS = [
     freqs:{ twr:'119.100', gnd:'121.900', app:'125.750' }, utcOffset:-5, weather:{ cond:'cavok', wind:'300° 15kt', qnh:'1013' } },
   { code:'LAX', flag:'🇺🇸', name:'Los Angeles International', city:'Los Angeles', country:'Verenigde Staten', lat: 33.94, lon:-118.40, hub:true,
     runways:['Runway 24L', 'Runway 24R', 'Runway 25L', 'Runway 25R'], activeRunway:'Runway 25L',
-    rwyNumbers:['25L','07R'], liveAtcStation:'ksfo_twr',
+    rwyNumbers:['25L','07R'], liveAtcStation:'klax_twr',
     freqs:{ twr:'120.950', gnd:'121.650', app:'124.900' }, utcOffset:-8, weather:{ cond:'cavok', wind:'260° 08kt', qnh:'1016' } },
   { code:'ORD', flag:'🇺🇸', name:"Chicago O'Hare", city:'Chicago', country:'Verenigde Staten', lat: 41.98, lon: -87.90, hub:true,
     runways:['Runway 27L', 'Runway 28C', 'Runway 10L', 'Runway 09R'], activeRunway:'Runway 28C',
-    rwyNumbers:['28C','10C'], liveAtcStation:'katl_twr',
+    rwyNumbers:['28C','10C'], liveAtcStation:'kord_twr',
     freqs:{ twr:'120.750', gnd:'121.900', app:'128.450' }, utcOffset:-6, weather:{ cond:'rain', wind:'310° 18kt', qnh:'1009' } },
   { code:'ATL', flag:'🇺🇸', name:'Atlanta Hartsfield', city:'Atlanta', country:'Verenigde Staten', lat: 33.64, lon: -84.43, hub:false,
     runways:['Runway 26L', 'Runway 27R', 'Runway 08L', 'Runway 09R'], activeRunway:'Runway 26L',
@@ -84,15 +84,15 @@ const AIRPORTS = [
     freqs:{ twr:'119.500', gnd:'121.900', app:'127.900' }, utcOffset:-5, weather:{ cond:'cavok', wind:'200° 07kt', qnh:'1018' } },
   { code:'DFW', flag:'🇺🇸', name:'Dallas Fort Worth', city:'Dallas', country:'Verenigde Staten', lat: 32.90, lon: -97.04, hub:false,
     runways:['Runway 17R', 'Runway 18L', 'Runway 35L', 'Runway 36R'], activeRunway:'Runway 17R',
-    rwyNumbers:['17R','35L'], liveAtcStation:'katl_twr',
+    rwyNumbers:['17R','35L'], liveAtcStation:'kdfw_twr',
     freqs:{ twr:'126.550', gnd:'121.650', app:'124.300' }, utcOffset:-6, weather:{ cond:'cavok', wind:'180° 12kt', qnh:'1014' } },
   { code:'YYZ', flag:'🇨🇦', name:'Toronto Pearson', city:'Toronto', country:'Canada', lat: 43.68, lon: -79.63, hub:false,
     runways:['Runway 23', 'Runway 24L', 'Runway 05', 'Runway 06R'], activeRunway:'Runway 23',
-    rwyNumbers:['23','05'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['23','05'], liveAtcStation:'cyyz_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'128.800' }, utcOffset:-5, weather:{ cond:'cavok', wind:'250° 11kt', qnh:'1015' } },
   { code:'MIA', flag:'🇺🇸', name:'Miami International', city:'Miami', country:'Verenigde Staten', lat: 25.80, lon: -80.28, hub:false,
     runways:['Runway 08R', 'Runway 09', 'Runway 26L', 'Runway 27'], activeRunway:'Runway 08R',
-    rwyNumbers:['08R','26L'], liveAtcStation:'kewr_twr',
+    rwyNumbers:['08R','26L'], liveAtcStation:'kmia_twr',
     freqs:{ twr:'118.300', gnd:'121.800', app:'124.850' }, utcOffset:-5, weather:{ cond:'storm', wind:'110° 22kt', qnh:'1010' } },
   { code:'SFO', flag:'🇺🇸', name:'San Francisco International', city:'San Francisco', country:'Verenigde Staten', lat: 37.62, lon:-122.38, hub:false,
     runways:['Runway 28L', 'Runway 28R', 'Runway 01L', 'Runway 01R'], activeRunway:'Runway 28L',
@@ -102,7 +102,7 @@ const AIRPORTS = [
   // Azië & Midden-Oosten
   { code:'DXB', flag:'🇦🇪', name:'Dubai International', city:'Dubai', country:'Verenigde Arabische Emiraten', lat: 25.25, lon: 55.36, hub:true,
     runways:['Runway 30L', 'Runway 30R', 'Runway 12L', 'Runway 12R'], activeRunway:'Runway 30L',
-    rwyNumbers:['30L','12R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['30L','12R'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.750', gnd:'118.350', app:'124.900' }, utcOffset:4, weather:{ cond:'cavok', wind:'320° 09kt', qnh:'1013' } },
   { code:'HND', flag:'🇯🇵', name:'Tokyo Haneda', city:'Tokio', country:'Japan', lat: 35.55, lon: 139.78, hub:true,
     runways:['Runway 34R', 'Runway 34L', 'Runway 16R', 'Runway 05'], activeRunway:'Runway 34R',
@@ -122,7 +122,7 @@ const AIRPORTS = [
     freqs:{ twr:'118.700', gnd:'121.600', app:'119.100' }, utcOffset:8, weather:{ cond:'cavok', wind:'080° 14kt', qnh:'1017' } },
   { code:'BOM', flag:'🇮🇳', name:'Mumbai Chhatrapati Shivaji', city:'Mumbai', country:'India', lat: 19.09, lon: 72.87, hub:false,
     runways:['Runway 27', 'Runway 09', 'Runway 14', 'Runway 32'], activeRunway:'Runway 27',
-    rwyNumbers:['27','09'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['27','09'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'127.900' }, utcOffset:5.5, weather:{ cond:'cavok', wind:'270° 09kt', qnh:'1012' } },
   { code:'ICN', flag:'🇰🇷', name:'Seoul Incheon', city:'Seoel', country:'Zuid-Korea', lat: 37.46, lon: 126.44, hub:false,
     runways:['Runway 33L', 'Runway 33R', 'Runway 34', 'Runway 15R'], activeRunway:'Runway 33L',
@@ -134,45 +134,45 @@ const AIRPORTS = [
     freqs:{ twr:'118.100', gnd:'121.750', app:'125.200' }, utcOffset:7, weather:{ cond:'cavok', wind:'170° 06kt', qnh:'1011' } },
   { code:'DOH', flag:'🇶🇦', name:'Doha Hamad', city:'Doha', country:'Qatar', lat: 25.27, lon: 51.61, hub:false,
     runways:['Runway 34L', 'Runway 34R', 'Runway 16L', 'Runway 16R'], activeRunway:'Runway 34L',
-    rwyNumbers:['34L','16R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['34L','16R'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.900', gnd:'121.850', app:'121.100' }, utcOffset:3, weather:{ cond:'cavok', wind:'330° 11kt', qnh:'1015' } },
 
   // Oceanië, Afrika, Zuid-Amerika
   { code:'SYD', flag:'🇦🇺', name:'Sydney Kingsford Smith', city:'Sydney', country:'Australië', lat:-33.95, lon: 151.18, hub:true,
     runways:['Runway 34L', 'Runway 34R', 'Runway 16R', 'Runway 07'], activeRunway:'Runway 34L',
-    rwyNumbers:['34L','16R'], liveAtcStation:'ksfo_twr',
+    rwyNumbers:['34L','16R'], liveAtcStation:'yssy_twr',
     freqs:{ twr:'120.500', gnd:'121.700', app:'124.400' }, utcOffset:11, weather:{ cond:'cavok', wind:'060° 13kt', qnh:'1020' } },
   { code:'MEL', flag:'🇦🇺', name:'Melbourne Tullamarine', city:'Melbourne', country:'Australië', lat:-37.67, lon: 144.84, hub:false,
     runways:['Runway 16', 'Runway 27', 'Runway 34'], activeRunway:'Runway 16',
-    rwyNumbers:['16','34'], liveAtcStation:'ksfo_twr',
+    rwyNumbers:['16','34'], liveAtcStation:'ymml_twr',
     freqs:{ twr:'120.500', gnd:'121.700', app:'132.000' }, utcOffset:11, weather:{ cond:'rain', wind:'190° 18kt', qnh:'1010' } },
   { code:'JNB', flag:'🇿🇦', name:'Johannesburg OR Tambo', city:'Johannesburg', country:'Zuid-Afrika', lat:-26.14, lon: 28.24, hub:false,
     runways:['Runway 03L', 'Runway 03R', 'Runway 21L', 'Runway 21R'], activeRunway:'Runway 03L',
-    rwyNumbers:['03L','21R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['03L','21R'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'124.500' }, utcOffset:2, weather:{ cond:'cavok', wind:'020° 08kt', qnh:'1022' } },
   { code:'NBO', flag:'🇰🇪', name:'Nairobi Jomo Kenyatta', city:'Nairobi', country:'Kenia', lat: -1.32, lon: 36.93, hub:false,
     runways:['Runway 06', 'Runway 24'], activeRunway:'Runway 06',
-    rwyNumbers:['06','24'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['06','24'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.700', gnd:'121.900', app:'120.100' }, utcOffset:3, weather:{ cond:'cavok', wind:'050° 10kt', qnh:'1017' } },
   { code:'CAI', flag:'🇪🇬', name:'Cairo International', city:'Caïro', country:'Egypte', lat: 30.12, lon: 31.41, hub:false,
     runways:['Runway 05C', 'Runway 05L', 'Runway 23R'], activeRunway:'Runway 05C',
-    rwyNumbers:['05C','23L'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['05C','23L'], liveAtcStation:'katl_twr',
     freqs:{ twr:'118.150', gnd:'121.900', app:'119.050' }, utcOffset:2, weather:{ cond:'cavok', wind:'340° 10kt', qnh:'1016' } },
   { code:'GRU', flag:'🇧🇷', name:'São Paulo Guarulhos', city:'São Paulo', country:'Brazilië', lat:-23.43, lon: -46.47, hub:false,
     runways:['Runway 09R', 'Runway 09L', 'Runway 27L'], activeRunway:'Runway 09R',
-    rwyNumbers:['09R','27L'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['09R','27L'], liveAtcStation:'kmia_twr',
     freqs:{ twr:'118.000', gnd:'121.700', app:'119.350' }, utcOffset:-3, weather:{ cond:'cavok', wind:'120° 07kt', qnh:'1018' } },
   { code:'BOG', flag:'🇨🇴', name:'Bogotá El Dorado', city:'Bogotá', country:'Colombia', lat: 4.70, lon: -74.14, hub:false,
     runways:['Runway 13L', 'Runway 13R', 'Runway 31L'], activeRunway:'Runway 13L',
-    rwyNumbers:['13L','31R'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['13L','31R'], liveAtcStation:'kmia_twr',
     freqs:{ twr:'118.100', gnd:'121.800', app:'119.500' }, utcOffset:-5, weather:{ cond:'rain', wind:'110° 09kt', qnh:'1025' } },
   { code:'LIM', flag:'🇵🇪', name:'Lima Jorge Chávez', city:'Lima', country:'Peru', lat:-12.02, lon: -77.11, hub:false,
     runways:['Runway 16', 'Runway 34'], activeRunway:'Runway 16',
-    rwyNumbers:['16','34'], liveAtcStation:'kjfk_twr',
+    rwyNumbers:['16','34'], liveAtcStation:'kmia_twr',
     freqs:{ twr:'118.100', gnd:'121.900', app:'119.700' }, utcOffset:-5, weather:{ cond:'fog', wind:'200° 08kt', qnh:'1014' } },
   { code:'MEX', flag:'🇲🇽', name:'Mexico City Benito Juárez', city:'Mexico-Stad', country:'Mexico', lat: 19.43, lon: -99.07, hub:false,
     runways:['Runway 05L', 'Runway 05R', 'Runway 23L'], activeRunway:'Runway 05L',
-    rwyNumbers:['05L','23R'], liveAtcStation:'ksfo_twr',
+    rwyNumbers:['05L','23R'], liveAtcStation:'kmia_twr',
     freqs:{ twr:'118.700', gnd:'121.850', app:'121.200' }, utcOffset:-6, weather:{ cond:'cavok', wind:'040° 06kt', qnh:'1024' } },
 ];
 
@@ -232,21 +232,35 @@ class LiveAtcEngine {
       eham_atis_live: 'https://s1-bos.liveatc.net/eham_atis_arr',
       eham_atis_rec: 'audio/eham_atis.mp3',
       kjfk_twr: 'https://s1-bos.liveatc.net/kjfk_twr',
-      ksfo_twr: 'https://s1-bos.liveatc.net/ksfo_twr',
+      klax_twr: 'https://s1-bos.liveatc.net/klax_twr',
+      kord_twr: 'https://s1-bos.liveatc.net/kord_twr',
       katl_twr: 'https://s1-bos.liveatc.net/katl_twr',
+      ksfo_twr: 'https://s1-bos.liveatc.net/ksfo_twr',
+      kmia_twr: 'https://s1-bos.liveatc.net/kmia_twr',
+      kdfw_twr: 'https://s1-bos.liveatc.net/kdfw_twr',
+      cyyz_twr: 'https://s1-bos.liveatc.net/cyyz_twr',
       kewr_twr: 'https://s1-bos.liveatc.net/kewr_twr',
       kbos_twr: 'https://s1-bos.liveatc.net/kbos_twr',
+      yssy_twr: 'https://s1-bos.liveatc.net/yssy_twr',
+      ymml_twr: 'https://s1-bos.liveatc.net/ymml_twr',
     };
     this.stationLabels = {
       eham_gnd: '🇳🇱 Schiphol Grond (121.905 MHz Live)',
       eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz Live)',
-      eham_atis_live: '🇳🇱 Schiphol ATIS (132.980 MHz Live)',
-      eham_atis_rec: '🇳🇱 Schiphol ATIS (Echte Radio-opname)',
+      eham_atis_live: '🇳🇱 Schiphol ATIS Live (132.980 MHz)',
+      eham_atis_rec: '🇳🇱 Schiphol Radio (Lokale Echte Stemmen)',
       kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz Live)',
-      ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz Live)',
+      klax_twr: '🇺🇸 Los Angeles Toren (120.950 MHz Live)',
+      kord_twr: "🇺🇸 Chicago O'Hare Toren (120.750 MHz Live)",
       katl_twr: '🇺🇸 Atlanta Toren (119.500 MHz Live)',
+      ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz Live)',
+      kmia_twr: '🇺🇸 Miami Toren (118.300 MHz Live)',
+      kdfw_twr: '🇺🇸 Dallas Fort Worth Toren (126.550 MHz Live)',
+      cyyz_twr: '🇨🇦 Toronto Pearson Toren (118.700 MHz Live)',
       kewr_twr: '🇺🇸 Newark Liberty Toren (118.300 MHz Live)',
       kbos_twr: '🇺🇸 Boston Logan Toren (119.100 MHz Live)',
+      yssy_twr: '🇦🇺 Sydney Kingsford Toren (120.500 MHz Live)',
+      ymml_twr: '🇦🇺 Melbourne Toren (120.500 MHz Live)',
     };
   }
 
@@ -457,10 +471,20 @@ class LiveAtcEngine {
   tuneToAirport(airport) {
     if (!airport) return;
     const select = document.getElementById('liveatc-station-select');
-    if (airport.liveAtcStation && select) {
-      select.value = airport.liveAtcStation;
-      this.currentStation = airport.liveAtcStation;
-      if (this.isPlaying) this.playStream();
+    const targetStation = airport.liveAtcStation || 'eham_gnd';
+    this.currentStation = targetStation;
+    if (select) {
+      select.value = targetStation;
+    }
+    const label = this.stationLabels[targetStation] || targetStation;
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    const hudStatus = document.getElementById('hud-liveatc-status');
+
+    if (this.isPlaying) {
+      this.playStream();
+    } else {
+      if (statusTxt) statusTxt.textContent = `📻 Afgestemd op ${label} (Echte Stemmen)`;
+      if (hudStatus) hudStatus.textContent = airport.code + ' ' + (airport.freqs ? airport.freqs.twr : '');
     }
   }
 }
@@ -479,41 +503,10 @@ class AtcRadioEngine {
     this.currentChannel = 'SCHIPHOL TOWER';
     this.selectedAirport = AIRPORTS[0];
     this.timer = null;
-    this.towerVoice = null;
-    this.pilotVoice = null;
   }
 
   init() {
-    if ('speechSynthesis' in window) {
-      this.refreshVoices();
-      window.speechSynthesis.onvoiceschanged = () => this.refreshVoices();
-    }
-  }
-
-  refreshVoices() {
-    if (!('speechSynthesis' in window)) return;
-    const all = window.speechSynthesis.getVoices();
-    if (!all || !all.length) return;
-
-    const en = all.filter(v => v.lang && v.lang.startsWith('en'));
-    const pool = en.length ? en : all;
-
-    const score = (v) => {
-      let s = 0;
-      const n = (v.name || '').toLowerCase();
-      if (n.includes('natural')) s += 60;
-      if (n.includes('enhanced')) s += 50;
-      if (n.includes('siri')) s += 40;
-      if (n.includes('google')) s += 35;
-      if (n.includes('daniel')) s += 30;
-      if (n.includes('samantha')) s += 30;
-      if (n.includes('ava') || n.includes('evan')) s += 25;
-      return s;
-    };
-
-    const sorted = [...pool].sort((a, b) => score(b) - score(a));
-    this.towerVoice = sorted[0] || null;
-    this.pilotVoice = sorted.find(v => v !== this.towerVoice) || sorted[1] || this.towerVoice;
+    // Geen synthetische computerstemmen (speechSynthesis) - uitsluitend echte menselijke audio
   }
 
   ensureAudioCtx() {
@@ -606,54 +599,26 @@ class AtcRadioEngine {
   }
 
   speak(text, isTower, onDone) {
-    if (LIVEATC && LIVEATC.isPlaying) {
-      // Wanneer LiveATC (echte menselijke stemmen) speelt, onderdrukken we de browser TTS
-      this.playMicClick(true);
-      setTimeout(() => this.playMicClick(false), 200);
-      if (onDone) setTimeout(onDone, 800);
+    if (!this.enabled) {
+      if (onDone) setTimeout(onDone, 200);
       return;
     }
 
-    if (!this.enabled || !('speechSynthesis' in window)) {
-      if (onDone) setTimeout(onDone, 1200);
-      return;
+    this.ensureAudioCtx();
+    this.playMicClick(true);
+    this.setTxIndicator(isTower ? 'tower' : 'pilot');
+
+    // Start direct de echte LiveATC audiofeed met menselijke stemmen indien nog niet gestart
+    if (LIVEATC && !LIVEATC.isPlaying) {
+      LIVEATC.tuneToAirport(this.selectedAirport || (S && S.selectedAirport));
+      LIVEATC.playStream();
     }
 
-    try {
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = 'en-US';
-
-      if (!this.towerVoice || !this.pilotVoice) this.refreshVoices();
-      const voice = isTower ? this.towerVoice : this.pilotVoice;
-      if (voice) utt.voice = voice;
-
-      if (isTower) {
-        utt.rate = 1.10;
-        utt.pitch = 1.04;
-      } else {
-        utt.rate = 1.02;
-        utt.pitch = 0.90;
-      }
-
-      this.playMicClick(true);
-      this.setTxIndicator(isTower ? 'tower' : 'pilot');
-
-      let doneFired = false;
-      const finish = () => {
-        if (doneFired) return;
-        doneFired = true;
-        this.playMicClick(false);
-        this.setTxIndicator('idle');
-        if (onDone) setTimeout(onDone, 320);
-      };
-
-      utt.onend = finish;
-      utt.onerror = finish;
-      window.speechSynthesis.speak(utt);
-    } catch (e) {
-      if (onDone) setTimeout(onDone, 1000);
-    }
+    setTimeout(() => {
+      this.playMicClick(false);
+      this.setTxIndicator('idle');
+      if (onDone) setTimeout(onDone, 200);
+    }, 600);
   }
 
   exchangeDialogue(towerSpeaker, towerText, towerSpeech, pilotSpeaker, pilotText, pilotSpeech, onDone) {
@@ -668,7 +633,7 @@ class AtcRadioEngine {
           this.isTransmitting = false;
           if (onDone) onDone();
         });
-      }, 420);
+      }, 350);
     });
   }
 
@@ -679,10 +644,7 @@ class AtcRadioEngine {
     const sector = this.determineSector(flight);
     this.setFrequency(sector.freq, sector.name);
 
-    const numOnly = flight.callsign.replace(/\D/g, '');
-    const callsignSpoken = flight.airline.callsign + ' ' + numOnly;
     const rwy = flight.origin.activeRunway || '24';
-
     const towerText = `${flight.callsign}, ${sector.name}, wind 220 at 12 knots, ${rwy}, cleared for takeoff.`;
     const pilotText = `Cleared for takeoff ${rwy}, ${flight.callsign}.`;
 
@@ -702,8 +664,12 @@ class AtcRadioEngine {
   toggleMute() {
     this.enabled = !this.enabled;
     this.ensureAudioCtx();
-    if (!this.enabled && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (LIVEATC) {
+      if (!this.enabled && LIVEATC.isPlaying) {
+        LIVEATC.stop();
+      } else if (this.enabled && !LIVEATC.isPlaying) {
+        LIVEATC.playStream();
+      }
     }
     const btnMute = document.getElementById('btn-atc-mute');
     if (btnMute) btnMute.textContent = this.enabled ? '🔊' : '🔇';
@@ -1871,17 +1837,20 @@ function initAirportDeck() {
   document.getElementById('btn-freq-twr').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
-    ATC.speak(`${ap.name} Tower on ${ap.freqs.twr}, radar monitor active.`, true);
+    ATC.logMessage(`${ap.code} TWR`, `${ap.name} Tower on ${ap.freqs.twr}, radar monitor active.`, true);
+    ATC.speak('', true);
   });
   document.getElementById('btn-freq-gnd').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.gnd, `${ap.code} GROUND`);
-    ATC.speak(`${ap.name} Ground on ${ap.freqs.gnd}, taxi instructions standby.`, true);
+    ATC.logMessage(`${ap.code} GND`, `${ap.name} Ground on ${ap.freqs.gnd}, taxi instructions standby.`, true);
+    ATC.speak('', true);
   });
   document.getElementById('btn-freq-app').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.app, `${ap.code} APPROACH`);
-    ATC.speak(`${ap.name} Radar Approach on ${ap.freqs.app}, squawk ident.`, true);
+    ATC.logMessage(`${ap.code} APP`, `${ap.name} Radar Approach on ${ap.freqs.app}, squawk ident.`, true);
+    ATC.speak('', true);
   });
 
   selectAirport(AIRPORTS[0]);
@@ -1971,6 +1940,10 @@ function setupControls() {
   const triggerCall = () => {
     ATC.ensureAudioCtx();
     LIVEATC.ensureAudioCtx();
+    if (!LIVEATC.isPlaying) {
+      LIVEATC.tuneToAirport(S.selectedAirport);
+      LIVEATC.playStream();
+    }
     const flight = S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
     if (flight) ATC.contactFlight(flight);
   };
@@ -1991,7 +1964,7 @@ function setupControls() {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.5.1';
+let currentVersion = '1.5.2';
 
 async function checkVersion(silent = true) {
   try {

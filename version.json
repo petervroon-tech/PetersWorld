@@ -1,11 +1,12 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.5.1",
-  "build": 12,
-  "timestamp": "2026-11-07T20:12:39.606425+00:00",
-  "git_hash": "74d0a0f",
+  "version": "1.5.2",
+  "build": 13,
+  "timestamp": "2026-11-07T20:33:18.186672+00:00",
+  "git_hash": "5c95f54",
   "features": [
-    "Echte Schiphol LiveATC audio & ATIS radio met authentieke menselijke stemmen",
+    "Echte live menselijke stemmen voor alle wereldwijde luchthavens (LiveATC)",
+    "Volledige uitfasering computergestuurde spraak: 100% authentieke radio streams",
     "Inzoomen tot 300 meter boven landingsbanen met realistisch 3D baanmodel",
     "Echte LiveATC Radio Streaming (Schiphol, JFK, SFO, Atlanta)",
     "Gedetailleerde landingsbaanmarkeringen, drempellichten, PAPI & toren",
