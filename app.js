@@ -2,7 +2,7 @@
  * PetersWorld – Real 3D Globe, Airport 300m Zoom, Ground Layout & LiveATC Radio
  * Fotorealistische 3D wereldbol met Three.js (NASA Blue Marble), WebAssembly,
  * 300 meter baan-zoom met gedetailleerde landingsbanen en echte LiveATC radio streaming.
- * Versie: 1.5.0
+ * Versie: 1.5.1
  */
 
 'use strict';
@@ -26,7 +26,7 @@ const AIRPORTS = [
   // Europa
   { code:'AMS', flag:'🇳🇱', name:'Amsterdam Schiphol', city:'Amsterdam', country:'Nederland', lat: 52.31, lon: 4.76, hub:true,
     runways:['Kaagbaan 24', 'Polderbaan 36L', 'Zwanenburgerbaan 18C', 'Aalsmeerbaan 18L', 'Buitenveldertbaan 09'], activeRunway:'Kaagbaan 24',
-    rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_twr',
+    rwyNumbers:['24','06','18R','36L'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.050' }, utcOffset:1, weather:{ cond:'cavok', wind:'220° 12kt', qnh:'1014' } },
   { code:'LHR', flag:'🇬🇧', name:'London Heathrow', city:'Londen', country:'Verenigd Koninkrijk', lat: 51.47, lon: -0.46, hub:true,
     runways:['Runway 27L', 'Runway 27R', 'Runway 09L', 'Runway 09R'], activeRunway:'Runway 27L',
@@ -58,7 +58,7 @@ const AIRPORTS = [
     freqs:{ twr:'118.100', gnd:'121.900', app:'118.000' }, utcOffset:1, weather:{ cond:'cavok', wind:'110° 04kt', qnh:'1020' } },
   { code:'BRU', flag:'🇧🇪', name:'Brussels Airport', city:'Brussel', country:'België', lat: 50.90, lon: 4.48, hub:false,
     runways:['Runway 25L', 'Runway 25R', 'Runway 01'], activeRunway:'Runway 25L',
-    rwyNumbers:['25L','07R'], liveAtcStation:'eham_twr',
+    rwyNumbers:['25L','07R'], liveAtcStation:'eham_gnd',
     freqs:{ twr:'118.600', gnd:'121.875', app:'118.250' }, utcOffset:1, weather:{ cond:'cavok', wind:'210° 10kt', qnh:'1014' } },
   { code:'VIE', flag:'🇦🇹', name:'Vienna International', city:'Wenen', country:'Oostenrijk', lat: 48.11, lon: 16.57, hub:false,
     runways:['Runway 16', 'Runway 29', 'Runway 11'], activeRunway:'Runway 16',
@@ -222,16 +222,31 @@ class LiveAtcEngine {
   constructor() {
     this.audioEl = null;
     this.isPlaying = false;
-    this.currentStation = 'eham_twr';
+    this.currentStation = 'eham_gnd';
     this.audioCtx = null;
     this.analyser = null;
     this.animVizId = null;
     this.streams = {
+      eham_gnd: 'https://s1-bos.liveatc.net/eham_gnd_18c36c',
+      eham_del: 'https://s1-bos.liveatc.net/eham_del',
+      eham_atis_live: 'https://s1-bos.liveatc.net/eham_atis_arr',
+      eham_atis_rec: 'audio/eham_atis.mp3',
       kjfk_twr: 'https://s1-bos.liveatc.net/kjfk_twr',
       ksfo_twr: 'https://s1-bos.liveatc.net/ksfo_twr',
       katl_twr: 'https://s1-bos.liveatc.net/katl_twr',
       kewr_twr: 'https://s1-bos.liveatc.net/kewr_twr',
       kbos_twr: 'https://s1-bos.liveatc.net/kbos_twr',
+    };
+    this.stationLabels = {
+      eham_gnd: '🇳🇱 Schiphol Grond (121.905 MHz Live)',
+      eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz Live)',
+      eham_atis_live: '🇳🇱 Schiphol ATIS (132.980 MHz Live)',
+      eham_atis_rec: '🇳🇱 Schiphol ATIS (Echte Radio-opname)',
+      kjfk_twr: '🇺🇸 New York JFK Toren (119.100 MHz Live)',
+      ksfo_twr: '🇺🇸 San Francisco Toren (120.500 MHz Live)',
+      katl_twr: '🇺🇸 Atlanta Toren (119.500 MHz Live)',
+      kewr_twr: '🇺🇸 Newark Liberty Toren (118.300 MHz Live)',
+      kbos_twr: '🇺🇸 Boston Logan Toren (119.100 MHz Live)',
     };
   }
 
@@ -242,6 +257,7 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
 
     if (select) {
+      select.value = this.currentStation;
       select.addEventListener('change', (e) => {
         this.currentStation = e.target.value;
         if (this.isPlaying) this.playStream();
@@ -254,6 +270,25 @@ class LiveAtcEngine {
 
     if (pill) {
       pill.addEventListener('click', () => this.togglePlay());
+    }
+
+    if (this.audioEl) {
+      this.audioEl.addEventListener('error', (e) => {
+        console.warn('LiveATC audio error, switching to authentic Schiphol radio recording fallback:', e);
+        if (this.isPlaying && this.currentStation !== 'eham_atis_rec') {
+          this.fallbackToRealAudio();
+        }
+      });
+      this.audioEl.addEventListener('ended', () => {
+        if (this.isPlaying && this.currentStation === 'eham_atis_rec') {
+          setTimeout(() => {
+            if (this.isPlaying && this.audioEl && this.currentStation === 'eham_atis_rec') {
+              this.audioEl.currentTime = 0;
+              this.audioEl.play().catch(() => {});
+            }
+          }, 2500);
+        }
+      });
     }
 
     this.initVisualizer();
@@ -322,6 +357,37 @@ class LiveAtcEngine {
     }
   }
 
+  fallbackToRealAudio() {
+    if (!this.audioEl) return;
+    const select = document.getElementById('liveatc-station-select');
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    const hudStatus = document.getElementById('hud-liveatc-status');
+    const btn = document.getElementById('btn-liveatc-toggle');
+    const dot = document.getElementById('liveatc-dot');
+    const pill = document.getElementById('pill-liveatc');
+
+    this.currentStation = 'eham_atis_rec';
+    if (select) select.value = 'eham_atis_rec';
+
+    this.audioEl.src = 'audio/eham_atis.mp3';
+    this.audioEl.load();
+    const p = this.audioEl.play();
+    if (p && p.then) {
+      p.then(() => {
+        this.isPlaying = true;
+        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
+        if (dot) dot.className = 'dot green';
+        if (pill) pill.classList.add('active');
+        if (statusTxt) statusTxt.textContent = '🔴 Schiphol ATIS (Lokale Echte Stemmen) actief';
+        if (hudStatus) hudStatus.textContent = 'EHAM ATIS';
+        ATC.playMicClick(true);
+        ATC.logMessage('LIVE ATC', 'Live stream gebufferd/CORS restrictie: direct overgeschakeld naar Schiphol radio-opname met echte stemmen!', true);
+      }).catch((err) => {
+        console.warn('Fallback play failed:', err);
+      });
+    }
+  }
+
   playStream() {
     this.ensureAudioCtx();
     const btn = document.getElementById('btn-liveatc-toggle');
@@ -330,28 +396,22 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
-    if (this.currentStation === 'eham_twr') {
-      // EHAM Schiphol Toren: Schiphol gebruikt authentieke realtime radio-audio
-      this.isPlaying = true;
-      if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
-      if (dot) dot.className = 'dot green';
-      if (pill) pill.classList.add('active');
-      if (statusTxt) statusTxt.textContent = '🔴 Schiphol Toren 118.100 MHz verbonden';
-      if (hudStatus) hudStatus.textContent = 'EHAM 118.1';
-      ATC.playMicClick(true);
-      ATC.logMessage('LIVE ATC', 'Amsterdam Schiphol Tower 118.100 MHz live stream actief.', true);
+    if (!this.audioEl) return;
 
-      // Speel achtergrond VHF ruis + periodieke torenoproepen
-      this.startSchipholAudioLoop();
-      return;
+    const label = this.stationLabels[this.currentStation] || this.currentStation;
+    if (statusTxt) statusTxt.textContent = `⏳ Verbinden met ${label}...`;
+
+    if (this.currentStation === 'eham_atis_rec') {
+      this.audioEl.src = 'audio/eham_atis.mp3';
+    } else {
+      const url = this.streams[this.currentStation];
+      if (!url) {
+        this.fallbackToRealAudio();
+        return;
+      }
+      this.audioEl.src = `${url}?nocache=${Date.now()}`;
     }
 
-    // Directe LiveATC Icecast stream (JFK, SFO, ATL, etc.)
-    const url = this.streams[this.currentStation];
-    if (!url || !this.audioEl) return;
-
-    if (statusTxt) statusTxt.textContent = '⏳ Verbinden met LiveATC stream...';
-    this.audioEl.src = `${url}?nocache=${Date.now()}`;
     this.audioEl.load();
 
     const p = this.audioEl.play();
@@ -361,18 +421,13 @@ class LiveAtcEngine {
         if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
-        if (statusTxt) statusTxt.textContent = `🔴 LiveATC: ${this.currentStation.toUpperCase()} stream actief`;
-        if (hudStatus) hudStatus.textContent = 'LIVE STREAM';
+        if (statusTxt) statusTxt.textContent = `🔴 ${label} actief (Echte Stemmen)`;
+        if (hudStatus) hudStatus.textContent = this.currentStation.toUpperCase().replace('_', ' ');
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', `Verbonden met LiveATC feed: ${this.currentStation.toUpperCase()}`, true);
+        ATC.logMessage('LIVE ATC', `Verbonden met audiofeed: ${label} (Echte menselijke stemmen)`, true);
       }).catch((err) => {
-        console.warn('LiveATC stream:', err);
-        // Fallback naar synthetische toren indien browser stream blokkeert
-        this.isPlaying = true;
-        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
-        if (statusTxt) statusTxt.textContent = `🔴 Toren radio actief (${this.currentStation})`;
-        if (hudStatus) hudStatus.textContent = 'RADIO ACTIEF';
-        this.startSchipholAudioLoop();
+        console.warn('Live stream play failed, switching to real audio recording:', err);
+        this.fallbackToRealAudio();
       });
     }
   }
@@ -382,10 +437,6 @@ class LiveAtcEngine {
     if (this.audioEl) {
       this.audioEl.pause();
       this.audioEl.src = '';
-    }
-    if (this.schipholTimer) {
-      clearTimeout(this.schipholTimer);
-      this.schipholTimer = null;
     }
 
     const btn = document.getElementById('btn-liveatc-toggle');
@@ -397,28 +448,10 @@ class LiveAtcEngine {
     if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ PLAY'; }
     if (dot) dot.className = 'dot red';
     if (pill) pill.classList.remove('active');
-    if (statusTxt) statusTxt.textContent = '📻 LiveATC stream gestopt';
+    if (statusTxt) statusTxt.textContent = '📻 LiveATC radio gestopt';
     if (hudStatus) hudStatus.textContent = 'STANDBY';
 
     ATC.playMicClick(false);
-  }
-
-  startSchipholAudioLoop() {
-    if (!this.isPlaying) return;
-    const phrases = [
-      { twr: "KLM 1234, Schiphol Tower, wind 220 at 12 knots, Kaagbaan 24, cleared for takeoff.", plt: "Cleared for takeoff 24, KLM 1234, rolling." },
-      { twr: "Delta 182, Schiphol Tower, descend 3000 feet, expect ILS runway 18R Polderbaan, QNH 1014.", plt: "Descend 3000 feet, ILS 18R, Delta 182." },
-      { twr: "Speedbird 432, taxi via Bravo, hold short of runway 24 at intersection Sierra.", plt: "Taxi Bravo, holding short runway 24, Speedbird 432." },
-      { twr: "EasyJet 882, radar contact, climb and maintain flight level 120, direct SPYKER.", plt: "Climbing flight level 120, direct SPYKER, EasyJet 882." },
-      { twr: "Transavia 560, wind 210 at 10 knots, runway 24, cleared to land.", plt: "Cleared to land 24, Transavia 560." },
-    ];
-
-    const pick = phrases[Math.floor(Math.random() * phrases.length)];
-    ATC.exchangeDialogue('AMS TWR', pick.twr, pick.twr, 'PILOT', pick.plt, pick.plt, () => {
-      if (this.isPlaying && this.currentStation === 'eham_twr') {
-        this.schipholTimer = setTimeout(() => this.startSchipholAudioLoop(), 7000 + Math.random() * 6000);
-      }
-    });
   }
 
   tuneToAirport(airport) {
@@ -573,6 +606,14 @@ class AtcRadioEngine {
   }
 
   speak(text, isTower, onDone) {
+    if (LIVEATC && LIVEATC.isPlaying) {
+      // Wanneer LiveATC (echte menselijke stemmen) speelt, onderdrukken we de browser TTS
+      this.playMicClick(true);
+      setTimeout(() => this.playMicClick(false), 200);
+      if (onDone) setTimeout(onDone, 800);
+      return;
+    }
+
     if (!this.enabled || !('speechSynthesis' in window)) {
       if (onDone) setTimeout(onDone, 1200);
       return;
@@ -1535,6 +1576,10 @@ function renderAirportFlightBoard() {
     row.querySelector('.btn-fids-action').addEventListener('click', () => {
       ATC.ensureAudioCtx();
       LIVEATC.ensureAudioCtx();
+      if (!LIVEATC.isPlaying) {
+        LIVEATC.tuneToAirport(S.selectedAirport || f.dest || f.origin);
+        LIVEATC.playStream();
+      }
       ATC.contactFlight(f);
       if (!f.isSlot) S.followFlight = f;
     });
@@ -1564,6 +1609,10 @@ function renderAirportFlightBoard() {
     row.querySelector('.btn-fids-action').addEventListener('click', () => {
       ATC.ensureAudioCtx();
       LIVEATC.ensureAudioCtx();
+      if (!LIVEATC.isPlaying) {
+        LIVEATC.tuneToAirport(S.selectedAirport || f.dest || f.origin);
+        LIVEATC.playStream();
+      }
       ATC.contactFlight(f);
       if (!f.isSlot) S.followFlight = f;
     });
@@ -1942,7 +1991,7 @@ function setupControls() {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.5.0';
+let currentVersion = '1.5.1';
 
 async function checkVersion(silent = true) {
   try {

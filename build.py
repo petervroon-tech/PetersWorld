@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.5.0"
+DEFAULT_VERSION = "1.5.1"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (150 voor v1.5.0)
-    code0 = bytes([0]) + i32_const(150) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (151 voor v1.5.1)
+    code0 = bytes([0]) + i32_const(151) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,8 +253,9 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Echte Schiphol LiveATC audio & ATIS radio met authentieke menselijke stemmen",
             "Inzoomen tot 300 meter boven landingsbanen met realistisch 3D baanmodel",
-            "Echte LiveATC Radio Streaming (JFK, SFO, Atlanta, Schiphol toren)",
+            "Echte LiveATC Radio Streaming (Schiphol, JFK, SFO, Atlanta)",
             "Gedetailleerde landingsbaanmarkeringen, drempellichten, PAPI & toren",
             "Realtime camera hoogtemeter (meters boven NAP/baan)",
             "Luchthaven Vluchtenbord (Live Vertrek & Aankomst per vliegveld)",
@@ -298,7 +299,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 150) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 151) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
