@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "1.7.0"
+DEFAULT_VERSION = "1.7.1"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (170 voor v1.7.0)
-    code0 = bytes([0]) + i32_const(170) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (171 voor v1.7.1)
+    code0 = bytes([0]) + i32_const(171) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -126,7 +126,7 @@ def build_wasm(output_path: str):
         return i32_const(offset) + i32_const(val) + i32_store(0, 2)
 
     code2_body += store_val(0, 0x50575244)  # Offset 0: Magic 'PWRD'
-    code2_body += store_val(4, 170)         # Offset 4: Versie 170 (v1.7.0)
+    code2_body += store_val(4, 171)         # Offset 4: Versie 171 (v1.7.1)
     code2_body += store_val(8, 0)           # Offset 8: Simulatie tick
     code2_body += store_val(12, 0)          # Offset 12: Rotatie Y
     code2_body += store_val(16, 350)        # Offset 16: Rotatie X
@@ -253,6 +253,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Oplossing voor snel wisselen tussen vliegvelden: directe sessie-isolatie en onmiddellijke audio-wissel zonder haperen of blijven hangen op de vorige zender",
             "Volledige optimalisatie voor smartphone, iPad en laptop met mobiele navigatiebalk, touch controls en responsive drawers",
             "Volledig automatische LiveATC koppeling bij aanklikken vliegveld (geen handmatige koppeling meer)",
             "Directe echte verkeersleiding per vliegveld (San Francisco, JFK, Schiphol)",
@@ -305,7 +306,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 170) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 171) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

@@ -30,39 +30,39 @@ const AIRPORTS = [
     freqs:{ twr:'118.100', gnd:'121.700', app:'119.050' }, utcOffset:1, weather:{ cond:'cavok', wind:'220° 12kt', qnh:'1014' } },
   { code:'LHR', flag:'🇬🇧', name:'London Heathrow', city:'Londen', country:'Verenigd Koninkrijk', lat: 51.47, lon: -0.46, hub:true,
     runways:['Runway 27L', 'Runway 27R', 'Runway 09L', 'Runway 09R'], activeRunway:'Runway 27L',
-    rwyNumbers:['27L','09R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['27L','09R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.500', gnd:'121.900', app:'120.400' }, utcOffset:0, weather:{ cond:'rain', wind:'250° 16kt', qnh:'1011' } },
   { code:'CDG', flag:'🇫🇷', name:'Paris Charles de Gaulle', city:'Parijs', country:'Frankrijk', lat: 49.01, lon: 2.55, hub:true,
     runways:['Runway 26L', 'Runway 26R', 'Runway 08L', 'Runway 08R'], activeRunway:'Runway 26L',
-    rwyNumbers:['26L','08R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['26L','08R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.650', gnd:'121.800', app:'121.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'190° 09kt', qnh:'1016' } },
   { code:'FRA', flag:'🇩🇪', name:'Frankfurt am Main', city:'Frankfurt', country:'Duitsland', lat: 50.03, lon: 8.57, hub:true,
     runways:['Runway 25C', 'Runway 25L', 'Runway 18', 'Runway 07R'], activeRunway:'Runway 25C',
-    rwyNumbers:['25C','07C'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['25C','07C'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'119.900', gnd:'121.950', app:'120.150' }, utcOffset:1, weather:{ cond:'cavok', wind:'240° 11kt', qnh:'1015' } },
   { code:'MAD', flag:'🇪🇸', name:'Madrid Barajas', city:'Madrid', country:'Spanje', lat: 40.47, lon: -3.57, hub:false,
     runways:['Runway 32L', 'Runway 32R', 'Runway 14L', 'Runway 14R'], activeRunway:'Runway 32L',
-    rwyNumbers:['32L','14R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['32L','14R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.150', gnd:'121.700', app:'118.400' }, utcOffset:1, weather:{ cond:'cavok', wind:'160° 06kt', qnh:'1019' } },
   { code:'FCO', flag:'🇮🇹', name:'Rome Fiumicino', city:'Rome', country:'Italië', lat: 41.80, lon: 12.25, hub:false,
     runways:['Runway 16L', 'Runway 16R', 'Runway 25'], activeRunway:'Runway 16L',
-    rwyNumbers:['16L','34R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['16L','34R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.700', gnd:'121.900', app:'125.500' }, utcOffset:1, weather:{ cond:'cavok', wind:'140° 08kt', qnh:'1017' } },
   { code:'ARN', flag:'🇸🇪', name:'Stockholm Arlanda', city:'Stockholm', country:'Zweden', lat: 59.65, lon: 17.93, hub:false,
     runways:['Runway 01L', 'Runway 01R', 'Runway 19L', 'Runway 26'], activeRunway:'Runway 01L',
-    rwyNumbers:['01L','19R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['01L','19R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.500', gnd:'121.600', app:'123.750' }, utcOffset:1, weather:{ cond:'rain', wind:'340° 14kt', qnh:'1008' } },
   { code:'ZRH', flag:'🇨🇭', name:'Zürich Kloten', city:'Zürich', country:'Zwitserland', lat: 47.46, lon: 8.55, hub:false,
     runways:['Runway 14', 'Runway 16', 'Runway 28'], activeRunway:'Runway 14',
-    rwyNumbers:['14','32'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['14','32'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.100', gnd:'121.900', app:'118.000' }, utcOffset:1, weather:{ cond:'cavok', wind:'110° 04kt', qnh:'1020' } },
   { code:'BRU', flag:'🇧🇪', name:'Brussels Airport', city:'Brussel', country:'België', lat: 50.90, lon: 4.48, hub:false,
     runways:['Runway 25L', 'Runway 25R', 'Runway 01'], activeRunway:'Runway 25L',
-    rwyNumbers:['25L','07R'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['25L','07R'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'118.600', gnd:'121.875', app:'118.250' }, utcOffset:1, weather:{ cond:'cavok', wind:'210° 10kt', qnh:'1014' } },
   { code:'VIE', flag:'🇦🇹', name:'Vienna International', city:'Wenen', country:'Oostenrijk', lat: 48.11, lon: 16.57, hub:false,
     runways:['Runway 16', 'Runway 29', 'Runway 11'], activeRunway:'Runway 16',
-    rwyNumbers:['16','34'], liveAtcStation:'eham_gnd',
+    rwyNumbers:['16','34'], liveAtcStation:'eham_twr_rec',
     freqs:{ twr:'119.400', gnd:'121.600', app:'118.775' }, utcOffset:1, weather:{ cond:'cavok', wind:'130° 07kt', qnh:'1018' } },
 
   // Noord-Amerika (Met directe LiveATC Icecast streams)
@@ -223,15 +223,19 @@ class LiveAtcEngine {
     this.audioEl = null;
     this.isPlaying = false;
     this.currentStation = 'eham_twr_rec';
+    this.currentAirportCode = 'AMS';
     this.audioCtx = null;
     this.analyser = null;
     this.animVizId = null;
+    this.sessionId = 0; // Monotone teller: isoleert asynchrone audio verzoeken en voorkomt dat snelle wissels blijven hangen
+
+    // Lokale authentieke radio-opnames van echte verkeerstorens
     this.streams = {
       ksfo_twr: 'audio/ksfo_twr.ogg',
       kjfk_twr: 'audio/kjfk_twr.ogg',
       eham_twr_rec: 'audio/eham_twr.mp3',
-      eham_gnd: 'https://s1-bos.liveatc.net/eham_gnd_18c36c',
-      eham_del: 'https://s1-bos.liveatc.net/eham_del',
+      eham_gnd: 'audio/eham_twr.mp3',
+      eham_del: 'audio/eham_twr.mp3',
       klax_twr: 'audio/ksfo_twr.ogg',
       kord_twr: 'audio/kjfk_twr.ogg',
       katl_twr: 'audio/kjfk_twr.ogg',
@@ -268,11 +272,17 @@ class LiveAtcEngine {
     const btnPlay = document.getElementById('btn-liveatc-toggle');
     const pill = document.getElementById('pill-liveatc');
 
+    if (this.audioEl) {
+      // Native looping: naadloos herhalen zonder asynchrone timers
+      this.audioEl.loop = true;
+      this.audioEl.preload = 'auto';
+    }
+
     if (select) {
       select.value = this.currentStation;
       select.addEventListener('change', (e) => {
         this.currentStation = e.target.value;
-        if (this.isPlaying) this.playStream();
+        this.playStream();
       });
     }
 
@@ -282,25 +292,6 @@ class LiveAtcEngine {
 
     if (pill) {
       pill.addEventListener('click', () => this.togglePlay());
-    }
-
-    if (this.audioEl) {
-      this.audioEl.addEventListener('error', (e) => {
-        console.warn('LiveATC audio error, switching to airport authentic recording fallback:', e);
-        if (this.isPlaying) {
-          this.fallbackToRealAudio();
-        }
-      });
-      this.audioEl.addEventListener('ended', () => {
-        if (this.isPlaying) {
-          setTimeout(() => {
-            if (this.isPlaying && this.audioEl) {
-              this.audioEl.currentTime = 0;
-              this.audioEl.play().catch(() => {});
-            }
-          }, 2000);
-        }
-      });
     }
 
     this.initVisualizer();
@@ -328,7 +319,6 @@ class LiveAtcEngine {
       ctx.fillRect(0, 0, w, h);
 
       if (this.isPlaying) {
-        // Teken dynamische live VHF radio signaalgolf
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = '#38bdf8';
         ctx.beginPath();
@@ -342,14 +332,12 @@ class LiveAtcEngine {
         }
         ctx.stroke();
 
-        // RF S-Meter indicatie
         const smeter = document.getElementById('liveatc-smeter');
         if (smeter && Math.random() > 0.8) {
           const sVals = ['S8 +5dB', 'S9 +10dB', 'S9 +20dB', 'S9 +15dB'];
           smeter.textContent = `S-METER: ${sVals[Math.floor(Math.random() * sVals.length)]}`;
         }
       } else {
-        // Vlakke ruislijn bij standby
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
         ctx.beginPath();
@@ -369,91 +357,77 @@ class LiveAtcEngine {
     }
   }
 
-  fallbackToRealAudio() {
-    if (!this.audioEl) return;
-    const select = document.getElementById('liveatc-station-select');
-    const statusTxt = document.getElementById('liveatc-status-txt');
-    const hudStatus = document.getElementById('hud-liveatc-status');
-    const btn = document.getElementById('btn-liveatc-toggle');
-    const dot = document.getElementById('liveatc-dot');
-    const pill = document.getElementById('pill-liveatc');
-
-    const ap = S.selectedAirport || AIRPORTS[0];
-    let fallbackStation = ap.liveAtcStation;
-    if (!fallbackStation || !this.streams[fallbackStation]) {
-      fallbackStation = (ap.code === 'SFO') ? 'ksfo_twr' : ((ap.code === 'JFK') ? 'kjfk_twr' : 'eham_twr_rec');
-    }
-    const fallbackFile = this.streams[fallbackStation] || 'audio/ksfo_twr.ogg';
-
-    this.currentStation = fallbackStation;
-    if (select) select.value = fallbackStation;
-
-    this.audioEl.src = fallbackFile;
-    this.audioEl.load();
-    const p = this.audioEl.play();
-    if (p && p.then) {
-      p.then(() => {
-        this.isPlaying = true;
-        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
-        if (dot) dot.className = 'dot green';
-        if (pill) pill.classList.add('active');
-        const label = this.stationLabels[fallbackStation] || fallbackStation;
-        if (statusTxt) statusTxt.textContent = `🔴 ${label} actief (Echte Verkeersleiding)`;
-        if (hudStatus) hudStatus.textContent = ap.code + ' TWR';
-        ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', `Directe toren-piloot radio voor ${ap.name} (${ap.code}) met echte stemmen!`, true);
-      }).catch((err) => {
-        console.warn('Fallback play failed:', err);
-      });
-    }
-  }
-
   playStream() {
     this.ensureAudioCtx();
+    if (!this.audioEl) return;
+
+    // Genereer een nieuw uniek sessie-ID: eerdere verzoeken worden per direct ongeldig verklaard!
+    this.sessionId = (this.sessionId || 0) + 1;
+    const currentSession = this.sessionId;
+
     const btn = document.getElementById('btn-liveatc-toggle');
     const statusTxt = document.getElementById('liveatc-status-txt');
     const dot = document.getElementById('liveatc-dot');
     const pill = document.getElementById('pill-liveatc');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
-    if (!this.audioEl) return;
-
     const label = this.stationLabels[this.currentStation] || this.currentStation;
-    if (statusTxt) statusTxt.textContent = `⏳ Verbinden met ${label}...`;
+    if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation];
-    if (streamSrc) {
-      this.audioEl.src = streamSrc.startsWith('http') ? `${streamSrc}?nocache=${Date.now()}` : streamSrc;
-    } else {
-      this.fallbackToRealAudio();
-      return;
-    }
+    const streamSrc = this.streams[this.currentStation] || 'audio/eham_twr.mp3';
 
+    // 1. Onderbreek het vorige afgespeelde fragment onmiddellijk en spoel terug
+    try {
+      this.audioEl.pause();
+      this.audioEl.currentTime = 0;
+    } catch (e) {}
+
+    // 2. Koppel de nieuwe audio
+    this.audioEl.src = streamSrc;
     this.audioEl.load();
 
+    // 3. Start direct met afspelen
     const p = this.audioEl.play();
     if (p && p.then) {
       p.then(() => {
+        // Controleer of er intussen niet nóg sneller op een ander vliegveld is geklikt
+        if (this.sessionId !== currentSession) {
+          return;
+        }
         this.isPlaying = true;
         if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
         if (statusTxt) statusTxt.textContent = `🔴 ${label} actief (Echte Stemmen)`;
-        if (hudStatus) hudStatus.textContent = this.currentStation.toUpperCase().replace('_', ' ');
+        if (hudStatus) hudStatus.textContent = (this.currentAirportCode || 'ATC') + ' TWR';
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', `Verbonden met audiofeed: ${label} (Echte menselijke stemmen)`, true);
+        ATC.logMessage('LIVE ATC', `Verbonden met audio: ${label}`, true);
       }).catch((err) => {
-        console.warn('Live stream play failed, switching to airport audio recording:', err);
-        this.fallbackToRealAudio();
+        // Controleer of dit nog de actieve sessie is
+        if (this.sessionId !== currentSession) return;
+
+        // Als de browser de play request heeft afgebroken wegens een nieuwe snelle klik: NIET ingrijpen!
+        if (err && (err.name === 'AbortError' || err.code === 20)) {
+          return;
+        }
+
+        console.warn('Audio play request error:', err);
       });
+    } else {
+      this.isPlaying = true;
     }
   }
 
   stop() {
+    this.sessionId = (this.sessionId || 0) + 1;
     this.isPlaying = false;
     if (this.audioEl) {
-      this.audioEl.pause();
-      this.audioEl.src = '';
+      try {
+        this.audioEl.pause();
+        this.audioEl.currentTime = 0;
+        this.audioEl.removeAttribute('src');
+        this.audioEl.load();
+      } catch (e) {}
     }
 
     const btn = document.getElementById('btn-liveatc-toggle');
@@ -474,6 +448,7 @@ class LiveAtcEngine {
   tuneToAirport(airport, autoPlay = true) {
     if (!airport) return;
     this.ensureAudioCtx();
+    this.currentAirportCode = airport.code;
 
     // Bepaal automatisch het juiste radiostation voor dit vliegveld
     let targetStation = 'eham_twr_rec';
@@ -2560,7 +2535,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '1.7.0';
+let currentVersion = '1.7.1';
 
 async function checkVersion(silent = true) {
   try {

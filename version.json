@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "1.7.0",
-  "build": 18,
-  "timestamp": "2026-11-07T21:30:04.322819+00:00",
-  "git_hash": "17e6549",
+  "version": "1.7.1",
+  "build": 19,
+  "timestamp": "2026-11-07T21:37:26.522537+00:00",
+  "git_hash": "fbf83ef",
   "features": [
+    "Oplossing voor snel wisselen tussen vliegvelden: directe sessie-isolatie en onmiddellijke audio-wissel zonder haperen of blijven hangen op de vorige zender",
     "Volledige optimalisatie voor smartphone, iPad en laptop met mobiele navigatiebalk, touch controls en responsive drawers",
     "Volledig automatische LiveATC koppeling bij aanklikken vliegveld (geen handmatige koppeling meer)",
     "Directe echte verkeersleiding per vliegveld (San Francisco, JFK, Schiphol)",
