@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.3.9"
+DEFAULT_VERSION = "2.4.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (239 voor v2.3.9)
-    code0 = bytes([0]) + i32_const(239) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (240 voor v2.4.0)
+    code0 = bytes([0]) + i32_const(240) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,9 +253,11 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Alle frequenties van Schiphol en Nederlandse luchthavens direct luisteren en volgen (Torens, Approach N/O/Z/W, Departure N/O/Z/W, Final Director, Radar, Grond, ATIS)",
+            "Interactieve Verkeersstroom & Sector Volger: filter en volg inkomend en vertrekkend verkeer per windrichting (Noord, Oost, Zuid, West)",
+            "Gesynchroniseerde radiokoppeling: selecteren van een sector stemt automatisch af op de bijbehorende naderings- of vertrekfrequentie",
             "In-app opname knop voor gesprekken tussen torens en vliegtuigen met automatische download (.webm / .wav)",
             "Continue ononderbroken audio stream die pas stopt als de gebruiker dat wil (loopt niet meer af na een paar minuten)",
-            "Popup webplayer en alle externe website-popups verwijderd: 100% directe in-app audio radio speler",
             "Vliegtuigkleuren: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
             "Live HUD tellers & visuele radarlegenda voor landende (groen), opstijgende (geel) en overvliegende (paars) toestellen",
             "100% Echte Live ADS-B vliegbewegingen via Flightradar24 transponder feed",
@@ -299,7 +301,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 239) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 240) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

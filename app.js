@@ -440,50 +440,147 @@ class LiveAtcEngine {
     this.animVizId = null;
     this.sessionId = 0; // Monotone teller: isoleert asynchrone audio verzoeken en voorkomt dat snelle wissels blijven hangen
 
-    // Lokale authentieke radio-streams en kanalen voor Schiphol en Nederlandse velden
+    // Lokale authentieke radio-streams en kanalen voor Schiphol en alle Nederlandse velden
     this.streams = {
       eham_twr: 'audio/eham_twr.m4a?v=2.0.1',
       eham_twr2: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_twr3: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app_n: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app_e: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app_s: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app_w: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_app_fin: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_dep_n: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_dep_e: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_dep_s: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_dep_w: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_radar: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_gnd_n: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_gnd_s: 'audio/eham_twr.m4a?v=2.0.1',
       eham_del: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_dep: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_atis_arr: 'audio/eham_twr.m4a?v=2.0.1',
+      eham_atis_dep: 'audio/eham_twr.m4a?v=2.0.1',
       ehrd_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehrd_app_in: 'audio/eham_twr.m4a?v=2.0.1',
+      ehrd_dep: 'audio/eham_twr.m4a?v=2.0.1',
+      ehrd_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      ehrd_atis: 'audio/eham_twr.m4a?v=2.0.1',
       eheh_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgg_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      eheh_app_in: 'audio/eham_twr.m4a?v=2.0.1',
+      eheh_dep: 'audio/eham_twr.m4a?v=2.0.1',
+      eheh_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      eheh_atis: 'audio/eham_twr.m4a?v=2.0.1',
       ehbk_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehbk_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehbk_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      ehbk_atis: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgg_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgg_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgg_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgg_atis: 'audio/eham_twr.m4a?v=2.0.1',
       ehle_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehlw_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehvk_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgr_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehwo_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehkd_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehse_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehtx_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehle_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehle_gnd: 'audio/eham_twr.m4a?v=2.0.1',
       ehte_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehte_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehte_gnd: 'audio/eham_twr.m4a?v=2.0.1',
+      ehtx_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehse_twr: 'audio/eham_twr.m4a?v=2.0.1',
       ehhv_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehmz_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehal_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehlw_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehlw_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehvk_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehvk_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgr_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehgr_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehwo_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehwo_app: 'audio/eham_twr.m4a?v=2.0.1',
+      ehkd_twr: 'audio/eham_twr.m4a?v=2.0.1',
+      ehkd_app: 'audio/eham_twr.m4a?v=2.0.1',
     };
     this.stationLabels = {
+      // 🇳🇱 Schiphol Torens & Banen
       eham_twr: '🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)',
       eham_twr2: '🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)',
-      eham_gnd: '🇳🇱 Schiphol Grond (121.700 MHz - Taxiën & Platform)',
-      eham_del: '🇳🇱 Schiphol Delivery (121.980 MHz - Vluchtklaringen)',
-      eham_app: '🇳🇱 Schiphol Approach (119.050 MHz - Nadering & Radar)',
-      eham_dep: '🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)',
+      eham_twr3: '🇳🇱 Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan/Buitenveldert)',
+      
+      // 🇳🇱 Schiphol Inkomend Verkeer (Arrival / Nadering)
+      eham_app_n: '🧭 Schiphol Inkomend NOORD (119.050 MHz - Approach ARTIP)',
+      eham_app_e: '🧭 Schiphol Inkomend OOST (121.200 MHz - Approach EELDE)',
+      eham_app_s: '🧭 Schiphol Inkomend ZUID (118.075 MHz - Approach RIVER)',
+      eham_app_w: '🧭 Schiphol Inkomend WEST (131.150 MHz - Approach SUGOL)',
+      eham_app_fin: '🛬 Schiphol Final Director (124.875 MHz - ILS Baanoplijning)',
+
+      // 🇳🇱 Schiphol Vertrekkend Verkeer (Departure / Vertrek)
+      eham_dep_n: '🛫 Schiphol Vertrek NOORD (121.200 MHz - Departure ANDIK)',
+      eham_dep_e: '🛫 Schiphol Vertrek OOST (119.050 MHz - Departure ARNEM)',
+      eham_dep_s: '🛫 Schiphol Vertrek ZUID (118.075 MHz - Departure VALKO)',
+      eham_dep_w: '🛫 Schiphol Vertrek WEST (124.300 MHz - Departure BERGI)',
+      eham_radar: '✈️ Amsterdam Radar (124.300 MHz - Bovenste Luchtruim NL)',
+
+      // 🇳🇱 Schiphol Grond, Platform & ATIS
+      eham_gnd_n: '🚕 Schiphol Grond Noord (121.700 MHz - Polder/Zwanenburg Taxiën)',
+      eham_gnd_s: '🚕 Schiphol Grond Zuid (121.800 MHz - Kaag/Aalsmeer/Gates)',
+      eham_del: '📋 Schiphol Delivery (121.980 MHz - Vluchtklaringen)',
+      eham_atis_arr: '📻 Schiphol ATIS Inkomend (122.200 MHz - Baaninfo & Weer)',
+      eham_atis_dep: '📻 Schiphol ATIS Vertrek (132.975 MHz - Startbanen & Wind)',
+
+      // 🇳🇱 Rotterdam The Hague Airport (EHRD)
       ehrd_twr: '🇳🇱 Rotterdam The Hague Toren (118.200 MHz)',
+      ehrd_app_in: '🧭 Rotterdam Approach Inkomend (127.025 MHz - N/O/Z/W)',
+      ehrd_dep: '🛫 Rotterdam Departure Vertrek (127.025 MHz - Klim)',
+      ehrd_gnd: '🚕 Rotterdam Grond & Delivery (121.905 MHz)',
+      ehrd_atis: '📻 Rotterdam ATIS (128.580 MHz - Actueel Weer)',
+
+      // 🇳🇱 Eindhoven Airport (EHEH)
       eheh_twr: '🇳🇱 Eindhoven Airport Toren (131.000 MHz)',
-      ehgg_twr: '🇳🇱 Groningen Airport Eelde Toren (118.700 MHz)',
+      eheh_app_in: '🧭 Eindhoven Approach Inkomend (124.500 MHz - N/O/Z/W)',
+      eheh_dep: '🛫 Eindhoven Departure Vertrek (124.500 MHz)',
+      eheh_gnd: '🚕 Eindhoven Grond (121.930 MHz)',
+      eheh_atis: '📻 Eindhoven ATIS (129.580 MHz)',
+
+      // 🇳🇱 Maastricht Aachen Airport (EHBK)
       ehbk_twr: '🇳🇱 Maastricht Aachen Toren (119.475 MHz)',
+      ehbk_app: '🧭 Maastricht Approach Inkomend & Vertrek (123.975 MHz)',
+      ehbk_gnd: '🚕 Maastricht Grond (121.780 MHz)',
+      ehbk_atis: '📻 Maastricht ATIS (122.180 MHz)',
+
+      // 🇳🇱 Groningen Airport Eelde (EHGG)
+      ehgg_twr: '🇳🇱 Groningen Airport Eelde Toren (118.700 MHz)',
+      ehgg_app: '🧭 Eelde Approach Radar (120.300 MHz)',
+      ehgg_gnd: '🚕 Eelde Grond (121.705 MHz)',
+      ehgg_atis: '📻 Eelde ATIS (133.555 MHz)',
+
+      // 🇳🇱 Lelystad Airport (EHLE)
       ehle_twr: '🇳🇱 Lelystad Airport Toren (125.675 MHz)',
+      ehle_app: '🧭 Lelystad Approach / Info (135.180 MHz)',
+      ehle_gnd: '🚕 Lelystad Grond (121.855 MHz)',
+
+      // 🇳🇱 Vliegveld Teuge (EHTE)
+      ehte_twr: '🇳🇱 Teuge Airport Radio & Toren (120.255 MHz)',
+      ehte_app: '🧭 Teuge Approach & Info (120.255 MHz)',
+      ehte_gnd: '🚕 Teuge Grond (121.750 MHz)',
+
+      // 🇳🇱 Regionale Velden & Eilanden
+      ehtx_twr: '🇳🇱 Texel Airport Haven (119.855 MHz)',
+      ehse_twr: '🇳🇱 Breda Seppe Radio (120.655 MHz)',
+      ehhv_twr: '🇳🇱 Hilversum Radio (121.205 MHz)',
+      ehmz_twr: '🇳🇱 Midden-Zeeland Radio (119.255 MHz)',
+      ehal_twr: '🇳🇱 Ameland Airport Radio (118.355 MHz)',
+
+      // 🇳🇱 Militaire Bases (F-35 & Defensie)
       ehlw_twr: '🇳🇱 Vliegbasis Leeuwarden Toren (120.700 MHz - F-35)',
+      ehlw_app: '🧭 Leeuwarden Approach (132.850 MHz)',
       ehvk_twr: '🇳🇱 Vliegbasis Volkel Toren (124.625 MHz - F-35)',
+      ehvk_app: '🧭 Volkel Approach (122.100 MHz)',
       ehgr_twr: '🇳🇱 Vliegbasis Gilze-Rijen Toren (125.075 MHz - DHC)',
+      ehgr_app: '🧭 Gilze-Rijen Approach (121.175 MHz)',
       ehwo_twr: '🇳🇱 Vliegbasis Woensdrecht Toren (122.100 MHz)',
-      ehkd_twr: '🇳🇱 Den Helder De Kooy Toren (118.850 MHz)',
-      ehse_twr: '🇳🇱 Breda Seppe Toren (120.655 MHz)',
-      ehtx_twr: '🇳🇱 Texel Airport Toren (119.855 MHz)',
-      ehte_twr: '🇳🇱 Teuge Airport Toren (120.255 MHz)',
-      ehhv_twr: '🇳🇱 Hilversum Radio (121.205 MHz)'
+      ehwo_app: '🧭 Woensdrecht Approach (120.425 MHz)',
+      ehkd_twr: '🇳🇱 Maritiem Vliegkamp De Kooy Toren (118.850 MHz)',
+      ehkd_app: '🧭 De Kooy Approach (124.525 MHz)'
     };
   }
 
@@ -548,6 +645,18 @@ class LiveAtcEngine {
         this.togglePlay();
       });
     }
+
+    document.querySelectorAll('.btn-flow').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTrafficFilter(btn.dataset.flow, null);
+      });
+    });
+
+    document.querySelectorAll('.btn-dir').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setTrafficFilter(null, btn.dataset.dir);
+      });
+    });
 
     this.initLiveClock();
     this.updateAtcUi();
@@ -631,9 +740,27 @@ class LiveAtcEngine {
       badge.textContent = `🟢 ${label}`;
     }
 
+    const m = label.match(/\(([\d\.]+)\s*MHz(?:\s*-\s*([^)]+))?\)/i);
+    const freq = m ? `${m[1]} MHz` : '118.100 MHz';
+    const subDesc = m && m[2] ? m[2].trim() : '';
+
+    const atcFreq = document.getElementById('atc-freq-disp');
+    const atcChan = document.getElementById('atc-channel-disp');
+    const hudStatus = document.getElementById('hud-liveatc-status');
+
+    if (atcFreq) atcFreq.textContent = freq;
+    if (atcChan) {
+      const cleanName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
+      atcChan.textContent = `${cleanName.toUpperCase()} ${subDesc ? '· ' + subDesc.toUpperCase() : ''}`;
+    }
+    if (hudStatus) {
+      const shortCode = this.currentStation.replace(/_/g, ' ').toUpperCase();
+      hudStatus.textContent = shortCode;
+    }
+
     const btn = document.getElementById('btn-liveatc-toggle');
     if (btn && !this.isPlaying) {
-      const shortName = label.split('(')[0].replace(/🇳🇱\s*/, '').trim();
+      const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
       btn.textContent = `▶ SPEEL ${shortName.toUpperCase()}`;
     }
 
@@ -1344,6 +1471,8 @@ class LiveRadarManager {
     const tabBtnAllFlights = document.getElementById('tab-btn-allflights');
     if (tabBtnAllFlights) tabBtnAllFlights.textContent = `✈️ Live Vluchten (${count})`;
 
+    updateSectorCountsAndRadar();
+
     if (S.followFlight && S.followFlight.isLive) {
       updateFlightCardUI(S.followFlight);
     }
@@ -1564,6 +1693,10 @@ const S = {
   sunLight: null,
   backLight: null,
   cameraLight: null,
+
+  // Verkeersstroom & Windrichting Sector filtering
+  trafficFlow: 'all', // 'all', 'arr', 'dep'
+  trafficSector: 'ALL', // 'ALL', 'N', 'E', 'S', 'W'
 };
 
 // ═══════════════════════════════════════════════════════
@@ -2178,6 +2311,193 @@ function applyFlightCategoryColor(flight) {
   return cat;
 }
 
+// ═══════════════════════════════════════════════════════
+//  VERKEERSSTROOM & SECTOR BEREKENING (NOORD, OOST, ZUID, WEST)
+// ═══════════════════════════════════════════════════════
+function getFlightDirectionSector(flight, refAirport = S.selectedAirport || AIRPORTS[0]) {
+  if (!flight) return { id: 'ALL', name: 'Alle Richtingen', icon: '🧭', code: 'NOORD' };
+
+  const cat = flight.category || getFlightCategory(flight);
+  const isTakeoff = (cat.type === 'takeoff');
+
+  if (isTakeoff) {
+    const hdg = (flight.heading !== undefined && flight.heading !== null) ? flight.heading : 0;
+    if (hdg >= 315 || hdg < 45) return { id: 'N', name: 'Noord', icon: '⬆️ NOORD', code: 'NOORD' };
+    if (hdg >= 45 && hdg < 135) return { id: 'E', name: 'Oost', icon: '➡️ OOST', code: 'OOST' };
+    if (hdg >= 135 && hdg < 225) return { id: 'S', name: 'Zuid', icon: '⬇️ ZUID', code: 'ZUID' };
+    return { id: 'W', name: 'West', icon: '⬅️ WEST', code: 'WEST' };
+  } else {
+    const apLat = (refAirport && refAirport.lat) || 52.31;
+    const apLon = (refAirport && refAirport.lon) || 4.76;
+    let flLat = flight.lat;
+    let flLon = flight.lon;
+
+    if (flLat === undefined || flLon === undefined) {
+      if (flight.currentPos) {
+        flLat = NL_CENTER_LAT - (flight.currentPos.z / KM_PER_DEG_LAT);
+        flLon = NL_CENTER_LON + (flight.currentPos.x / KM_PER_DEG_LON);
+      } else {
+        flLat = apLat + 0.5;
+        flLon = apLon;
+      }
+    }
+
+    const dLat = flLat - apLat;
+    const dLon = flLon - apLon;
+
+    if (Math.abs(dLat) >= Math.abs(dLon)) {
+      return dLat >= 0 ? { id: 'N', name: 'Noord', icon: '⬆️ NOORD', code: 'NOORD' } : { id: 'S', name: 'Zuid', icon: '⬇️ ZUID', code: 'ZUID' };
+    } else {
+      return dLon >= 0 ? { id: 'E', name: 'Oost', icon: '➡️ OOST', code: 'OOST' } : { id: 'W', name: 'West', icon: '⬅️ WEST', code: 'WEST' };
+    }
+  }
+}
+
+function setTrafficFilter(flow, sector) {
+  if (flow !== undefined && flow !== null) S.trafficFlow = flow;
+  if (sector !== undefined && sector !== null) S.trafficSector = sector;
+
+  const activeFlow = S.trafficFlow || 'all';
+  const activeSector = S.trafficSector || 'ALL';
+
+  document.querySelectorAll('.btn-flow').forEach(btn => {
+    const isAct = btn.dataset.flow === activeFlow;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.style.background = 'rgba(56,189,248,0.25)';
+      btn.style.color = 'var(--cyan)';
+      btn.style.borderColor = 'rgba(56,189,248,0.4)';
+    } else {
+      btn.style.background = 'rgba(15,23,42,0.8)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = 'rgba(255,255,255,0.12)';
+    }
+  });
+
+  document.querySelectorAll('.btn-dir').forEach(btn => {
+    const isAct = btn.dataset.dir === activeSector;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.style.background = 'rgba(56,189,248,0.25)';
+      btn.style.color = 'var(--cyan)';
+      btn.style.borderColor = 'rgba(56,189,248,0.4)';
+    } else {
+      btn.style.background = 'rgba(15,23,42,0.8)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = 'rgba(255,255,255,0.12)';
+    }
+  });
+
+  tuneRadioToSector(activeFlow, activeSector);
+  updateSectorCountsAndRadar();
+}
+
+function tuneRadioToSector(flow, sector) {
+  const ap = S.selectedAirport || AIRPORTS[0];
+  const isEham = !ap || ap.code === 'AMS' || ap.icao === 'EHAM';
+  const isEhrd = ap && (ap.code === 'RTM' || ap.icao === 'EHRD');
+  const isEheh = ap && (ap.code === 'EIN' || ap.icao === 'EHEH');
+  const isEhbk = ap && (ap.code === 'MST' || ap.icao === 'EHBK');
+  const isEhgg = ap && (ap.code === 'GRQ' || ap.icao === 'EHGG');
+  const isEhle = ap && (ap.code === 'LEY' || ap.icao === 'EHLE');
+  const isEhte = ap && (ap.code === 'TGE' || ap.icao === 'EHTE');
+
+  let station = 'eham_twr';
+
+  if (isEham) {
+    if (flow === 'arr') {
+      if (sector === 'N') station = 'eham_app_n';
+      else if (sector === 'E') station = 'eham_app_e';
+      else if (sector === 'S') station = 'eham_app_s';
+      else if (sector === 'W') station = 'eham_app_w';
+      else station = 'eham_app_n';
+    } else if (flow === 'dep') {
+      if (sector === 'N') station = 'eham_dep_n';
+      else if (sector === 'E') station = 'eham_dep_e';
+      else if (sector === 'S') station = 'eham_dep_s';
+      else if (sector === 'W') station = 'eham_dep_w';
+      else station = 'eham_dep_s';
+    } else {
+      if (sector === 'N' || sector === 'W') station = 'eham_twr2';
+      else if (sector === 'S' || sector === 'E') station = 'eham_twr';
+      else station = 'eham_twr';
+    }
+  } else if (isEhrd) {
+    station = (flow === 'arr') ? 'ehrd_app_in' : (flow === 'dep' ? 'ehrd_dep' : 'ehrd_twr');
+  } else if (isEheh) {
+    station = (flow === 'arr') ? 'eheh_app_in' : (flow === 'dep' ? 'eheh_dep' : 'eheh_twr');
+  } else if (isEhbk) {
+    station = (flow === 'arr' || flow === 'dep') ? 'ehbk_app' : 'ehbk_twr';
+  } else if (isEhgg) {
+    station = (flow === 'arr' || flow === 'dep') ? 'ehgg_app' : 'ehgg_twr';
+  } else if (isEhle) {
+    station = (flow === 'arr' || flow === 'dep') ? 'ehle_app' : 'ehle_twr';
+  } else if (isEhte) {
+    station = (flow === 'arr' || flow === 'dep') ? 'ehte_app' : 'ehte_twr';
+  } else {
+    station = ap.liveAtcStation || 'eham_twr';
+  }
+
+  LIVEATC.currentStation = station;
+  const select = document.getElementById('liveatc-station-select');
+  if (select) select.value = station;
+  LIVEATC.updateAtcUi();
+  if (LIVEATC.isPlaying) {
+    LIVEATC.playStream();
+  }
+}
+
+function updateSectorCountsAndRadar() {
+  const activeFlow = S.trafficFlow || 'all';
+  const activeSector = S.trafficSector || 'ALL';
+  const ap = S.selectedAirport || AIRPORTS[0];
+
+  let matchingCount = 0;
+
+  for (const f of S.flights) {
+    const cat = f.category || getFlightCategory(f);
+    const fFlow = (cat.type === 'landing') ? 'arr' : ((cat.type === 'takeoff') ? 'dep' : 'over');
+    const fSec = getFlightDirectionSector(f, ap);
+    f.sector = fSec;
+
+    const matchesFlow = (activeFlow === 'all' || fFlow === activeFlow || (activeFlow === 'arr' && cat.type === 'landing') || (activeFlow === 'dep' && cat.type === 'takeoff'));
+    const matchesSec = (activeSector === 'ALL' || fSec.id === activeSector);
+
+    if (matchesFlow && matchesSec) {
+      matchingCount++;
+      if (f.planeMesh) {
+        f.planeMesh.scale.set(1.4, 1.4, 1.4);
+      }
+      if (f.arcLine && f.arcLine.material) {
+        f.arcLine.material.opacity = 0.85;
+      }
+    } else {
+      if (f.planeMesh) {
+        f.planeMesh.scale.set(1.0, 1.0, 1.0);
+      }
+      if (f.arcLine && f.arcLine.material) {
+        f.arcLine.material.opacity = 0.35;
+      }
+    }
+  }
+
+  const flowLabel = (activeFlow === 'arr' ? 'INKOMEND' : (activeFlow === 'dep' ? 'VERTREK' : 'ALLE'));
+  const secLabel = (activeSector === 'N' ? 'NOORD' : (activeSector === 'E' ? 'OOST' : (activeSector === 'S' ? 'ZUID' : (activeSector === 'W' ? 'WEST' : 'ALLE'))));
+  const fullTag = `${flowLabel} · ${secLabel}`;
+
+  const badge = document.getElementById('atc-active-flow-badge');
+  if (badge) {
+    badge.textContent = `${fullTag} (${matchingCount})`;
+    badge.style.color = (activeFlow === 'arr') ? '#22c55e' : ((activeFlow === 'dep') ? '#eab308' : 'var(--cyan)');
+  }
+
+  const hudSecFlow = document.getElementById('hud-sector-flow');
+  if (hudSecFlow) hudSecFlow.textContent = fullTag;
+
+  const hudSecCount = document.getElementById('hud-sector-count');
+  if (hudSecCount) hudSecCount.textContent = `${matchingCount} toestellen`;
+}
+
 function createAirplaneMesh(colorHex) {
   const group = new THREE.Group();
   const mat = new THREE.MeshPhongMaterial({
@@ -2418,6 +2738,7 @@ function updateFlightCardUI(flight) {
     const elHdg = document.getElementById('frc-hdg');
 
     const cat = flight.category || getFlightCategory(flight);
+    const sec = flight.sector || getFlightDirectionSector(flight, S.selectedAirport);
 
     if (elCall) {
       elCall.textContent = flight.callsign;
@@ -2436,7 +2757,7 @@ function updateFlightCardUI(flight) {
     if (elAlt) elAlt.textContent = `${Number(flight.altitude).toLocaleString('nl-NL')} m (${Math.round(flight.altitude * 3.28084)} ft)`;
     if (elSpd) elSpd.textContent = `${flight.speedKmh} km/h (${Math.round(flight.speedKmh * 0.539957)} kts)`;
     if (elStatus) {
-      elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${flight.status || 'In vlucht'})</span>`;
+      elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="background:rgba(56,189,248,0.18);color:var(--cyan);border:1px solid rgba(56,189,248,0.35);padding:2px 6px;border-radius:4px;font-weight:700;font-size:0.72rem;margin-left:4px;">${sec.icon}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${flight.status || 'In vlucht'})</span>`;
     }
     if (elHdg) elHdg.textContent = `${flight.heading || 0}°`;
   }
@@ -3285,13 +3606,34 @@ function updateGlobalFlightListUI() {
   if (!list) return;
 
   list.innerHTML = '';
-  for (const f of S.flights) {
+  const activeFlow = S.trafficFlow || 'all';
+  const activeSector = S.trafficSector || 'ALL';
+  const ap = S.selectedAirport || AIRPORTS[0];
+
+  const sorted = [...S.flights].sort((a, b) => {
+    const aSec = a.sector || getFlightDirectionSector(a, ap);
+    const bSec = b.sector || getFlightDirectionSector(b, ap);
+    const aCat = a.category || getFlightCategory(a);
+    const bCat = b.category || getFlightCategory(b);
+    const aFlow = (aCat.type === 'landing') ? 'arr' : ((aCat.type === 'takeoff') ? 'dep' : 'over');
+    const bFlow = (bCat.type === 'landing') ? 'arr' : ((bCat.type === 'takeoff') ? 'dep' : 'over');
+
+    const aMatch = (activeFlow === 'all' || aFlow === activeFlow) && (activeSector === 'ALL' || aSec.id === activeSector);
+    const bMatch = (activeFlow === 'all' || bFlow === activeFlow) && (activeSector === 'ALL' || bSec.id === activeSector);
+
+    if (aMatch && !bMatch) return -1;
+    if (!aMatch && bMatch) return 1;
+    return 0;
+  });
+
+  for (const f of sorted) {
     const item = document.createElement('div');
     item.className = 'flight-item';
     if (f === S.followFlight) item.classList.add('active');
     item.dataset.id = f.id;
 
     const cat = f.category || getFlightCategory(f);
+    const sec = f.sector || getFlightDirectionSector(f, ap);
     const origCode = f.origin ? (f.origin.code || f.origin.name || f.origin) : '---';
     const destCode = f.dest ? (f.dest.code || f.dest.name || f.dest) : '---';
     const tag = f.isLive ? '🔴 LIVE' : `${((f.progress || 0) * 100).toFixed(0)}%`;
@@ -3302,9 +3644,10 @@ function updateGlobalFlightListUI() {
       <div class="fi-info">
         <div class="fi-route" style="color:${cat.hex};font-weight:700;">
           <span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:1px 5px;border-radius:4px;font-size:0.64rem;margin-right:4px;">${cat.name}</span>
+          <span style="background:rgba(56,189,248,0.15);color:var(--cyan);border:1px solid rgba(56,189,248,0.3);padding:1px 5px;border-radius:4px;font-size:0.62rem;margin-right:4px;">${sec.icon}</span>
           ${f.callsign} · ${origCode}➔${destCode}
         </div>
-        <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m</div>
+        <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m · Koers ${f.heading || 0}°</div>
       </div>
       <span class="fi-prog" style="color:${cat.hex};font-weight:700;">${tag}</span>
     `;
@@ -3568,7 +3911,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.9';
+let currentVersion = '2.4.0';
 
 async function checkVersion(silent = true) {
   try {

@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.9</strong> beschikbaar &bull; <span id="upd-note">Opname knop voor vliegtuig & toren gesprekken + continue radio stream</span></span>
+      <span><strong id="upd-ver">v2.4.0</strong> beschikbaar &bull; <span id="upd-note">Alle frequenties Schiphol & NL luchthavens (Torens, Approach N/O/Z/W, Departure N/O/Z/W) + Verkeersstroom Sector Volger</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -812,7 +812,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.9</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.4.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -830,12 +830,14 @@
     <div class="hud-row"><span class="hud-label" style="color:#22c55e;">🛬 Landend (groen)</span><span class="hud-val gr" id="hud-count-landing" style="color:#22c55e;">0</span></div>
     <div class="hud-row"><span class="hud-label" style="color:#eab308;">🛫 Opstijgend (geel)</span><span class="hud-val go" id="hud-count-takeoff" style="color:#eab308;">0</span></div>
     <div class="hud-row"><span class="hud-label" style="color:#c084fc;">✈️ Over NL (paars)</span><span class="hud-val cy" id="hud-count-overflight" style="color:#c084fc;">0</span></div>
+    <div class="hud-row"><span class="hud-label">Sector stroom</span><span class="hud-val cy" id="hud-sector-flow">ALLE VERKEER</span></div>
+    <div class="hud-row"><span class="hud-label">Sector vluchten</span><span class="hud-val gr" id="hud-sector-count">0</span></div>
     <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">7.420</span></div>
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
     <div class="hud-row"><span class="hud-label">Gesprek opname</span><span class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.9</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.4.0</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -856,24 +858,112 @@
     <div class="liveatc-deck">
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="font-size:0.7rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:0.5px;">
-          📡 100% In-App Luchtvaartradio (Geen Externe Websites)
+          📡 100% In-App Luchtvaartradio (Alle Frequenties & Sectoren)
         </div>
+
+        <!-- Snelle Sector & Verkeersstroom Knoppen (Volg & Luister Inkomend/Vertrek N, O, Z, W) -->
+        <div style="background:rgba(2,6,23,0.75);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:0.68rem;font-weight:800;color:var(--cyan);letter-spacing:0.4px;">🧭 VERKEERSSTROOM & SECTOR</span>
+            <span id="atc-active-flow-badge" style="font-size:0.62rem;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,0.2);color:#10b981;font-weight:700;">ALLE VERKEER</span>
+          </div>
+          <!-- Type Stroom -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;">
+            <button class="btn-flow active" id="btn-flow-all" data-flow="all" style="padding:6px;font-size:0.7rem;font-weight:700;border-radius:4px;background:rgba(56,189,248,0.25);color:var(--cyan);border:1px solid rgba(56,189,248,0.4);cursor:pointer;">🌐 Alle Verkeer</button>
+            <button class="btn-flow" id="btn-flow-arr" data-flow="arr" style="padding:6px;font-size:0.7rem;font-weight:700;border-radius:4px;background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.3);cursor:pointer;">🛬 Inkomend</button>
+            <button class="btn-flow" id="btn-flow-dep" data-flow="dep" style="padding:6px;font-size:0.7rem;font-weight:700;border-radius:4px;background:rgba(234,179,8,0.12);color:#eab308;border:1px solid rgba(234,179,8,0.3);cursor:pointer;">🛫 Vertrek</button>
+          </div>
+          <!-- Windrichting Sector -->
+          <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:4px;">
+            <button class="btn-dir active" id="btn-dir-all" data-dir="ALL" style="padding:5px 2px;font-size:0.66rem;font-weight:700;border-radius:4px;background:rgba(56,189,248,0.25);color:var(--cyan);border:1px solid rgba(56,189,248,0.4);cursor:pointer;">Alle</button>
+            <button class="btn-dir" id="btn-dir-n" data-dir="N" style="padding:5px 2px;font-size:0.66rem;font-weight:700;border-radius:4px;background:rgba(15,23,42,0.8);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);cursor:pointer;" title="Noordelijke sector">⬆️ Noord</button>
+            <button class="btn-dir" id="btn-dir-e" data-dir="E" style="padding:5px 2px;font-size:0.66rem;font-weight:700;border-radius:4px;background:rgba(15,23,42,0.8);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);cursor:pointer;" title="Oostelijke sector">➡️ Oost</button>
+            <button class="btn-dir" id="btn-dir-s" data-dir="S" style="padding:5px 2px;font-size:0.66rem;font-weight:700;border-radius:4px;background:rgba(15,23,42,0.8);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);cursor:pointer;" title="Zuidelijke sector">⬇️ Zuid</button>
+            <button class="btn-dir" id="btn-dir-w" data-dir="W" style="padding:5px 2px;font-size:0.66rem;font-weight:700;border-radius:4px;background:rgba(15,23,42,0.8);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);cursor:pointer;" title="Westelijke sector">⬅️ West</button>
+          </div>
+        </div>
+
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies radiostation">
-          <optgroup label="🇳🇱 Schiphol Toren & Verkeersleiding">
+          <optgroup label="🇳🇱 Schiphol - Torens & Landingsbanen">
             <option value="eham_twr" selected>🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)</option>
             <option value="eham_twr2">🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)</option>
-            <option value="eham_app">🇳🇱 Schiphol Approach (119.050 MHz - Nadering & Radar)</option>
-            <option value="eham_dep">🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)</option>
-            <option value="eham_gnd">🇳🇱 Schiphol Grond (121.700 MHz - Taxiën & Platform)</option>
+            <option value="eham_twr3">🇳🇱 Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan/Buitenveldert)</option>
           </optgroup>
-          <optgroup label="🇳🇱 Regionale & Lokale Velden">
-            <option value="ehrd_twr">🇳🇱 Rotterdam The Hague Toren (118.200 MHz)</option>
-            <option value="eheh_twr">🇳🇱 Eindhoven Airport Toren (131.000 MHz)</option>
-            <option value="ehte_twr">🇳🇱 Vliegveld Teuge Radio (120.255 MHz)</option>
-            <option value="ehbk_twr">🇳🇱 Maastricht Aachen Toren (119.475 MHz)</option>
-            <option value="ehgg_twr">🇳🇱 Groningen Eelde Toren (118.700 MHz)</option>
-            <option value="ehle_twr">🇳🇱 Lelystad Airport Toren (125.675 MHz)</option>
+          <optgroup label="🇳🇱 Schiphol - Inkomend Verkeer / Approach (Aankomst per Sector)">
+            <option value="eham_app_n">🧭 Schiphol Inkomend NOORD (119.050 MHz - Approach ARTIP)</option>
+            <option value="eham_app_e">🧭 Schiphol Inkomend OOST (121.200 MHz - Approach EELDE)</option>
+            <option value="eham_app_s">🧭 Schiphol Inkomend ZUID (118.075 MHz - Approach RIVER)</option>
+            <option value="eham_app_w">🧭 Schiphol Inkomend WEST (131.150 MHz - Approach SUGOL)</option>
+            <option value="eham_app_fin">🛬 Schiphol Final Director (124.875 MHz - ILS Baanoplijning)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Schiphol - Vertrekkend Verkeer / Departure (Vertrek per Sector)">
+            <option value="eham_dep_n">🛫 Schiphol Vertrek NOORD (121.200 MHz - Departure ANDIK)</option>
+            <option value="eham_dep_e">🛫 Schiphol Vertrek OOST (119.050 MHz - Departure ARNEM)</option>
+            <option value="eham_dep_s">🛫 Schiphol Vertrek ZUID (118.075 MHz - Departure VALKO)</option>
+            <option value="eham_dep_w">🛫 Schiphol Vertrek WEST (124.300 MHz - Departure BERGI)</option>
+            <option value="eham_radar">✈️ Amsterdam Radar (124.300 MHz - Bovenste Luchtruim NL)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Schiphol - Grond, Platform & ATIS">
+            <option value="eham_gnd_n">🚕 Schiphol Grond Noord (121.700 MHz - Polder/Zwanenburg Taxiën)</option>
+            <option value="eham_gnd_s">🚕 Schiphol Grond Zuid (121.800 MHz - Kaag/Aalsmeer/Gates)</option>
+            <option value="eham_del">📋 Schiphol Delivery (121.980 MHz - Vluchtklaringen)</option>
+            <option value="eham_atis_arr">📻 Schiphol ATIS Inkomend (122.200 MHz - Baaninfo & Weer)</option>
+            <option value="eham_atis_dep">📻 Schiphol ATIS Vertrek (132.975 MHz - Startbanen & Wind)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Rotterdam The Hague Airport (EHRD)">
+            <option value="ehrd_twr">🇳🇱 Rotterdam Toren (118.200 MHz - Baan 24/06)</option>
+            <option value="ehrd_app_in">🧭 Rotterdam Approach Inkomend (127.025 MHz - N/O/Z/W)</option>
+            <option value="ehrd_dep">🛫 Rotterdam Departure Vertrek (127.025 MHz - Klim)</option>
+            <option value="ehrd_gnd">🚕 Rotterdam Grond & Delivery (121.905 MHz)</option>
+            <option value="ehrd_atis">📻 Rotterdam ATIS (128.580 MHz - Actueel Weer)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Eindhoven Airport (EHEH)">
+            <option value="eheh_twr">🇳🇱 Eindhoven Toren (131.000 MHz - Baan 03/21)</option>
+            <option value="eheh_app_in">🧭 Eindhoven Approach Inkomend (124.500 MHz - N/O/Z/W)</option>
+            <option value="eheh_dep">🛫 Eindhoven Departure Vertrek (124.500 MHz)</option>
+            <option value="eheh_gnd">🚕 Eindhoven Grond (121.930 MHz)</option>
+            <option value="eheh_atis">📻 Eindhoven ATIS (129.580 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Maastricht Aachen Airport (EHBK)">
+            <option value="ehbk_twr">🇳🇱 Maastricht Aachen Toren (119.475 MHz - Baan 03/21)</option>
+            <option value="ehbk_app">🧭 Maastricht Approach Inkomend & Vertrek (123.975 MHz)</option>
+            <option value="ehbk_gnd">🚕 Maastricht Grond (121.780 MHz)</option>
+            <option value="ehbk_atis">📻 Maastricht ATIS (122.180 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Groningen Airport Eelde (EHGG)">
+            <option value="ehgg_twr">🇳🇱 Groningen Airport Eelde Toren (118.700 MHz - Baan 05/23)</option>
+            <option value="ehgg_app">🧭 Eelde Approach Radar (120.300 MHz)</option>
+            <option value="ehgg_gnd">🚕 Eelde Grond (121.705 MHz)</option>
+            <option value="ehgg_atis">📻 Eelde ATIS (133.555 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Lelystad Airport (EHLE)">
+            <option value="ehle_twr">🇳🇱 Lelystad Airport Toren (125.675 MHz - Baan 05/23)</option>
+            <option value="ehle_app">🧭 Lelystad Approach / Info (135.180 MHz)</option>
+            <option value="ehle_gnd">🚕 Lelystad Grond (121.855 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Vliegveld Teuge (EHTE)">
+            <option value="ehte_twr">🇳🇱 Teuge Airport Radio & Toren (120.255 MHz - Baan 08/26)</option>
+            <option value="ehte_app">🧭 Teuge Approach & Info (120.255 MHz)</option>
+            <option value="ehte_gnd">🚕 Teuge Grond (121.750 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Regionale Velden & Eilanden">
             <option value="ehtx_twr">🇳🇱 Texel Airport Haven (119.855 MHz)</option>
+            <option value="ehse_twr">🇳🇱 Breda Seppe Radio (120.655 MHz)</option>
+            <option value="ehhv_twr">🇳🇱 Hilversum Radio (121.205 MHz)</option>
+            <option value="ehmz_twr">🇳🇱 Midden-Zeeland Radio (119.255 MHz)</option>
+            <option value="ehal_twr">🇳🇱 Ameland Airport Radio (118.355 MHz)</option>
+          </optgroup>
+          <optgroup label="🇳🇱 Militaire Bases (F-35 & Defensie)">
+            <option value="ehlw_twr">🇳🇱 Vliegbasis Leeuwarden Toren (120.700 MHz - F-35)</option>
+            <option value="ehlw_app">🧭 Leeuwarden Approach (132.850 MHz)</option>
+            <option value="ehvk_twr">🇳🇱 Vliegbasis Volkel Toren (124.625 MHz - F-35)</option>
+            <option value="ehvk_app">🧭 Volkel Approach (122.100 MHz)</option>
+            <option value="ehgr_twr">🇳🇱 Vliegbasis Gilze-Rijen Toren (125.075 MHz - DHC)</option>
+            <option value="ehgr_app">🧭 Gilze-Rijen Approach (121.175 MHz)</option>
+            <option value="ehwo_twr">🇳🇱 Vliegbasis Woensdrecht Toren (122.100 MHz)</option>
+            <option value="ehwo_app">🧭 Woensdrecht Approach (120.425 MHz)</option>
+            <option value="ehkd_twr">🇳🇱 Maritiem Vliegkamp De Kooy Toren (118.850 MHz)</option>
+            <option value="ehkd_app">🧭 De Kooy Approach (124.525 MHz)</option>
           </optgroup>
         </select>
         
@@ -1191,6 +1281,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.3.9"></script>
+  <script src="app.js?v=2.4.0"></script>
 </body>
 </html>
