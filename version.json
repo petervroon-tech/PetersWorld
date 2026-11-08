@@ -1,11 +1,13 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.3.8",
-  "build": 49,
-  "timestamp": "2026-11-08T12:10:49.365384+00:00",
-  "git_hash": "3420bfa",
+  "version": "2.3.9",
+  "build": 51,
+  "timestamp": "2026-11-08T12:17:39.039531+00:00",
+  "git_hash": "55c4143",
   "features": [
-    "Popup webplayer en alle externe website-popups verwijderd: 100% directe in-app audio radio speler in PetersWorld",
+    "In-app opname knop voor gesprekken tussen torens en vliegtuigen met automatische download (.webm / .wav)",
+    "Continue ononderbroken audio stream die pas stopt als de gebruiker dat wil (loopt niet meer af na een paar minuten)",
+    "Popup webplayer en alle externe website-popups verwijderd: 100% directe in-app audio radio speler",
     "Vliegtuigkleuren: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
     "Live HUD tellers & visuele radarlegenda voor landende (groen), opstijgende (geel) en overvliegende (paars) toestellen",
     "100% Echte Live ADS-B vliegbewegingen via Flightradar24 transponder feed",

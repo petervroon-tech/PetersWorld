@@ -367,15 +367,62 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  WAV AUDIO ENCODER (100% PURE JS, ZERO DEPENDENCIES)
+// ═══════════════════════════════════════════════════════
+function encodeWav(buffers, sampleRate = 44100) {
+  let length = 0;
+  for (let i = 0; i < buffers.length; i++) length += buffers[i].length;
+  const merged = new Float32Array(length);
+  let offset = 0;
+  for (let i = 0; i < buffers.length; i++) {
+    merged.set(buffers[i], offset);
+    offset += buffers[i].length;
+  }
+  const buffer = new ArrayBuffer(44 + merged.length * 2);
+  const view = new DataView(buffer);
+  const writeString = (v, off, str) => {
+    for (let i = 0; i < str.length; i++) v.setUint8(off + i, str.charCodeAt(i));
+  };
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + merged.length * 2, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(view, 36, 'data');
+  view.setUint32(40, merged.length * 2, true);
+  let pcmOffset = 44;
+  for (let i = 0; i < merged.length; i++, pcmOffset += 2) {
+    let s = Math.max(-1, Math.min(1, merged[i]));
+    view.setInt16(pcmOffset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+// ═══════════════════════════════════════════════════════
 //  LIVE ATC ENGINE (ECHTE RADIO COMMUNICATIE SCHIPHOL & NEDERLAND)
 // ═══════════════════════════════════════════════════════
 class LiveAtcEngine {
   constructor() {
     this.audioEl = null;
     this.isPlaying = false;
+    this.isRecording = false;
+    this.mediaRecorder = null;
+    this.mediaSourceNode = null;
+    this.mediaDestNode = null;
+    this.scriptProcessorNode = null;
+    this.recordedChunks = [];
+    this.pcmChunks = [];
+    this.recordStartTime = null;
+    this.recordTimerId = null;
+    this.lastRecordingBlob = null;
+    this.lastRecordingUrl = null;
     // Directe open web audio spelers voor Schiphol en Nederlandse luchthavens
-    // NOOIT meer liveatc.net omdat LiveATC gebruikers lastigvalt met zoekvelden en Cloudflare checks.
-    // Airports.stream en Broadcastify openen direct de audiospeler met 1 klik op Play, 0 codes!
     this.liveAtcUrls = {
       eham_all: 'https://airports.stream/amsterdam-schiphol-airport',
       broadcastify_eham: 'https://www.broadcastify.com/listen/feed/popout.php?feedId=47443',
@@ -444,14 +491,31 @@ class LiveAtcEngine {
     this.audioEl = document.getElementById('liveatc-audio-element');
     const select = document.getElementById('liveatc-station-select');
     const btnPlay = document.getElementById('btn-liveatc-toggle');
+    const btnRecord = document.getElementById('btn-liveatc-record');
     const pill = document.getElementById('pill-liveatc');
 
     if (this.audioEl) {
-      // Geen eindeloze loop: audio stopt na afloop van de transmissie
-      this.audioEl.loop = false;
-      this.audioEl.preload = 'none';
+      // Loop altijd aan: gesprekken lopen continu en ononderbroken door totdat de gebruiker op pauze/stop klikt!
+      this.audioEl.loop = true;
+      this.audioEl.preload = 'auto';
       this.audioEl.addEventListener('ended', () => {
-        this.stop();
+        if (this.isPlaying) {
+          this.audioEl.currentTime = 0;
+          const p = this.audioEl.play();
+          if (p && p.catch) p.catch(() => {});
+        }
+      });
+      this.audioEl.addEventListener('error', (err) => {
+        if (this.isPlaying) {
+          console.warn('Live radio herstellen...', err);
+          setTimeout(() => {
+            if (this.isPlaying) {
+              this.audioEl.load();
+              const p = this.audioEl.play();
+              if (p && p.catch) p.catch(() => {});
+            }
+          }, 1000);
+        }
       });
     }
 
@@ -466,6 +530,10 @@ class LiveAtcEngine {
 
     if (btnPlay) {
       btnPlay.addEventListener('click', () => this.togglePlay());
+    }
+
+    if (btnRecord) {
+      btnRecord.addEventListener('click', () => this.toggleRecord());
     }
 
     const btnLiveLink = document.getElementById('btn-atc-live-link');
@@ -639,6 +707,253 @@ class LiveAtcEngine {
     draw();
   }
 
+  getAudioStream() {
+    this.ensureAudioCtx();
+    if (typeof this.audioEl.captureStream === 'function') {
+      try {
+        const stream = this.audioEl.captureStream();
+        if (stream && stream.getAudioTracks && stream.getAudioTracks().length > 0) {
+          return stream;
+        }
+      } catch (err) {
+        console.warn('captureStream error, probeer WebAudio:', err);
+      }
+    }
+    if (typeof this.audioEl.mozCaptureStream === 'function') {
+      try {
+        const stream = this.audioEl.mozCaptureStream();
+        if (stream && stream.getAudioTracks && stream.getAudioTracks().length > 0) {
+          return stream;
+        }
+      } catch (err) {}
+    }
+
+    if (this.audioCtx) {
+      if (!this.mediaSourceNode) {
+        try {
+          this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
+          this.mediaDestNode = this.audioCtx.createMediaStreamDestination();
+          this.mediaSourceNode.connect(this.audioCtx.destination);
+          this.mediaSourceNode.connect(this.mediaDestNode);
+        } catch (err) {
+          console.warn('Web Audio createMediaElementSource error:', err);
+        }
+      }
+      if (this.mediaDestNode && this.mediaDestNode.stream) {
+        return this.mediaDestNode.stream;
+      }
+    }
+    return null;
+  }
+
+  toggleRecord() {
+    if (this.isRecording) {
+      this.stopRecording();
+    } else {
+      this.startRecording();
+    }
+  }
+
+  startRecording() {
+    this.ensureAudioCtx();
+
+    // Start radio automatisch als deze nog niet speelt
+    if (!this.isPlaying) {
+      this.playStream();
+    }
+
+    this.recordedChunks = [];
+    this.pcmChunks = [];
+    this.recordStartTime = Date.now();
+    this.isRecording = true;
+
+    let stream = this.getAudioStream();
+    let started = false;
+
+    if (stream && typeof MediaRecorder !== 'undefined') {
+      try {
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
+
+        this.mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        this.mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
+        };
+        this.mediaRecorder.onstop = () => {
+          this.finalizeRecording(mimeType);
+        };
+        this.mediaRecorder.start(250);
+        started = true;
+      } catch (e) {
+        console.warn('MediaRecorder init faalde, activeer WebAudio WAV recorder:', e);
+      }
+    }
+
+    if (!started && this.audioCtx) {
+      try {
+        if (!this.mediaSourceNode) {
+          this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
+          this.mediaSourceNode.connect(this.audioCtx.destination);
+        }
+        const sp = this.audioCtx.createScriptProcessor(4096, 1, 1);
+        sp.onaudioprocess = (e) => {
+          if (this.isRecording) {
+            const ch = e.inputBuffer.getChannelData(0);
+            this.pcmChunks.push(new Float32Array(ch));
+          }
+        };
+        this.mediaSourceNode.connect(sp);
+        sp.connect(this.audioCtx.destination);
+        this.scriptProcessorNode = sp;
+        started = true;
+      } catch (err) {
+        console.warn('ScriptProcessor fallback error:', err);
+      }
+    }
+
+    const btnRecord = document.getElementById('btn-liveatc-record');
+    const btnRecordTxt = document.getElementById('record-btn-text');
+    const recBar = document.getElementById('liveatc-record-bar');
+    const lastRecBar = document.getElementById('liveatc-last-recording');
+
+    if (btnRecord) {
+      btnRecord.style.background = 'linear-gradient(135deg, #1e293b, #0f172a)';
+      btnRecord.style.border = '1px solid #ef4444';
+      btnRecord.style.boxShadow = '0 0 15px rgba(239,68,68,0.5)';
+    }
+    if (btnRecordTxt) btnRecordTxt.textContent = '⏹ STOP OPNAME & OPSLAAN (00:00)';
+    if (recBar) recBar.style.display = 'flex';
+    if (lastRecBar) lastRecBar.style.display = 'none';
+
+    this.recordTimerId = setInterval(() => this.updateRecordTimer(), 1000);
+    this.updateRecordTimer();
+
+    const stationLabel = this.stationLabels[this.currentStation] || 'Schiphol Toren';
+    ATC.logMessage('OPNAME', `🔴 OPNAME GESTART voor: ${stationLabel}. Gesprekken blijven continu doorlopen!`, true);
+  }
+
+  updateRecordTimer() {
+    if (!this.recordStartTime) return;
+    const elapsed = Math.floor((Date.now() - this.recordStartTime) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    const timeStr = `${m}:${s}`;
+
+    const disp = document.getElementById('record-timer-disp');
+    if (disp) disp.textContent = timeStr;
+
+    const btnRecordTxt = document.getElementById('record-btn-text');
+    if (btnRecordTxt && this.isRecording) {
+      btnRecordTxt.textContent = `⏹ STOP OPNAME & OPSLAAN (${timeStr})`;
+    }
+
+    const hudRec = document.getElementById('hud-record-status');
+    if (hudRec) {
+      hudRec.textContent = `🔴 REC (${timeStr})`;
+      hudRec.style.color = '#ef4444';
+    }
+
+    const pillTxt = document.getElementById('liveatc-txt');
+    if (pillTxt && this.isRecording) {
+      pillTxt.textContent = `🎧 Radio 🔴 REC ${timeStr}`;
+    }
+  }
+
+  stopRecording() {
+    if (!this.isRecording) return;
+    this.isRecording = false;
+
+    if (this.recordTimerId) {
+      clearInterval(this.recordTimerId);
+      this.recordTimerId = null;
+    }
+
+    const btnRecord = document.getElementById('btn-liveatc-record');
+    const btnRecordTxt = document.getElementById('record-btn-text');
+    const recBar = document.getElementById('liveatc-record-bar');
+
+    if (btnRecord) {
+      btnRecord.style.background = 'linear-gradient(135deg, #b91c1c, #ef4444)';
+      btnRecord.style.border = 'none';
+      btnRecord.style.boxShadow = '0 4px 12px rgba(239,68,68,0.3)';
+    }
+    if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME GESPREKKEN';
+    if (recBar) recBar.style.display = 'none';
+
+    const hudRec = document.getElementById('hud-record-status');
+    if (hudRec) {
+      hudRec.textContent = 'STANDBY';
+      hudRec.style.color = '#94a3b8';
+    }
+
+    const pillTxt = document.getElementById('liveatc-txt');
+    if (pillTxt) {
+      pillTxt.textContent = '🎧 Live Schiphol Radio';
+    }
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {}
+    } else if (this.pcmChunks && this.pcmChunks.length > 0) {
+      if (this.scriptProcessorNode) {
+        try { this.scriptProcessorNode.disconnect(); } catch (e) {}
+        this.scriptProcessorNode = null;
+      }
+      const wavBlob = encodeWav(this.pcmChunks, this.audioCtx ? this.audioCtx.sampleRate : 44100);
+      this.saveRecordingBlob(wavBlob, 'wav');
+    }
+  }
+
+  finalizeRecording(mimeType = 'audio/webm') {
+    if (!this.recordedChunks || this.recordedChunks.length === 0) {
+      if (this.pcmChunks && this.pcmChunks.length > 0) {
+        const wavBlob = encodeWav(this.pcmChunks, this.audioCtx ? this.audioCtx.sampleRate : 44100);
+        this.saveRecordingBlob(wavBlob, 'wav');
+      }
+      return;
+    }
+    const ext = mimeType.includes('mp4') ? 'mp4' : (mimeType.includes('wav') ? 'wav' : 'webm');
+    const blob = new Blob(this.recordedChunks, { type: mimeType });
+    this.saveRecordingBlob(blob, ext);
+  }
+
+  saveRecordingBlob(blob, ext = 'webm') {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const stationCode = (this.currentAirportCode || 'EHAM').toUpperCase();
+    const fileName = `PetersWorld_ATC_${stationCode}_${timeStr}.${ext}`;
+
+    const url = URL.createObjectURL(blob);
+    this.lastRecordingUrl = url;
+    this.lastRecordingBlob = blob;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+    }, 2000);
+
+    const lastRecBar = document.getElementById('liveatc-last-recording');
+    const lastRecName = document.getElementById('last-record-name');
+    const lastRecLink = document.getElementById('last-record-link');
+    if (lastRecBar && lastRecLink) {
+      lastRecBar.style.display = 'flex';
+      if (lastRecName) lastRecName.textContent = `🎙️ ${fileName}`;
+      lastRecLink.href = url;
+      lastRecLink.download = fileName;
+    }
+
+    ATC.logMessage('OPNAME', `🎙️ OPNAME VOLTOOID EN OPGESLAGEN: ${fileName}`, true);
+  }
+
   togglePlay() {
     if (this.isPlaying) {
       this.stop();
@@ -670,6 +985,7 @@ class LiveAtcEngine {
       this.audioEl.currentTime = 0;
     } catch (e) {}
 
+    this.audioEl.loop = true; // Zorg dat gesprekken ALTIJD blijven doorlopen!
     this.audioEl.src = streamSrc;
     this.audioEl.load();
 
@@ -703,6 +1019,9 @@ class LiveAtcEngine {
   stop() {
     this.sessionId = (this.sessionId || 0) + 1;
     this.isPlaying = false;
+    if (this.isRecording) {
+      this.stopRecording();
+    }
     if (this.audioEl) {
       try {
         this.audioEl.pause();
@@ -3249,7 +3568,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.8';
+let currentVersion = '2.3.9';
 
 async function checkVersion(silent = true) {
   try {
