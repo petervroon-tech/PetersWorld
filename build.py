@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.3.6"
+DEFAULT_VERSION = "2.3.7"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (236 voor v2.3.6)
-    code0 = bytes([0]) + i32_const(236) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (237 voor v2.3.7)
+    code0 = bytes([0]) + i32_const(237) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,15 +253,13 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
-            "100% Herstel van live vliegtuigbewegingen, lucht/dagzicht en 30m inzoomen op vliegtuigen",
-            "LiveATC audio stream met live datum en klok (uur, minuut, seconde exact synchroon) voor 100% bewijs van live verbinding",
-            "Videospeler voor live video's / baan webcams volledig verwijderd conform verzoek",
-            "LiveATC-zoekpagina volledig vervangen door directe webplayers (Airports.stream & Broadcastify) — GEEN code invullen!",
-            "100% Echte Live Schiphol Toren Radio direct afspelen met 1 klik",
-            "Alle gesimuleerde radiogesprekken en verzonnen teksten volledig verwijderd",
-            "100% Echte Live Vliegbewegingen (ADS-B Transponder Data van Flightradar24)",
+            "Vliegtuigkleuren volgens verzoek: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
+            "Live HUD tellers & visuele radarlegenda voor landende (groen), opstijgende (geel) en overvliegende (paars) toestellen",
+            "100% Echte Live ADS-B vliegbewegingen via Flightradar24 transponder feed",
+            "LiveATC audio stream met realtime datum en klok (uur, minuut, seconde exact synchroon) voor 100% live audio verificatie",
             "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
-            "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
+            "100% Echte Live Schiphol Toren Radio direct afspelen met 1 klik",
+            "100% Echte satelliet achtergrond van heel Nederland (luchtfoto's van land, water, velden en banen)",
             "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)"
         ]
     }
@@ -300,7 +298,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 236) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 237) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

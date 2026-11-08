@@ -930,6 +930,8 @@ class LiveRadarManager {
         flight.status = onGround ? 'Aan de grond / Taxiën' : (vspeedFpm > 300 ? 'Klimmen' : (vspeedFpm < -300 ? 'Dalen' : 'Kruishoogte'));
         flight.lastSeen = now;
 
+        applyFlightCategoryColor(flight);
+
         if (flight.trailPts && flight.trailGeo) {
           const lastPt = flight.trailPts[flight.trailPts.length - 1];
           if (!lastPt || lastPt.distanceTo(targetPos) > 0.08) {
@@ -939,8 +941,12 @@ class LiveRadarManager {
           }
         }
       } else {
-        // Nieuw live vliegtuig aan Three.js toevoegen
-        const planeMesh = createAirplaneMesh(airlineObj.color);
+        // Nieuw live vliegtuig aan Three.js toevoegen met kleurcategorie:
+        // Landend: GROEN, Opstijgend: GEEL, Over Nederland: PAARS
+        const initialStatus = onGround ? 'Aan de grond / Taxiën' : (vspeedFpm > 300 ? 'Klimmen' : (vspeedFpm < -300 ? 'Dalen' : 'Kruishoogte'));
+        const cat = getFlightCategory({ isLive: true, vspeed: vspeedFpm, altitude: altMeters, status: initialStatus, origin: origAp, dest: destAp });
+
+        const planeMesh = createAirplaneMesh(cat.colorHex);
         planeMesh.userData = { isFlight: true };
         planeMesh.position.copy(targetPos);
         S.flightsGroup.add(planeMesh);
@@ -948,7 +954,7 @@ class LiveRadarManager {
         const trailPts = [targetPos.clone()];
         const trailGeo = new THREE.BufferGeometry().setFromPoints(trailPts);
         const trailMat = new THREE.LineBasicMaterial({
-          color: airlineObj.color,
+          color: cat.colorHex,
           transparent: true,
           opacity: 0.45,
           linewidth: 1
@@ -978,9 +984,10 @@ class LiveRadarManager {
           arcLine,
           trailPts,
           trailGeo,
+          category: cat,
           lastSeen: now,
           hovered: false,
-          status: onGround ? 'Aan de grond / Taxiën' : (vspeedFpm > 300 ? 'Klimmen' : (vspeedFpm < -300 ? 'Dalen' : 'Kruishoogte'))
+          status: initialStatus
         };
 
         planeMesh.userData.flight = flight;
@@ -1015,10 +1022,26 @@ class LiveRadarManager {
       ATC.logMessage('RADAR', `📡 Live ADS-B radarfeed actief: ${this.liveFlightsMap.size} echte vliegtuigen live boven Nederland!`, false);
     }
 
-    // UI Counters bijwerken
+    // UI Counters bijwerken (Totaal & Categorieën)
     const count = this.liveFlightsMap.size || S.flights.length;
     const hudFlights = document.getElementById('hud-flights');
     if (hudFlights) hudFlights.textContent = `${count}`;
+
+    let countLanding = 0;
+    let countTakeoff = 0;
+    let countOverflight = 0;
+    for (const f of S.flights) {
+      const c = f.category || getFlightCategory(f);
+      if (c.type === 'landing') countLanding++;
+      else if (c.type === 'takeoff') countTakeoff++;
+      else countOverflight++;
+    }
+    const elLand = document.getElementById('hud-count-landing');
+    const elTo = document.getElementById('hud-count-takeoff');
+    const elOver = document.getElementById('hud-count-overflight');
+    if (elLand) elLand.textContent = `${countLanding}`;
+    if (elTo) elTo.textContent = `${countTakeoff}`;
+    if (elOver) elOver.textContent = `${countOverflight}`;
 
     const pillLive = document.getElementById('pill-live');
     if (pillLive) pillLive.innerHTML = `<span class="dot green"></span>LIVE ADS-B (${count})`;
@@ -1746,13 +1769,127 @@ function buildDetailedAirportModel(airport) {
   }
 }
 
+// ═══════════════════════════════════════════════════════
+//  VLIEGTUIG CATEGORIEËN & RADAR KLEUREN
+//  - Landend:        GROEN (#22c55e / 0x22c55e)
+//  - Opstijgend:     GEEL  (#eab308 / 0xeab308)
+//  - Over Nederland: PAARS (#a855f7 / 0xa855f7)
+// ═══════════════════════════════════════════════════════
+const FLIGHT_COLORS = {
+  landing: {
+    type: 'landing',
+    name: 'Landend',
+    colorHex: 0x22c55e,
+    hex: '#22c55e',
+    badgeClass: 'badge-landing',
+    icon: '🛬'
+  },
+  takeoff: {
+    type: 'takeoff',
+    name: 'Opstijgend',
+    colorHex: 0xeab308,
+    hex: '#eab308',
+    badgeClass: 'badge-takeoff',
+    icon: '🛫'
+  },
+  overflight: {
+    type: 'overflight',
+    name: 'Over Nederland',
+    colorHex: 0xa855f7,
+    hex: '#a855f7',
+    badgeClass: 'badge-overflight',
+    icon: '✈️'
+  }
+};
+
+const NL_AIRPORT_SET = new Set([
+  'AMS', 'EHAM', 'TGE', 'EHTE', 'RTM', 'EHRD', 'EIN', 'EHEH',
+  'MST', 'EHBK', 'GRQ', 'EHGG', 'LEY', 'EHLE', 'TXE', 'EHTX',
+  'WOE', 'EHWO', 'DHR', 'EHKD', 'SEP', 'EHSE', 'ENS', 'EHTW',
+  'LWD', 'EHLW', 'VOL', 'EHVK', 'GLZ', 'EHGR', 'VST', 'EHVB'
+]);
+
+function getFlightCategory(flight) {
+  if (!flight) return FLIGHT_COLORS.overflight;
+
+  const origCode = ((flight.origin && (flight.origin.code || flight.origin.icao || flight.origin)) || '').toUpperCase();
+  const destCode = ((flight.dest && (flight.dest.code || flight.dest.icao || flight.dest)) || '').toUpperCase();
+  const statusStr = (flight.status || '').toLowerCase();
+
+  const isDestNL = NL_AIRPORT_SET.has(destCode);
+  const isOrigNL = NL_AIRPORT_SET.has(origCode);
+
+  // 1. Live ADS-B vluchten
+  if (flight.isLive) {
+    const alt = flight.altitude || 0;
+    const vspeed = flight.vspeed || 0;
+
+    if (statusStr.includes('dalen') || statusStr.includes('approach') || statusStr.includes('nadering') || statusStr.includes('landen') || statusStr.includes('geland') || statusStr.includes('final')) {
+      return FLIGHT_COLORS.landing;
+    }
+    if (statusStr.includes('klimmen') || statusStr.includes('opstijgen') || statusStr.includes('vertrek') || statusStr.includes('taxi') || statusStr.includes('grond') || statusStr.includes('takeoff')) {
+      return FLIGHT_COLORS.takeoff;
+    }
+
+    // Landend (Groen): Daling richting Nederlands veld, sterke daling onder 7000m, of laag (<2200m) en niet klimmend
+    if ((isDestNL && alt < 6500 && vspeed <= 50) || (vspeed < -350 && alt < 7000) || (alt < 2200 && vspeed <= 0)) {
+      return FLIGHT_COLORS.landing;
+    }
+
+    // Opstijgend (Geel): Klimmend na vertrek van NL veld, sterke klim onder 6500m, of laag (<2500m) en klimmend
+    if ((isOrigNL && alt < 5000 && vspeed >= -50) || (vspeed > 350 && alt < 6500) || (alt < 2500 && vspeed > 150)) {
+      return FLIGHT_COLORS.takeoff;
+    }
+
+    // Over Nederland (Paars): Toestellen op kruishoogte (boven ~3500m) over Nederland
+    return FLIGHT_COLORS.overflight;
+  }
+
+  // 2. Gesimuleerde vluchten
+  if (statusStr.includes('opstijg') || statusStr.includes('klim') || statusStr.includes('vertrek') || (flight.progress !== undefined && flight.progress < 0.32)) {
+    return FLIGHT_COLORS.takeoff;
+  }
+  if (statusStr.includes('dal') || statusStr.includes('approach') || statusStr.includes('nadering') || statusStr.includes('land') || statusStr.includes('final') || (flight.progress !== undefined && flight.progress > 0.68)) {
+    return FLIGHT_COLORS.landing;
+  }
+
+  return FLIGHT_COLORS.overflight;
+}
+
+function applyFlightCategoryColor(flight) {
+  if (!flight) return FLIGHT_COLORS.overflight;
+  const cat = getFlightCategory(flight);
+  flight.category = cat;
+
+  // Pas 3D vliegtuigkleur aan
+  if (flight.planeMesh && flight.planeMesh._mainMat) {
+    if (flight.planeMesh._mainMat.color.getHex() !== cat.colorHex) {
+      flight.planeMesh._mainMat.color.setHex(cat.colorHex);
+      flight.planeMesh._mainMat.emissive.setHex(cat.colorHex);
+      flight.planeMesh._mainMat.emissiveIntensity = 0.32;
+      flight.planeMesh._mainMat.needsUpdate = true;
+    }
+  }
+
+  // Pas vluchtspoor / boogkleur aan
+  if (flight.arcLine && flight.arcLine.material) {
+    if (flight.arcLine.material.color.getHex() !== cat.colorHex) {
+      flight.arcLine.material.color.setHex(cat.colorHex);
+      flight.arcLine.material.opacity = 0.45;
+      flight.arcLine.material.needsUpdate = true;
+    }
+  }
+
+  return cat;
+}
+
 function createAirplaneMesh(colorHex) {
   const group = new THREE.Group();
   const mat = new THREE.MeshPhongMaterial({
     color: colorHex,
     shininess: 70,
     emissive: colorHex,
-    emissiveIntensity: 0.20
+    emissiveIntensity: 0.32
   });
 
   // Vliegtuig model geschaald voor Nederlandse vluchtradar (2.8 eenheden spanwijdte)
@@ -1783,6 +1920,7 @@ function createAirplaneMesh(colorHex) {
   group.add(redLight);
   group.add(greenLight);
 
+  group._mainMat = mat;
   return group;
 }
 
@@ -1804,16 +1942,20 @@ function spawnFlight(origin, dest, airline, startProgress = 0) {
   const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
   const points = curve.getPoints(36);
   const arcGeo = new THREE.BufferGeometry().setFromPoints(points);
+
+  const initialStatus = startProgress === 0 ? 'Opstijgen' : (startProgress > 0.88 ? 'Final Approach' : 'Kruissnelheid');
+  const cat = getFlightCategory({ origin, dest, airline, progress: startProgress, status: initialStatus });
+
   const arcMat = new THREE.LineBasicMaterial({
-    color: airline.color,
+    color: cat.colorHex,
     transparent: true,
-    opacity: 0.32,
+    opacity: 0.40,
     linewidth: 1
   });
   const arcLine = new THREE.Line(arcGeo, arcMat);
   S.trailsGroup.add(arcLine);
 
-  const planeMesh = createAirplaneMesh(airline.color);
+  const planeMesh = createAirplaneMesh(cat.colorHex);
   planeMesh.userData = { isFlight: true };
   S.flightsGroup.add(planeMesh);
 
@@ -1840,8 +1982,9 @@ function spawnFlight(origin, dest, airline, startProgress = 0) {
     curve,
     arcLine,
     planeMesh,
+    category: cat,
     hovered: false,
-    status: startProgress === 0 ? 'Opstijgen' : (startProgress > 0.88 ? 'Final Approach' : 'Kruissnelheid')
+    status: initialStatus
   };
 
   planeMesh.userData.flight = flight;
@@ -1979,7 +2122,12 @@ function updateFlightCardUI(flight) {
     const elStatus = document.getElementById('frc-status');
     const elHdg = document.getElementById('frc-hdg');
 
-    if (elCall) elCall.textContent = flight.callsign;
+    const cat = flight.category || getFlightCategory(flight);
+
+    if (elCall) {
+      elCall.textContent = flight.callsign;
+      elCall.style.color = cat.hex;
+    }
     const regTxt = flight.registration ? ` (${flight.registration})` : '';
     const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
     if (elAir) elAir.textContent = `${airName} · ${flight.aircraft}${regTxt}`;
@@ -1992,7 +2140,9 @@ function updateFlightCardUI(flight) {
     }
     if (elAlt) elAlt.textContent = `${Number(flight.altitude).toLocaleString('nl-NL')} m (${Math.round(flight.altitude * 3.28084)} ft)`;
     if (elSpd) elSpd.textContent = `${flight.speedKmh} km/h (${Math.round(flight.speedKmh * 0.539957)} kts)`;
-    if (elStatus) elStatus.textContent = flight.status || (flight.isLive ? 'Live ADS-B' : 'In vlucht');
+    if (elStatus) {
+      elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${flight.status || 'In vlucht'})</span>`;
+    }
     if (elHdg) elHdg.textContent = `${flight.heading || 0}°`;
   }
 }
@@ -2078,6 +2228,7 @@ function animate(now) {
   // Vluchten positie updaten (vloeiende live ADS-B tracking & fallback)
   const dtSim = dt * S.speed;
   for (const f of S.flights) {
+    applyFlightCategoryColor(f);
     if (f.isLive) {
       // 100% ECHTE LIVE RADAR BEWEGING
       if (f.targetPos && f.currentPos) {
@@ -2232,8 +2383,9 @@ function setupInteraction(container) {
         const origFlag = flight.origin && flight.origin.flag ? flight.origin.flag : '🛫';
         const destFlag = flight.dest && flight.dest.flag ? flight.dest.flag : '🛬';
         const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
+        const cat = flight.category || getFlightCategory(flight);
 
-        document.getElementById('tt-route').textContent   = flight.callsign;
+        document.getElementById('tt-route').innerHTML   = `<span style="color:${cat.hex}">${cat.icon} ${flight.callsign}</span> <span style="font-size:0.68rem;color:${cat.hex};background:${cat.hex}22;border:1px solid ${cat.hex}55;padding:1px 5px;border-radius:3px;margin-left:4px;">${cat.name}</span>`;
         document.getElementById('tt-airline').textContent = `${airName} · ${flight.aircraft}`;
         document.getElementById('tt-from').textContent    = `${origFlag} ${origCode}`;
         document.getElementById('tt-to').textContent      = `${destFlag} ${destCode}`;
@@ -2241,6 +2393,7 @@ function setupInteraction(container) {
         document.getElementById('tt-spd').textContent     = `${flight.speedKmh} km/h`;
         document.getElementById('tt-pct').textContent     = flight.isLive ? `🔴 LIVE ADS-B (${flight.status})` : `${pct} (${flight.status || 'In vlucht'})`;
         document.getElementById('tt-bar').style.width     = flight.isLive ? '100%' : `${(flight.progress || 0) * 100}%`;
+        document.getElementById('tt-bar').style.background = cat.hex;
 
         const tx = Math.min(window.innerWidth - 220, e.clientX + 16);
         const ty = Math.min(window.innerHeight - 180, e.clientY - 10);
@@ -2843,19 +2996,22 @@ function updateGlobalFlightListUI() {
     if (f === S.followFlight) item.classList.add('active');
     item.dataset.id = f.id;
 
+    const cat = f.category || getFlightCategory(f);
     const origCode = f.origin ? (f.origin.code || f.origin.name || f.origin) : '---';
     const destCode = f.dest ? (f.dest.code || f.dest.name || f.dest) : '---';
     const tag = f.isLive ? '🔴 LIVE' : `${((f.progress || 0) * 100).toFixed(0)}%`;
-    const col = f.airline && f.airline.hex ? f.airline.hex : '#38bdf8';
     const airName = f.airline ? (f.airline.name || f.airline.code || '') : '';
 
     item.innerHTML = `
-      <span class="fi-icon">✈</span>
+      <span class="fi-icon" style="color:${cat.hex}">${cat.icon}</span>
       <div class="fi-info">
-        <div class="fi-route" style="color:${col}">${f.callsign} · ${origCode}➔${destCode}</div>
+        <div class="fi-route" style="color:${cat.hex};font-weight:700;">
+          <span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:1px 5px;border-radius:4px;font-size:0.64rem;margin-right:4px;">${cat.name}</span>
+          ${f.callsign} · ${origCode}➔${destCode}
+        </div>
         <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m</div>
       </div>
-      <span class="fi-prog" style="${f.isLive ? 'color:#ef4444;font-weight:700;' : ''}">${tag}</span>
+      <span class="fi-prog" style="color:${cat.hex};font-weight:700;">${tag}</span>
     `;
 
     item.addEventListener('click', () => {
@@ -3117,7 +3273,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.6';
+let currentVersion = '2.3.7';
 
 async function checkVersion(silent = true) {
   try {

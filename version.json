@@ -1,19 +1,17 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.3.6",
-  "build": 45,
-  "timestamp": "2026-11-08T09:47:45.183381+00:00",
-  "git_hash": "20b1d82",
+  "version": "2.3.7",
+  "build": 47,
+  "timestamp": "2026-11-08T12:01:50.986773+00:00",
+  "git_hash": "d4988fe",
   "features": [
-    "100% Herstel van live vliegtuigbewegingen, lucht/dagzicht en 30m inzoomen op vliegtuigen",
-    "LiveATC audio stream met live datum en klok (uur, minuut, seconde exact synchroon) voor 100% bewijs van live verbinding",
-    "Videospeler voor live video's / baan webcams volledig verwijderd conform verzoek",
-    "LiveATC-zoekpagina volledig vervangen door directe webplayers (Airports.stream & Broadcastify) — GEEN code invullen!",
-    "100% Echte Live Schiphol Toren Radio direct afspelen met 1 klik",
-    "Alle gesimuleerde radiogesprekken en verzonnen teksten volledig verwijderd",
-    "100% Echte Live Vliegbewegingen (ADS-B Transponder Data van Flightradar24)",
+    "Vliegtuigkleuren volgens verzoek: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
+    "Live HUD tellers & visuele radarlegenda voor landende (groen), opstijgende (geel) en overvliegende (paars) toestellen",
+    "100% Echte Live ADS-B vliegbewegingen via Flightradar24 transponder feed",
+    "LiveATC audio stream met realtime datum en klok (uur, minuut, seconde exact synchroon) voor 100% live audio verificatie",
     "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
-    "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
+    "100% Echte Live Schiphol Toren Radio direct afspelen met 1 klik",
+    "100% Echte satelliet achtergrond van heel Nederland (luchtfoto's van land, water, velden en banen)",
     "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)"
   ]
 }

@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.6</strong> beschikbaar &bull; <span id="upd-note">Vluchtbewegingen, lucht/dagzicht en 30m vliegtuig inzoomen volledig hersteld</span></span>
+      <span><strong id="upd-ver">v2.3.7</strong> beschikbaar &bull; <span id="upd-note">Vliegtuigkleuren: Groen (landend), Geel (opstijgend) & Paars (over Nederland)</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -812,7 +812,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.6</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.7</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -827,11 +827,14 @@
     <div class="hud-row"><span class="hud-label">Live datum & tijd</span><span class="hud-val cy" id="hud-live-clock">--:--:--</span></div>
     <div class="hud-row"><span class="hud-label">Vlucht datafeed</span><span class="hud-val gr" id="hud-feed-mode">🟢 LIVE ADS-B (FR24)</span></div>
     <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">60</span></div>
+    <div class="hud-row"><span class="hud-label" style="color:#22c55e;">🛬 Landend (groen)</span><span class="hud-val gr" id="hud-count-landing" style="color:#22c55e;">0</span></div>
+    <div class="hud-row"><span class="hud-label" style="color:#eab308;">🛫 Opstijgend (geel)</span><span class="hud-val go" id="hud-count-takeoff" style="color:#eab308;">0</span></div>
+    <div class="hud-row"><span class="hud-label" style="color:#c084fc;">✈️ Over NL (paars)</span><span class="hud-val cy" id="hud-count-overflight" style="color:#c084fc;">0</span></div>
     <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">7.420</span></div>
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.6</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.7</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -1030,6 +1033,11 @@
       <div style="font-size:.68rem;font-family:var(--mono);color:var(--gold);text-transform:uppercase;">
         🌍 ALLE VLIEGTUIGEN IN DE LUCHT
       </div>
+      <div style="display:flex;gap:6px;font-size:0.68rem;font-weight:700;margin-bottom:4px;flex-wrap:wrap;padding:4px 6px;background:rgba(255,255,255,0.04);border-radius:6px;">
+        <span style="color:#22c55e;">● 🛬 Landend</span>
+        <span style="color:#eab308;">● 🛫 Opstijgend</span>
+        <span style="color:#c084fc;">● ✈️ Over NL</span>
+      </div>
       <div id="flight-list" class="fids-scroll"></div>
     </div>
   </div>
@@ -1100,6 +1108,15 @@
     </div>
     <div class="sep"></div>
     <div class="ctrl-group">
+      <span class="ctrl-label">Radar Kleuren</span>
+      <div class="btn-row" style="display:flex;align-items:center;gap:5px;">
+        <span class="btn" style="border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.12);color:#22c55e;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die dalen en landen"><span class="dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e;"></span>🛬 Landend</span>
+        <span class="btn" style="border-color:rgba(234,179,8,0.4);background:rgba(234,179,8,0.12);color:#eab308;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die opstijgen en klimmen"><span class="dot" style="background:#eab308;box-shadow:0 0 6px #eab308;"></span>🛫 Opstijgend</span>
+        <span class="btn" style="border-color:rgba(168,85,247,0.4);background:rgba(168,85,247,0.12);color:#c084fc;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen op kruishoogte over Nederland"><span class="dot" style="background:#a855f7;box-shadow:0 0 6px #a855f7;"></span>✈️ Over NL</span>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="ctrl-group">
       <span class="ctrl-label">Live Radio</span>
       <div class="btn-row">
         <button class="btn radio-btn" id="btn-atc-trigger">🎙️ Zend Oproep</button>
@@ -1151,6 +1168,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.3.6"></script>
+  <script src="app.js?v=2.3.7"></script>
 </body>
 </html>
