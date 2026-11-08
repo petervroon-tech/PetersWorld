@@ -232,7 +232,152 @@
       backdrop-filter: var(--blur); padding: 12px 14px;
       display: flex; flex-direction: column; gap: 10px;
       box-shadow: 0 10px 40px rgba(0,0,0,.65);
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    #right-deck.resizing {
+      transition: none !important;
+      user-select: none;
+    }
+    #right-deck.size-compact { width: 280px; }
+    #right-deck.size-normal  { width: 390px; }
+    #right-deck.size-wide    { width: 540px; }
+    #right-deck.minimized {
+      max-height: 46px !important;
+      overflow: hidden !important;
+      padding: 8px 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.7) !important;
+      border-color: rgba(56, 189, 248, 0.45) !important;
+    }
+    #right-deck.minimized #right-deck-content {
+      display: none !important;
+    }
+
+    /* ── Deck & ATC Header Bar ── */
+    .deck-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 6px;
+      margin-bottom: 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--cyan);
+      font-family: var(--mono);
+      user-select: none;
+    }
+    .deck-header-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex: 1;
+    }
+    .deck-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Panel Resizer Handles ── */
+    .panel-resizer-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      cursor: ew-resize;
+      z-index: 35;
+      transition: background 0.15s ease;
+    }
+    .panel-resizer-handle::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 36px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.2);
+      transition: background 0.15s ease;
+    }
+    .resizer-left {
+      left: -6px;
+    }
+    .resizer-left::after {
+      left: 3px;
+    }
+    .resizer-right {
+      right: -6px;
+    }
+    .resizer-right::after {
+      right: 3px;
+    }
+    .panel-resizer-handle:hover::after,
+    .panel-resizer-handle.resizing::after {
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+    .panel-resizer-handle:hover,
+    .panel-resizer-handle.resizing {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    /* ── ATC Console Resizing & Minimizing ── */
+    #atc-console {
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #atc-console.resizing {
+      transition: none !important;
+      user-select: none;
+    }
+    #atc-console.size-compact { width: 280px; }
+    #atc-console.size-normal  { width: 360px; }
+    #atc-console.size-wide    { width: 490px; }
+    #atc-console.minimized {
+      max-height: 46px !important;
+      overflow: hidden !important;
+      padding: 8px 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.7) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+    }
+    #atc-console.minimized #atc-console-content {
+      display: none !important;
+    }
+
+    /* ── Floating Restore Pills ── */
+    .floating-panel-pill {
+      position: fixed;
+      z-index: 40;
+      background: rgba(6, 15, 30, 0.94);
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      font-family: var(--sans);
+      cursor: pointer;
+      backdrop-filter: var(--blur);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.75), 0 0 15px rgba(56, 189, 248, 0.28);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+    .floating-panel-pill:hover {
+      background: rgba(14, 165, 233, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.45);
+    }
+    .floating-panel-pill.top-right {
+      top: 80px;
+      right: 16px;
+    }
+    .floating-panel-pill.bottom-left {
+      bottom: 85px;
+      left: 16px;
+    }
+
     .deck-top-nav {
       display: flex; gap: 4px; background: rgba(0,0,0,.35); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,.07);
     }
@@ -780,7 +925,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.4.1</strong> beschikbaar &bull; <span id="upd-note">100% Echte Live ATC Radio feeds (Kaagbaan/Aalsmeerbaan, Polderbaan, Zwanenburg, Delivery) &bull; Statische opnamebandjes definitief vervangen</span></span>
+      <span><strong id="upd-ver">v2.5.0</strong> beschikbaar &bull; <span id="upd-note">Vergroten, verkleinen & minimaliseren voor Luchthaven Bord en ATC Gesprekken &bull; Maximaal schermzicht op vliegende vliegtuigen</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -812,7 +957,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.4.1</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -837,25 +982,31 @@
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
     <div class="hud-row"><span class="hud-label">Gesprek opname</span><span class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.4.1</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.5.0</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
   <div id="atc-console" aria-label="ATC Radio Transceiver">
+    <div class="panel-resizer-handle resizer-right" id="resizer-atc" title="Sleep naar links of rechts om het gesprekkenpaneel breder of smaller te maken"></div>
     <div class="atc-header">
-      <div class="atc-freq-wrap">
+      <div class="atc-freq-wrap" id="atc-header-click" title="Klik om in of uit te klappen" style="cursor:pointer;flex:1;">
         <span class="atc-tx-indicator" id="atc-tx-led">RX</span>
         <span class="atc-freq" id="atc-freq-disp">118.100 MHz</span>
         <span class="atc-channel" id="atc-channel-disp">SCHIPHOL TOWER</span>
+        <span class="atc-min-tag" id="atc-min-tag" style="display:none;font-size:0.65rem;color:#86efac;font-family:var(--mono);font-weight:700;margin-left:4px;">(Radio Live ➕)</span>
       </div>
       <div class="atc-actions">
         <button class="btn-icon-sm" id="btn-atc-mute" title="Geluid Aan/Uit">🔊</button>
-        <button class="btn-icon-sm" id="btn-close-atc" title="Sluit radio venster">&times;</button>
+        <button class="btn-icon-sm" id="btn-size-atc" title="Formaat wisselen: Compact (280px) / Normaal (360px) / Groot (490px) [R]">📐</button>
+        <button class="btn-icon-sm" id="btn-min-atc" title="Minimaliseer / Klap in (meer ruimte voor vliegende vliegtuigen) [M]">➖</button>
+        <button class="btn-icon-sm" id="btn-close-atc" title="Sluit gesprekken venster">&times;</button>
       </div>
     </div>
 
-    <!-- Live Radio Stream Deck (100% In-App Speler Zonder Externe Popups) -->
-    <div class="liveatc-deck">
+    <!-- Wrapped Content for Collapsing -->
+    <div id="atc-console-content">
+      <!-- Live Radio Stream Deck (100% In-App Speler Zonder Externe Popups) -->
+      <div class="liveatc-deck">
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="font-size:0.7rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:0.5px;">
           📡 100% In-App Luchtvaartradio (Alle Frequenties & Sectoren)
@@ -1035,24 +1186,41 @@
         <span class="atc-speaker">📻 LIVE ATC:</span> Directe actuele radioverbinding met Nederlandse luchtverkeersleiding. 100% Realtime live uitzending (geen bandje).
       </div>
     </div>
+    </div><!-- /atc-console-content -->
 
     <!-- HTML5 Audio Element voor echte LiveATC streams -->
     <audio id="liveatc-audio-element" preload="none"></audio>
   </div>
 
+  <!-- Zwevende Herstelknop voor Gesprekken (verschijnt als venster gesloten is) -->
+  <button id="floating-open-atc" class="floating-panel-pill bottom-left" style="display:none;" title="Open ATC Gesprekken & Radio (R)">
+    📻 Open Gesprekken & Radio ⤢
+  </button>
+
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
   <div id="right-deck">
-    <!-- Mobile/Tablet Sheet Header -->
-    <div class="deck-mobile-close-bar">
-      <span class="dm-title">🏢 Luchthaven Bord & Regie</span>
-      <button class="btn-icon-sm" id="btn-close-right-deck" title="Sluit paneel">&times;</button>
+    <div class="panel-resizer-handle resizer-left" id="resizer-right-deck" title="Sleep naar links of rechts om het luchthavenbord breder of smaller te maken"></div>
+    <!-- Header Bar with Resize, Minimize and Close Controls -->
+    <div class="deck-header-bar">
+      <div class="deck-header-title" id="deck-header-click" title="Klik om in of uit te klappen">
+        <span class="dh-icon">🏢</span>
+        <span class="dh-label">Luchthaven Bord & Regie</span>
+        <span class="dh-min-tag" id="right-deck-min-tag" style="display:none;font-size:0.65rem;color:var(--gold);font-family:var(--mono);font-weight:700;margin-left:4px;">(Ingeklapt ➕)</span>
+      </div>
+      <div class="deck-header-actions">
+        <button class="btn-icon-sm" id="btn-size-right-deck" title="Formaat wisselen: Compact (280px) / Normaal (390px) / Breed (540px) [B]">📐</button>
+        <button class="btn-icon-sm" id="btn-min-right-deck" title="Minimaliseer / Klap in (meer ruimte voor vliegende vliegtuigen) [M]">➖</button>
+        <button class="btn-icon-sm" id="btn-close-right-deck" title="Sluit paneel">&times;</button>
+      </div>
     </div>
 
-    <!-- Main Deck Tabs -->
-    <div class="deck-top-nav">
-      <button class="deck-tab-btn active" id="tab-btn-airport">🏢 Luchthaven Bord & Regie</button>
-      <button class="deck-tab-btn" id="tab-btn-allflights">✈️ Alle Vluchten (120)</button>
-    </div>
+    <!-- Wrapped Content for Collapsing -->
+    <div id="right-deck-content">
+      <!-- Main Deck Tabs -->
+      <div class="deck-top-nav">
+        <button class="deck-tab-btn active" id="tab-btn-airport">🏢 Luchthaven Bord & Regie</button>
+        <button class="deck-tab-btn" id="tab-btn-allflights">✈️ Alle Vluchten (120)</button>
+      </div>
 
     <!-- Section 1: Airport Board & Operations Deck -->
     <div id="airport-deck-view" style="display:flex;flex-direction:column;gap:10px;">
@@ -1154,7 +1322,13 @@
       </div>
       <div id="flight-list" class="fids-scroll"></div>
     </div>
+    </div><!-- /right-deck-content -->
   </div>
+
+  <!-- Zwevende Herstelknop voor Luchthaven Bord (verschijnt als venster gesloten is) -->
+  <button id="floating-open-deck" class="floating-panel-pill top-right" style="display:none;" title="Open Luchthaven Bord & Regie (B)">
+    🏢 Open Luchthaven Bord ⤢
+  </button>
 
   <!-- 3D WebGL Canvas Container -->
   <div id="webgl-container"></div>

@@ -3766,6 +3766,424 @@ function setupControls() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  PANEEL VERGROTEN, VERKLEINEN & MINIMALISEREN MANAGER
+//  (Luchthaven Bord & Regie + ATC Gesprekken & Radio)
+// ═══════════════════════════════════════════════════════
+class PanelResizerManager {
+  constructor() {
+    this.deckSizes = [
+      { key: 'compact', width: 280, label: 'Compact (280px)' },
+      { key: 'normal',  width: 390, label: 'Normaal (390px)' },
+      { key: 'wide',    width: 540, label: 'Extra Breed (540px)' }
+    ];
+    this.atcSizes = [
+      { key: 'compact', width: 280, label: 'Compact (280px)' },
+      { key: 'normal',  width: 360, label: 'Normaal (360px)' },
+      { key: 'wide',    width: 490, label: 'Groot (490px)' }
+    ];
+    this.deckSizeIdx = 1; // Normaal (390px)
+    this.atcSizeIdx = 1;  // Normaal (360px)
+    this.deckMinimized = false;
+    this.atcMinimized = false;
+    this.deckClosed = false;
+    this.atcClosed = false;
+  }
+
+  init() {
+    this.rightDeck = document.getElementById('right-deck');
+    this.atcConsole = document.getElementById('atc-console');
+    this.btnSizeDeck = document.getElementById('btn-size-right-deck');
+    this.btnMinDeck = document.getElementById('btn-min-right-deck');
+    this.btnCloseDeck = document.getElementById('btn-close-right-deck');
+    this.deckHeaderClick = document.getElementById('deck-header-click');
+    this.deckMinTag = document.getElementById('right-deck-min-tag');
+    this.floatOpenDeck = document.getElementById('floating-open-deck');
+
+    this.btnSizeAtc = document.getElementById('btn-size-atc');
+    this.btnMinAtc = document.getElementById('btn-min-atc');
+    this.btnCloseAtc = document.getElementById('btn-close-atc');
+    this.atcHeaderClick = document.getElementById('atc-header-click');
+    this.atcMinTag = document.getElementById('atc-min-tag');
+    this.floatOpenAtc = document.getElementById('floating-open-atc');
+
+    this.resizerDeck = document.getElementById('resizer-right-deck');
+    this.resizerAtc = document.getElementById('resizer-atc');
+
+    this.loadSavedState();
+    this.setupEvents();
+    this.setupDragResizing();
+    this.setupKeyboardShortcuts();
+  }
+
+  loadSavedState() {
+    try {
+      const savedDeckWidth = localStorage.getItem('pw_deck_width');
+      if (savedDeckWidth && this.rightDeck && window.innerWidth > 640) {
+        const w = parseInt(savedDeckWidth, 10);
+        if (w >= 260 && w <= 750) {
+          this.rightDeck.style.width = `${w}px`;
+        }
+      }
+      const savedDeckSize = localStorage.getItem('pw_deck_size');
+      if (savedDeckSize) {
+        const idx = this.deckSizes.findIndex(s => s.key === savedDeckSize);
+        if (idx !== -1) {
+          this.deckSizeIdx = idx;
+          if (this.rightDeck) {
+            this.deckSizes.forEach(s => this.rightDeck.classList.remove(`size-${s.key}`));
+            this.rightDeck.classList.add(`size-${savedDeckSize}`);
+          }
+        }
+      }
+      if (localStorage.getItem('pw_deck_min') === 'true') {
+        this.toggleDeckMinimize(true);
+      }
+
+      const savedAtcWidth = localStorage.getItem('pw_atc_width');
+      if (savedAtcWidth && this.atcConsole && window.innerWidth > 640) {
+        const w = parseInt(savedAtcWidth, 10);
+        if (w >= 260 && w <= 700) {
+          this.atcConsole.style.width = `${w}px`;
+        }
+      }
+      const savedAtcSize = localStorage.getItem('pw_atc_size');
+      if (savedAtcSize) {
+        const idx = this.atcSizes.findIndex(s => s.key === savedAtcSize);
+        if (idx !== -1) {
+          this.atcSizeIdx = idx;
+          if (this.atcConsole) {
+            this.atcSizes.forEach(s => this.atcConsole.classList.remove(`size-${s.key}`));
+            this.atcConsole.classList.add(`size-${savedAtcSize}`);
+          }
+        }
+      }
+      if (localStorage.getItem('pw_atc_min') === 'true') {
+        this.toggleAtcMinimize(true);
+      }
+    } catch (e) {}
+  }
+
+  setupEvents() {
+    if (this.btnSizeDeck) {
+      this.btnSizeDeck.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.cycleDeckSize();
+      });
+    }
+
+    if (this.btnMinDeck) {
+      this.btnMinDeck.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleDeckMinimize();
+      });
+    }
+
+    if (this.deckHeaderClick) {
+      this.deckHeaderClick.addEventListener('click', () => {
+        if (this.deckMinimized) {
+          this.toggleDeckMinimize(false);
+        }
+      });
+    }
+
+    if (this.btnCloseDeck) {
+      this.btnCloseDeck.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeDeck();
+      });
+    }
+
+    if (this.floatOpenDeck) {
+      this.floatOpenDeck.addEventListener('click', () => {
+        this.openDeck();
+      });
+    }
+
+    if (this.btnSizeAtc) {
+      this.btnSizeAtc.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.cycleAtcSize();
+      });
+    }
+
+    if (this.btnMinAtc) {
+      this.btnMinAtc.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleAtcMinimize();
+      });
+    }
+
+    if (this.atcHeaderClick) {
+      this.atcHeaderClick.addEventListener('click', () => {
+        if (this.atcMinimized) {
+          this.toggleAtcMinimize(false);
+        }
+      });
+    }
+
+    if (this.btnCloseAtc) {
+      this.btnCloseAtc.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeAtc();
+      });
+    }
+
+    if (this.floatOpenAtc) {
+      this.floatOpenAtc.addEventListener('click', () => {
+        this.openAtc();
+      });
+    }
+
+    const pillAtc = document.getElementById('pill-liveatc');
+    if (pillAtc) {
+      pillAtc.addEventListener('click', () => {
+        this.openAtc();
+        if (this.atcMinimized) this.toggleAtcMinimize(false);
+      });
+    }
+  }
+
+  cycleDeckSize() {
+    if (this.deckMinimized) this.toggleDeckMinimize(false);
+    this.deckSizeIdx = (this.deckSizeIdx + 1) % this.deckSizes.length;
+    const size = this.deckSizes[this.deckSizeIdx];
+    if (this.rightDeck && window.innerWidth > 640) {
+      this.deckSizes.forEach(s => this.rightDeck.classList.remove(`size-${s.key}`));
+      this.rightDeck.classList.add(`size-${size.key}`);
+      this.rightDeck.style.width = `${size.width}px`;
+      try {
+        localStorage.setItem('pw_deck_size', size.key);
+        localStorage.setItem('pw_deck_width', size.width);
+      } catch (e) {}
+    }
+    ATC.logMessage('WEERGAVE', `🏢 Luchthaven Bord formaat: ${size.label} ingesteld`, false);
+  }
+
+  toggleDeckMinimize(forceState = null) {
+    this.deckMinimized = forceState !== null ? forceState : !this.deckMinimized;
+    if (this.rightDeck) {
+      this.rightDeck.classList.toggle('minimized', this.deckMinimized);
+      if (this.btnMinDeck) {
+        this.btnMinDeck.textContent = this.deckMinimized ? '➕' : '➖';
+        this.btnMinDeck.title = this.deckMinimized ? 'Klap uit (toon alle regie & bord opties)' : 'Minimaliseer (meer ruimte voor vliegende vliegtuigen)';
+      }
+      if (this.deckMinTag) {
+        this.deckMinTag.style.display = this.deckMinimized ? 'inline' : 'none';
+      }
+    }
+    try { localStorage.setItem('pw_deck_min', this.deckMinimized ? 'true' : 'false'); } catch (e) {}
+    if (this.deckMinimized) {
+      ATC.logMessage('SCHERM', '🏢 Luchthaven Bord ingeklapt: maximaal zicht op alle vliegende vliegtuigen in de lucht.', false);
+    }
+  }
+
+  closeDeck() {
+    this.deckClosed = true;
+    if (this.rightDeck) {
+      this.rightDeck.style.display = 'none';
+      this.rightDeck.classList.remove('show-mobile');
+    }
+    if (this.floatOpenDeck) {
+      this.floatOpenDeck.style.display = 'flex';
+    }
+    ATC.logMessage('SCHERM', '🏢 Luchthaven Bord gesloten. Klik rechtsboven op "Open Luchthaven Bord" om het terug te halen.', false);
+  }
+
+  openDeck() {
+    this.deckClosed = false;
+    if (this.rightDeck) {
+      this.rightDeck.style.display = '';
+      if (window.innerWidth <= 640) this.rightDeck.classList.add('show-mobile');
+    }
+    if (this.floatOpenDeck) {
+      this.floatOpenDeck.style.display = 'none';
+    }
+  }
+
+  cycleAtcSize() {
+    if (this.atcMinimized) this.toggleAtcMinimize(false);
+    this.atcSizeIdx = (this.atcSizeIdx + 1) % this.atcSizes.length;
+    const size = this.atcSizes[this.atcSizeIdx];
+    if (this.atcConsole && window.innerWidth > 640) {
+      this.atcSizes.forEach(s => this.atcConsole.classList.remove(`size-${s.key}`));
+      this.atcConsole.classList.add(`size-${size.key}`);
+      this.atcConsole.style.width = `${size.width}px`;
+      try {
+        localStorage.setItem('pw_atc_size', size.key);
+        localStorage.setItem('pw_atc_width', size.width);
+      } catch (e) {}
+    }
+    ATC.logMessage('WEERGAVE', `📻 ATC Gesprekken formaat: ${size.label} ingesteld`, false);
+  }
+
+  toggleAtcMinimize(forceState = null) {
+    this.atcMinimized = forceState !== null ? forceState : !this.atcMinimized;
+    if (this.atcConsole) {
+      this.atcConsole.classList.toggle('minimized', this.atcMinimized);
+      if (this.btnMinAtc) {
+        this.btnMinAtc.textContent = this.atcMinimized ? '➕' : '➖';
+        this.btnMinAtc.title = this.atcMinimized ? 'Klap uit (toon radio, sectoren & gesprekken)' : 'Minimaliseer (meer ruimte voor vliegende vliegtuigen)';
+      }
+      if (this.atcMinTag) {
+        this.atcMinTag.style.display = this.atcMinimized ? 'inline' : 'none';
+      }
+    }
+    try { localStorage.setItem('pw_atc_min', this.atcMinimized ? 'true' : 'false'); } catch (e) {}
+    if (this.atcMinimized) {
+      ATC.logMessage('SCHERM', '📻 Gesprekkenvenster ingeklapt: radio blijft live doorspelen terwijl de kaart volledig vrijkomt.', false);
+    }
+  }
+
+  closeAtc() {
+    this.atcClosed = true;
+    if (this.atcConsole) {
+      this.atcConsole.style.display = 'none';
+      this.atcConsole.classList.remove('show-mobile');
+    }
+    if (this.floatOpenAtc) {
+      this.floatOpenAtc.style.display = 'flex';
+    }
+    ATC.logMessage('SCHERM', '📻 Gesprekkenvenster gesloten. Klik linksonder op "Open Gesprekken & Radio" om het terug te halen.', false);
+  }
+
+  openAtc() {
+    this.atcClosed = false;
+    if (this.atcConsole) {
+      this.atcConsole.style.display = '';
+      if (window.innerWidth <= 640) this.atcConsole.classList.add('show-mobile');
+    }
+    if (this.floatOpenAtc) {
+      this.floatOpenAtc.style.display = 'none';
+    }
+  }
+
+  toggleMinimizeAll() {
+    const shouldMin = !this.deckMinimized || !this.atcMinimized;
+    this.toggleDeckMinimize(shouldMin);
+    this.toggleAtcMinimize(shouldMin);
+    ATC.logMessage('SCHERM', shouldMin ? '🔍 Maximaal Zicht geactiveerd: beide vensters ingeklapt voor vrij zicht op vliegende vliegtuigen.' : '📋 Beide vensters uitgeklapt.', false);
+  }
+
+  setupDragResizing() {
+    // 1. Right Deck sleepregelaar (linker rand)
+    if (this.resizerDeck && this.rightDeck) {
+      let isDragging = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      const onMouseDown = (e) => {
+        if (window.innerWidth <= 640 || this.deckMinimized) return;
+        isDragging = true;
+        startX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        startWidth = this.rightDeck.getBoundingClientRect().width;
+        this.rightDeck.classList.add('resizing');
+        this.resizerDeck.classList.add('resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        if (e.preventDefault) e.preventDefault();
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const dx = startX - clientX;
+        const maxW = Math.min(window.innerWidth - 80, 750);
+        const newW = Math.max(250, Math.min(maxW, Math.round(startWidth + dx)));
+        this.rightDeck.style.width = `${newW}px`;
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        this.rightDeck.classList.remove('resizing');
+        this.resizerDeck.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        const finalW = parseInt(this.rightDeck.style.width, 10);
+        if (finalW) {
+          try { localStorage.setItem('pw_deck_width', finalW); } catch (e) {}
+        }
+      };
+
+      this.resizerDeck.addEventListener('mousedown', onMouseDown);
+      this.resizerDeck.addEventListener('touchstart', onMouseDown, { passive: false });
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('touchmove', onMouseMove, { passive: false });
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('touchend', onMouseUp);
+    }
+
+    // 2. ATC Console sleepregelaar (rechter rand)
+    if (this.resizerAtc && this.atcConsole) {
+      let isDragging = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      const onMouseDown = (e) => {
+        if (window.innerWidth <= 640 || this.atcMinimized) return;
+        isDragging = true;
+        startX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        startWidth = this.atcConsole.getBoundingClientRect().width;
+        this.atcConsole.classList.add('resizing');
+        this.resizerAtc.classList.add('resizing');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        if (e.preventDefault) e.preventDefault();
+      };
+
+      const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const dx = clientX - startX;
+        const maxW = Math.min(window.innerWidth - 80, 700);
+        const newW = Math.max(250, Math.min(maxW, Math.round(startWidth + dx)));
+        this.atcConsole.style.width = `${newW}px`;
+      };
+
+      const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        this.atcConsole.classList.remove('resizing');
+        this.resizerAtc.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        const finalW = parseInt(this.atcConsole.style.width, 10);
+        if (finalW) {
+          try { localStorage.setItem('pw_atc_width', finalW); } catch (e) {}
+        }
+      };
+
+      this.resizerAtc.addEventListener('mousedown', onMouseDown);
+      this.resizerAtc.addEventListener('touchstart', onMouseDown, { passive: false });
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('touchmove', onMouseMove, { passive: false });
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('touchend', onMouseUp);
+    }
+  }
+
+  setupKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      // Negeer sneltoetsen wanneer gebruiker in een invoerveld typt
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+      const key = e.key.toUpperCase();
+      if (key === 'B') {
+        this.cycleDeckSize();
+      } else if (key === 'R') {
+        this.cycleAtcSize();
+      } else if (key === 'M') {
+        this.toggleMinimizeAll();
+      }
+    });
+  }
+}
+
+const PANEL_RESIZER = new PanelResizerManager();
+
+// ═══════════════════════════════════════════════════════
 //  RESPONSIEVE UI MANAGER (SMARTPHONE, IPAD & LAPTOP)
 // ═══════════════════════════════════════════════════════
 function initResponsiveUI() {
@@ -3810,10 +4228,7 @@ function initResponsiveUI() {
         updateMobileTab('globe');
       } else {
         closeAllMobileSheets();
-        if (rightDeck) {
-          rightDeck.style.display = '';
-          rightDeck.classList.add('show-mobile');
-        }
+        PANEL_RESIZER.openDeck();
         updateMobileTab('flights');
       }
     });
@@ -3827,10 +4242,7 @@ function initResponsiveUI() {
         updateMobileTab('globe');
       } else {
         closeAllMobileSheets();
-        if (atcConsole) {
-          atcConsole.style.display = '';
-          atcConsole.classList.add('show-mobile');
-        }
+        PANEL_RESIZER.openAtc();
         updateMobileTab('atc');
       }
     });
@@ -3857,21 +4269,17 @@ function initResponsiveUI() {
 
   // Sluitknoppen in de vensters
   if (btnCloseRightDeck) {
-    btnCloseRightDeck.addEventListener('click', () => {
-      if (rightDeck) {
-        rightDeck.classList.remove('show-mobile');
-        if (window.innerWidth <= 1024) rightDeck.style.display = 'none';
-      }
+    btnCloseRightDeck.addEventListener('click', (e) => {
+      e.stopPropagation();
+      PANEL_RESIZER.closeDeck();
       updateMobileTab('globe');
     });
   }
 
   if (btnCloseAtc) {
-    btnCloseAtc.addEventListener('click', () => {
-      if (atcConsole) {
-        atcConsole.classList.remove('show-mobile');
-        if (window.innerWidth <= 1024) atcConsole.style.display = 'none';
-      }
+    btnCloseAtc.addEventListener('click', (e) => {
+      e.stopPropagation();
+      PANEL_RESIZER.closeAtc();
       updateMobileTab('globe');
     });
   }
@@ -3879,11 +4287,11 @@ function initResponsiveUI() {
   // Reset display stijlen bij venster resize (bijv. van smartphone naar tablet/desktop)
   window.addEventListener('resize', () => {
     if (window.innerWidth > 640) {
-      if (rightDeck) {
+      if (!PANEL_RESIZER.deckClosed && rightDeck) {
         rightDeck.classList.remove('show-mobile');
         rightDeck.style.display = '';
       }
-      if (atcConsole) {
+      if (!PANEL_RESIZER.atcClosed && atcConsole) {
         atcConsole.classList.remove('show-mobile');
         atcConsole.style.display = '';
       }
@@ -3947,7 +4355,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.4.1';
+let currentVersion = '2.5.0';
 
 async function checkVersion(silent = true) {
   try {
@@ -3992,6 +4400,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   ATC.init();
   RUNWAY_CAM.init();
   LIVE_RADAR.init();
+  PANEL_RESIZER.init();
 
   await loadWasm();
   await checkVersion(true);
