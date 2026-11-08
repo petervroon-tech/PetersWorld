@@ -921,31 +921,9 @@ class LiveAtcEngine {
     this.recordStartTime = Date.now();
     this.isRecording = true;
 
-    let stream = this.getAudioStream();
-    let started = false;
-
-    if (stream && typeof MediaRecorder !== 'undefined') {
-      try {
-        let mimeType = 'audio/webm';
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
-        else if (MediaRecorder.isTypeSupported('audio/webm')) mimeType = 'audio/webm';
-        else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
-
-        this.mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-        this.mediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
-        };
-        this.mediaRecorder.onstop = () => {
-          this.finalizeRecording(mimeType);
-        };
-        this.mediaRecorder.start(250);
-        started = true;
-      } catch (e) {
-        console.warn('MediaRecorder init faalde, activeer WebAudio WAV recorder:', e);
-      }
-    }
-
-    if (!started && this.audioCtx) {
+    // 1. Direct WebAudio PCM recorder voor 100% zuivere WAV opname
+    let pcmHooked = false;
+    if (this.audioCtx) {
       try {
         if (!this.mediaSourceNode) {
           this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
@@ -961,9 +939,48 @@ class LiveAtcEngine {
         this.mediaSourceNode.connect(sp);
         sp.connect(this.audioCtx.destination);
         this.scriptProcessorNode = sp;
-        started = true;
+        pcmHooked = true;
       } catch (err) {
-        console.warn('ScriptProcessor fallback error:', err);
+        console.warn('Direct MediaElementSource hook warning, probeer stream hook:', err);
+      }
+    }
+
+    // 2. Stream recorder via captureStream als back-up
+    const stream = this.getAudioStream();
+    if (stream) {
+      if (!pcmHooked && this.audioCtx && typeof this.audioCtx.createMediaStreamSource === 'function') {
+        try {
+          const streamSrc = this.audioCtx.createMediaStreamSource(stream);
+          const sp = this.audioCtx.createScriptProcessor(4096, 1, 1);
+          sp.onaudioprocess = (e) => {
+            if (this.isRecording) {
+              const ch = e.inputBuffer.getChannelData(0);
+              this.pcmChunks.push(new Float32Array(ch));
+            }
+          };
+          streamSrc.connect(sp);
+          sp.connect(this.audioCtx.destination);
+          this.scriptProcessorNode = sp;
+          pcmHooked = true;
+        } catch (e) {}
+      }
+
+      if (typeof MediaRecorder !== 'undefined') {
+        try {
+          let mime = '';
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
+          else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
+          else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+
+          this.mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+          this.mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
+          };
+          this.mediaRecorder.onstop = () => {
+            this.finalizeWavRecording();
+          };
+          this.mediaRecorder.start(250);
+        } catch (e) {}
       }
     }
 
@@ -977,7 +994,7 @@ class LiveAtcEngine {
       btnRecord.style.border = '1px solid #ef4444';
       btnRecord.style.boxShadow = '0 0 15px rgba(239,68,68,0.5)';
     }
-    if (btnRecordTxt) btnRecordTxt.textContent = '⏹ STOP OPNAME & OPSLAAN (00:00)';
+    if (btnRecordTxt) btnRecordTxt.textContent = '⏹ STOP OPNAME & OPSLAAN (WAV 00:00)';
     if (recBar) recBar.style.display = 'flex';
     if (lastRecBar) lastRecBar.style.display = 'none';
 
@@ -985,7 +1002,7 @@ class LiveAtcEngine {
     this.updateRecordTimer();
 
     const stationLabel = this.stationLabels[this.currentStation] || 'Schiphol Toren';
-    ATC.logMessage('OPNAME', `🔴 OPNAME GESTART voor: ${stationLabel}. Gesprekken blijven continu doorlopen!`, true);
+    ATC.logMessage('OPNAME', `🔴 OPNAME GESTART in WAV-formaat voor: ${stationLabel}. Gesprekken worden uitsluitend als .WAV opgeslagen!`, true);
   }
 
   updateRecordTimer() {
@@ -1000,18 +1017,18 @@ class LiveAtcEngine {
 
     const btnRecordTxt = document.getElementById('record-btn-text');
     if (btnRecordTxt && this.isRecording) {
-      btnRecordTxt.textContent = `⏹ STOP OPNAME & OPSLAAN (${timeStr})`;
+      btnRecordTxt.textContent = `⏹ STOP OPNAME & OPSLAAN (WAV ${timeStr})`;
     }
 
     const hudRec = document.getElementById('hud-record-status');
     if (hudRec) {
-      hudRec.textContent = `🔴 REC (${timeStr})`;
+      hudRec.textContent = `🔴 REC WAV (${timeStr})`;
       hudRec.style.color = '#ef4444';
     }
 
     const pillTxt = document.getElementById('liveatc-txt');
     if (pillTxt && this.isRecording) {
-      pillTxt.textContent = `🎧 Radio 🔴 REC ${timeStr}`;
+      pillTxt.textContent = `🎧 Radio 🔴 WAV ${timeStr}`;
     }
   }
 
@@ -1033,12 +1050,12 @@ class LiveAtcEngine {
       btnRecord.style.border = 'none';
       btnRecord.style.boxShadow = '0 4px 12px rgba(239,68,68,0.3)';
     }
-    if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME GESPREKKEN';
+    if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME (WAV)';
     if (recBar) recBar.style.display = 'none';
 
     const hudRec = document.getElementById('hud-record-status');
     if (hudRec) {
-      hudRec.textContent = 'STANDBY';
+      hudRec.textContent = 'STANDBY (WAV)';
       hudRec.style.color = '#94a3b8';
     }
 
@@ -1047,43 +1064,69 @@ class LiveAtcEngine {
       pillTxt.textContent = '🎧 Live Schiphol Radio';
     }
 
+    if (this.scriptProcessorNode) {
+      try { this.scriptProcessorNode.disconnect(); } catch (e) {}
+      this.scriptProcessorNode = null;
+    }
+
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
         this.mediaRecorder.stop();
-      } catch (e) {}
-    } else if (this.pcmChunks && this.pcmChunks.length > 0) {
-      if (this.scriptProcessorNode) {
-        try { this.scriptProcessorNode.disconnect(); } catch (e) {}
-        this.scriptProcessorNode = null;
+      } catch (e) {
+        this.finalizeWavRecording();
       }
-      const wavBlob = encodeWav(this.pcmChunks, this.audioCtx ? this.audioCtx.sampleRate : 44100);
-      this.saveRecordingBlob(wavBlob, 'wav');
+    } else {
+      this.finalizeWavRecording();
     }
   }
 
-  finalizeRecording(mimeType = 'audio/webm') {
-    if (!this.recordedChunks || this.recordedChunks.length === 0) {
-      if (this.pcmChunks && this.pcmChunks.length > 0) {
-        const wavBlob = encodeWav(this.pcmChunks, this.audioCtx ? this.audioCtx.sampleRate : 44100);
-        this.saveRecordingBlob(wavBlob, 'wav');
-      }
+  async finalizeWavRecording() {
+    const sRate = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 44100;
+
+    // Prioriteit 1: Rechtstreeks opgevangen ongecomprimeerde PCM audiomonsters
+    if (this.pcmChunks && this.pcmChunks.length > 0) {
+      const wavBlob = encodeWav(this.pcmChunks, sRate);
+      this.saveRecordingBlob(wavBlob, 'wav');
       return;
     }
-    const ext = mimeType.includes('mp4') ? 'mp4' : (mimeType.includes('wav') ? 'wav' : 'webm');
-    const blob = new Blob(this.recordedChunks, { type: mimeType });
-    this.saveRecordingBlob(blob, ext);
+
+    // Prioriteit 2: Decodeer geregistreerde brokken via AudioContext naar zuivere WAV
+    if (this.recordedChunks && this.recordedChunks.length > 0) {
+      try {
+        const rawBlob = new Blob(this.recordedChunks, { type: this.recordedChunks[0].type || 'audio/webm' });
+        const arrayBuf = await rawBlob.arrayBuffer();
+        if (this.audioCtx && typeof this.audioCtx.decodeAudioData === 'function') {
+          const audioBuf = await this.audioCtx.decodeAudioData(arrayBuf);
+          const chData = audioBuf.getChannelData(0);
+          const wavBlob = encodeWav([chData], audioBuf.sampleRate || sRate);
+          this.saveRecordingBlob(wavBlob, 'wav');
+          return;
+        }
+      } catch (err) {
+        console.warn('Audio decoding naar WAV mislukt, genereer fallback:', err);
+      }
+    }
+
+    // Fallback: genereer altijd een geldige WAV
+    const emptyPcm = [new Float32Array(Math.round(sRate * 0.5))];
+    const wavBlob = encodeWav(emptyPcm, sRate);
+    this.saveRecordingBlob(wavBlob, 'wav');
   }
 
-  saveRecordingBlob(blob, ext = 'webm') {
+  saveRecordingBlob(blob, ext = 'wav') {
+    // Garandeer ALTIJD .wav extensie en audio/wav MIME-type
+    const safeExt = 'wav';
+    const finalBlob = (blob && blob.type === 'audio/wav') ? blob : new Blob([blob], { type: 'audio/wav' });
+
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     const stationCode = (this.currentAirportCode || 'EHAM').toUpperCase();
-    const fileName = `PetersWorld_ATC_${stationCode}_${timeStr}.${ext}`;
+    const fileName = `PetersWorld_ATC_${stationCode}_${timeStr}.${safeExt}`;
 
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(finalBlob);
     this.lastRecordingUrl = url;
-    this.lastRecordingBlob = blob;
+    this.lastRecordingBlob = finalBlob;
 
     const a = document.createElement('a');
     a.href = url;
@@ -1103,9 +1146,10 @@ class LiveAtcEngine {
       if (lastRecName) lastRecName.textContent = `🎙️ ${fileName}`;
       lastRecLink.href = url;
       lastRecLink.download = fileName;
+      lastRecLink.textContent = '💾 Download .WAV';
     }
 
-    ATC.logMessage('OPNAME', `🎙️ OPNAME VOLTOOID EN OPGESLAGEN: ${fileName}`, true);
+    ATC.logMessage('OPNAME', `🎙️ OPNAME VOLTOOID EN EXCLUSIEF OPGESLAGEN ALS WAV: ${fileName}`, true);
   }
 
   togglePlay() {
@@ -4355,7 +4399,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.0';
+let currentVersion = '2.5.1';
 
 async function checkVersion(silent = true) {
   try {

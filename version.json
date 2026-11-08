@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.0",
-  "build": 55,
-  "timestamp": "2026-11-08T13:23:02.928213+00:00",
-  "git_hash": "3498bd7",
+  "version": "2.5.1",
+  "build": 56,
+  "timestamp": "2026-11-08T13:27:40.850595+00:00",
+  "git_hash": "dbb5116",
   "features": [
+    "Gesprekken opnemen uitsluitend in ongecomprimeerd WAV-formaat (.wav) met directe PCM-encoder en Web Audio decodering",
     "Vergroten, verkleinen & minimaliseren voor Luchthaven Bord & Regie en ATC Gesprekken: sleepbare breedteregelaars, compacte/normale/brede formaten en één-klik minimaliseerfunctie voor maximale schermruimte om vliegende vliegtuigen te volgen",
     "100% Echte Live ATC Radio: directe koppeling met officiële live Icecast radiofeeds van de verkeerstoren (Kaagbaan/Aalsmeerbaan, Polderbaan, Zwanenburgerbaan, Delivery) via s1-bos.liveatc.net. Het statische ochtendbandje is definitief vervangen.",
     "Alle frequenties van Schiphol en Nederlandse luchthavens direct luisteren en volgen (Torens, Approach N/O/Z/W, Departure N/O/Z/W, Final Director, Radar, Grond, ATIS)",
