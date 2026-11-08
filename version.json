@@ -1,19 +1,14 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.0.1",
-  "build": 30,
-  "timestamp": "2026-11-07T23:20:10.121921+00:00",
-  "git_hash": "dbeaace",
+  "version": "2.1.0",
+  "build": 31,
+  "timestamp": "2026-11-08T07:22:05.206328+00:00",
+  "git_hash": "88eed69",
   "features": [
-    "Franse en buitenlandse radio-audio (Nice LFMN) 100% verwijderd en vervangen door authentieke Schiphol verkeerstoren opname (Beeld en Geluid)",
-    "100% Nederlandse luchthavens en vliegbases: Schiphol, Rotterdam, Eindhoven, Groningen, Maastricht, Lelystad, Leeuwarden, Volkel, Gilze-Rijen, Woensdrecht, Den Helder, Breda, Texel, Teuge, Hilversum",
-    "Alle buitenlandse vliegvelden 100% verwijderd uit database en 3D wereldbol",
-    "Volledige Schiphol radio suite: Kaagbaan Toren (118.100), Polderbaan Toren (118.275), Grond (121.700), Delivery (121.980), Approach (119.050) en Departure (121.200)",
-    "Camera bij het openen van de app direct scherp gecentreerd op Nederland en Schiphol",
-    "Nederlandse vloot: KLM, KLM Cityhopper, Transavia, TUI fly, Martinair Cargo, Corendon en Koninklijke Luchtmacht (F-35A, Chinook, A330 MRTT)",
-    "Einde aan audio-loops: automatische bandjes en herhalingen 100% uitgeschakeld",
-    "Nauwkeurige 3D hitboxen afgestemd op Nederlandse vliegveldafstanden",
-    "Vlucht Luister-knop gekoppeld aan de exacte vlucht op het scherm met authentieke mic-clicks",
-    "Automatische instant-cache purge in browser: laadt altijd 100% verse app zonder oude browsercache"
+    "Vliegveld Teuge (EHTE / TGE) toegevoegd als prominente hub met baan 08/26 (1199m), Teuge Radio 120.255 MHz, Paracentrum Skydive Teuge (PH-FST Supervan) en Vliegschool Teuge (PH-TGE)",
+    "3D Wereldbol vervangen door een dedicated live vluchtradar achtergrond van heel Nederland (Amsterdam FIR, Schiphol TMA, Teuge ATZ, radar range rings, Nederlandse kustlijn en rivieren)",
+    "Live vliegverkeer boven Nederland met realistische kruishoogtes, naderingen, klimpatronen en storingsvrije 2D/3D projectie",
+    "Volledig Nederland radaroverzicht en naadloze zoom tot 300 meter boven startbanen Teuge en Schiphol",
+    "100% Nederlandse radiocommunicatie Schiphol & Teuge zonder loopings"
   ]
 }

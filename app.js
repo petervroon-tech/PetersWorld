@@ -14,9 +14,9 @@ const CFG = {
   wasmFile: 'petersworld.wasm',
   versionFile: 'version.json',
   pollMs: 30_000,
-  flightCount: 60,
-  globeRadius: 100, // 1 Three.js eenheid = ~63.71 km (300m = ~0.00471 eenheden)
-  metersPerUnit: 63710,
+  flightCount: 65,
+  globeRadius: 100, // compatibiliteit
+  metersPerUnit: 1000, // 1 Three.js eenheid = exact 1.0 km (1000 meter)
 };
 
 // ═══════════════════════════════════════════════════════
@@ -56,6 +56,25 @@ const AIRPORTS = [
     utcOffset: 1,
     weather: { cond: 'cavok', wind: '220° 12kt', qnh: '1014' }
   },
+  {
+    code: 'TGE',
+    icao: 'EHTE',
+    flag: '🇳🇱',
+    name: 'Vliegveld Teuge (EHTE)',
+    city: 'Teuge / Apeldoorn / Deventer',
+    country: 'Nederland',
+    lat: 52.2444,
+    lon: 6.0469,
+    hub: true,
+    runways: ['Baan 08/26 (1199m)'],
+    activeRunway: 'Baan 26',
+    rwyNumbers: ['08', '26'],
+    liveAtcStation: 'ehte_twr',
+    freqs: { twr: '120.255', gnd: '121.750', app: '120.255' },
+    utcOffset: 1,
+    weather: { cond: 'cavok', wind: '210° 11kt', qnh: '1015' }
+  },
+
   {
     code: 'RTM',
     icao: 'EHRD',
@@ -146,6 +165,25 @@ const AIRPORTS = [
     utcOffset: 1,
     weather: { cond: 'cavok', wind: '220° 12kt', qnh: '1014' }
   },
+  {
+    code: 'TGE',
+    icao: 'EHTE',
+    flag: '🇳🇱',
+    name: 'Vliegveld Teuge (EHTE)',
+    city: 'Teuge / Apeldoorn / Deventer',
+    country: 'Nederland',
+    lat: 52.2444,
+    lon: 6.0469,
+    hub: true,
+    runways: ['Baan 08/26 (1199m)'],
+    activeRunway: 'Baan 26',
+    rwyNumbers: ['08', '26'],
+    liveAtcStation: 'ehte_twr',
+    freqs: { twr: '120.255', gnd: '121.750', app: '120.255' },
+    utcOffset: 1,
+    weather: { cond: 'cavok', wind: '210° 11kt', qnh: '1015' }
+  },
+
   {
     code: 'LWR',
     icao: 'EHLW',
@@ -273,24 +311,6 @@ const AIRPORTS = [
     weather: { cond: 'cavok', wind: '240° 17kt', qnh: '1014' }
   },
   {
-    code: 'TGE',
-    icao: 'EHTE',
-    flag: '🇳🇱',
-    name: 'Teuge International Airport',
-    city: 'Teuge / Deventer',
-    country: 'Nederland',
-    lat: 52.2444,
-    lon: 6.0469,
-    hub: false,
-    runways: ['Baan 08/26 (1199m)'],
-    activeRunway: 'Baan 26',
-    rwyNumbers: ['08', '26'],
-    liveAtcStation: 'ehte_twr',
-    freqs: { twr: '120.255', gnd: '121.750', app: '120.255' },
-    utcOffset: 1,
-    weather: { cond: 'cavok', wind: '210° 11kt', qnh: '1015' }
-  },
-  {
     code: 'HIL',
     icao: 'EHHV',
     flag: '🇳🇱',
@@ -314,6 +334,8 @@ const AIRLINES = [
   { code:'KLM', callsign:'KLM',                   name:'KLM Royal Dutch Airlines', color:0x00a1de, hex:'#00a1de', types:['Boeing 777-300ER','Boeing 787-10','Airbus A321neo'] },
   { code:'KLC', callsign:'City',                  name:'KLM Cityhopper',           color:0x1b9aaa, hex:'#1b9aaa', types:['Embraer E195-E2','Embraer E175'] },
   { code:'TRA', callsign:'Transavia',             name:'Transavia Airlines',       color:0x00d66c, hex:'#00d66c', types:['Boeing 737-800','Airbus A321neo'] },
+  { code:'TGE', callsign:'Skydive Teuge',         name:'Paracentrum Skydive Teuge',color:0xf59e0b, hex:'#f59e0b', types:['Cessna 208 Caravan (PH-FST)','Pilatus PC-6 Porter (PH-PAR)'] },
+  { code:'VTE', callsign:'Stella Teuge',          name:'Vliegschool Teuge (GA)',   color:0x10b981, hex:'#10b981', types:['Diamond DA40 Star (PH-TGE)','Diamond DA42 Twin Star','Cessna 172 Skyhawk'] },
   { code:'TFL', callsign:'Orange',                name:'TUI fly Netherlands',      color:0xc0022b, hex:'#c0022b', types:['Boeing 787-8 Dreamliner','Boeing 737 MAX 8'] },
   { code:'MPH', callsign:'Martinair',             name:'Martinair Cargo',          color:0xd92d20, hex:'#d92d20', types:['Boeing 747-400BCF','Airbus A350F'] },
   { code:'CND', callsign:'Corendon',              name:'Corendon Dutch Airlines',  color:0xef4444, hex:'#ef4444', types:['Boeing 737-800','Boeing 737 MAX 9'] },
@@ -322,15 +344,17 @@ const AIRLINES = [
 ];
 
 // ═══════════════════════════════════════════════════════
-//  WISKUNDIGE 3D PROJECTIE OP BOL
+//  WISKUNDIGE PROJECTIE NEDERLAND VLUCHTRADAR (1 UNIT = 1 KM)
 // ═══════════════════════════════════════════════════════
-function latLonToVector3(lat, lon, r = CFG.globeRadius) {
-  const phi = lat * (Math.PI / 180);
-  const theta = (lon + 180) * (Math.PI / 180);
-  const x = -r * Math.cos(phi) * Math.cos(theta);
-  const y = r * Math.sin(phi);
-  const z = r * Math.cos(phi) * Math.sin(theta);
-  return new THREE.Vector3(x, y, z);
+const NL_CENTER_LAT = 52.20;
+const NL_CENTER_LON = 5.30;
+const KM_PER_DEG_LAT = 111.24;
+const KM_PER_DEG_LON = 68.25;
+
+function latLonToVector3(lat, lon, altKm = 0) {
+  const x = (lon - NL_CENTER_LON) * KM_PER_DEG_LON;
+  const z = -(lat - NL_CENTER_LAT) * KM_PER_DEG_LAT;
+  return new THREE.Vector3(x, altKm, z);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -613,6 +637,26 @@ const LIVEATC = new LiveAtcEngine();
 //  ECHTE BAAN BEELDEN (LIVE WEBCAMS & SATELLIET LUCHTFOTO'S)
 // ═══════════════════════════════════════════════════════
 const RUNWAY_CAMS = {
+  TGE: [
+    {
+      id: 'tge_rwy26',
+      name: '🇳🇱 Vliegveld Teuge Baan 26 (1199m - Hoofdbaan)',
+      type: 'satellite',
+      satImage: getAirportSatelliteTextureUrl({ lat: 52.2444, lon: 6.0469, code: 'TGE' }),
+      osd: 'CAM TGE · TEUGE RUNWAY 26 · PARACENTRUM & GA',
+      freq: '120.255 MHz RADIO',
+      desc: 'Start- en landingsbaan 08/26 (1199m), Paracentrum Teuge en vliegschool'
+    },
+    {
+      id: 'tge_para',
+      name: '🪂 Paracentrum Skydive Teuge Dropzone',
+      type: 'satellite',
+      satImage: getAirportSatelliteTextureUrl({ lat: 52.2444, lon: 6.0469, code: 'TGE' }),
+      osd: 'CAM TGE-DZ · PARACENTRUM TEUGE · DROPZONE',
+      freq: '120.255 MHz RADIO',
+      desc: 'Parachutisten landingsveld en hangar van Skydive Teuge (PH-FST Supervan)'
+    }
+  ],
   AMS: [
     {
       id: 'ams_kaagbaan',
@@ -1066,8 +1110,10 @@ const S = {
 
   // Groepen
   earthGroup: null,
-  earthMesh: null,
-  cloudMesh: null,
+  radarMesh: null,
+  radarSweepMesh: null,
+  earthMesh: null, // compatibiliteit
+  cloudMesh: null, // compatibiliteit
   atmoMesh: null,
   airportsGroup: null,
   airportDetailGroup: null, // Gedetailleerd 3D model op de luchthaven
@@ -1109,15 +1155,13 @@ function initThree() {
   const w = window.innerWidth, h = window.innerHeight;
 
   S.scene = new THREE.Scene();
-  S.scene.background = new THREE.Color(0x030712);
+  S.scene.background = new THREE.Color(0x040914);
 
-  // Near clipping op 0.0002 (~12 meter) zodat we tot 300 meter kunnen inzoomen zonder clipping!
-  S.camera = new THREE.PerspectiveCamera(45, w / h, 0.0002, 2000);
+  // PerspectiveCamera afgestemd op Nederlands luchtruim
+  S.camera = new THREE.PerspectiveCamera(42, w / h, 0.05, 1500);
 
-  // Richt camera direct op Nederland en Schiphol (lat 52.31, lon 4.76)
-  const amsStartPos = latLonToVector3(52.31, 4.76, CFG.globeRadius);
-  const amsDir = amsStartPos.clone().normalize();
-  S.camera.position.copy(amsDir.clone().multiplyScalar(190));
+  // Richt camera direct op Nederland en Schiphol/Teuge
+  S.camera.position.set(0, 160, 45);
   S.camera.lookAt(0, 0, 0);
 
   S.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -1131,8 +1175,9 @@ function initThree() {
   S.controls = new THREE.OrbitControls(S.camera, S.renderer.domElement);
   S.controls.enableDamping = true;
   S.controls.dampingFactor = 0.08;
-  S.controls.minDistance = 0.002;
-  S.controls.maxDistance = 500;
+  S.controls.minDistance = 0.20; // Tot 200m boven baan!
+  S.controls.maxDistance = 450;  // Volledig Nederland radar overzicht
+  S.controls.target.set(0, 0, 0);
   S.controls.rotateSpeed = window.innerWidth <= 768 ? 0.75 : 0.6;
   S.controls.zoomSpeed = window.innerWidth <= 768 ? 1.05 : 0.9;
   if (THREE.TOUCH) {
@@ -1173,8 +1218,7 @@ function initThree() {
   S.cameraLight.position.copy(S.camera.position);
   S.scene.add(S.cameraLight);
 
-  buildStarfield();
-  buildRealisticEarth();
+  buildNetherlandsRadarBackground();
   build3DAirports();
   build3DFlights();
 
@@ -1202,78 +1246,394 @@ function onResize() {
 // ═══════════════════════════════════════════════════════
 //  3D OBJECTEN
 // ═══════════════════════════════════════════════════════
-function buildStarfield() {
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 1800;
-  const starPos = new Float32Array(starCount * 3);
-  const starColors = new Float32Array(starCount * 3);
+// ═══════════════════════════════════════════════════════
+//  NEDERLAND VLUCHTRADAR ACHTERGROND & GEOMETRIE
+// ═══════════════════════════════════════════════════════
+function createNetherlandsRadarTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2048;
+  canvas.height = 2048;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return new THREE.Texture();
 
-  for (let i = 0; i < starCount * 3; i += 3) {
-    const r = 700 + Math.random() * 400;
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(Math.random() * 2 - 1);
-    starPos[i]   = r * Math.sin(phi) * Math.cos(theta);
-    starPos[i+1] = r * Math.sin(phi) * Math.sin(theta);
-    starPos[i+2] = r * Math.cos(phi);
+  const W_KM = 340;
+  const H_KM = 380;
+  const X_MIN = -170;
+  const Z_MIN = -190;
 
-    const b = 0.7 + Math.random() * 0.3;
-    starColors[i]   = b;
-    starColors[i+1] = b;
-    starColors[i+2] = b + 0.1;
+  function toC(lon, lat) {
+    const xKm = (lon - NL_CENTER_LON) * KM_PER_DEG_LON;
+    const zKm = -(lat - NL_CENTER_LAT) * KM_PER_DEG_LAT;
+    const cx = ((xKm - X_MIN) / W_KM) * 2048;
+    const cy = ((zKm - Z_MIN) / H_KM) * 2048;
+    return [cx, cy];
   }
 
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+  // 1. Diepe radar achtergrond (Aeronautical Air Traffic Dark Blue)
+  const bgGrad = ctx.createRadialGradient(1024, 1024, 250, 1024, 1024, 1350);
+  bgGrad.addColorStop(0, '#09152a');
+  bgGrad.addColorStop(0.60, '#060f1e');
+  bgGrad.addColorStop(1, '#030812');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 2048, 2048);
 
-  const starMat = new THREE.PointsMaterial({ size: 1.5, vertexColors: true, transparent: true, opacity: 0.8 });
-  const stars = new THREE.Points(starGeo, starMat);
-  S.scene.add(stars);
+  // 2. Fijn radar coördinatenrooster (elke 25 km)
+  ctx.strokeStyle = 'rgba(21, 48, 85, 0.40)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  for (let xk = -150; xk <= 150; xk += 25) {
+    const cx = ((xk - X_MIN) / W_KM) * 2048;
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, 2048);
+    ctx.stroke();
+  }
+  for (let zk = -175; zk <= 175; zk += 25) {
+    const cy = ((zk - Z_MIN) / H_KM) * 2048;
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(2048, cy);
+    ctx.stroke();
+  }
+
+  // 3. Concentrische Radar Afstandsringen (25, 50, 75, 100 NM)
+  const [camsX, camsY] = toC(4.76, 52.31);
+  const ringDistancesNM = [
+    { nm: 25, km: 46.3 },
+    { nm: 50, km: 92.6 },
+    { nm: 75, km: 138.9 },
+    { nm: 100, km: 185.2 }
+  ];
+
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 8]);
+  ctx.font = 'bold 18px monospace';
+  ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
+
+  for (const r of ringDistancesNM) {
+    const rPx = (r.km / W_KM) * 2048;
+    ctx.beginPath();
+    ctx.arc(camsX, camsY, rPx, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillText(r.nm + ' NM / ' + Math.round(r.km) + ' KM', camsX + rPx - 65, camsY - 8);
+  }
+
+  // Radialen / peilingen vanaf Schiphol (elke 30 graden)
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+  ctx.setLineDash([4, 6]);
+  for (let deg = 0; deg < 360; deg += 30) {
+    const rad = (deg - 90) * (Math.PI / 180);
+    const rx = camsX + Math.cos(rad) * 980;
+    const ry = camsY + Math.sin(rad) * 980;
+    ctx.beginPath();
+    ctx.moveTo(camsX, camsY);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+
+    const degStr = (deg === 0 ? '360' : String(deg).padStart(3, '0')) + '°';
+    ctx.fillText(degStr, camsX + Math.cos(rad) * 930 - 15, camsY + Math.sin(rad) * 930 + 5);
+  }
+  ctx.setLineDash([]);
+
+  // 4. Nederlands Vasteland (Vaste landmassa contouren)
+  const mainlandPts = [
+    [3.37, 51.37], [3.55, 51.40], [3.57, 51.45], [3.43, 51.53], [3.61, 51.60],
+    [3.70, 51.70], [3.86, 51.78], [3.93, 51.81], [4.02, 51.96], [4.12, 51.98],
+    [4.27, 52.11], [4.39, 52.20], [4.52, 52.37], [4.55, 52.46], [4.62, 52.62],
+    [4.65, 52.77], [4.70, 52.88], [4.72, 52.96], [5.03, 52.93], [5.29, 52.70],
+    [5.10, 52.46], [4.98, 52.36], [5.24, 52.30], [5.48, 52.22], [5.83, 52.45],
+    [6.05, 52.53], [5.95, 52.73], [5.40, 52.94], [5.39, 53.07], [5.43, 53.11],
+    [5.41, 53.17], [5.90, 53.37], [6.20, 53.41], [6.92, 53.33], [7.20, 53.18],
+    [7.03, 53.14], [7.06, 52.87], [6.74, 52.66], [6.62, 52.57], [6.95, 52.22],
+    [6.72, 51.97], [6.08, 51.93], [6.04, 51.87], [6.17, 51.37], [6.00, 51.19],
+    [5.86, 50.99], [6.02, 50.75], [5.69, 50.85], [5.10, 51.30], [4.66, 51.47],
+    [4.30, 51.43], [4.05, 51.28], [3.80, 51.23], [3.39, 51.31]
+  ];
+
+  ctx.fillStyle = '#0d1e38';
+  ctx.strokeStyle = '#0284c7';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let i = 0; i < mainlandPts.length; i++) {
+    const [px, py] = toC(mainlandPts[i][0], mainlandPts[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 5. Flevoland Polders
+  const flevoPts = [
+    [5.25, 52.34], [5.35, 52.50], [5.55, 52.65], [5.80, 52.60],
+    [5.90, 52.45], [5.65, 52.30], [5.38, 52.28]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < flevoPts.length; i++) {
+    const [px, py] = toC(flevoPts[i][0], flevoPts[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#102544';
+  ctx.fill();
+  ctx.stroke();
+
+  // Noordoostpolder
+  const nopPts = [
+    [5.65, 52.65], [5.85, 52.80], [5.98, 52.75], [5.90, 52.58], [5.70, 52.60]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < nopPts.length; i++) {
+    const [px, py] = toC(nopPts[i][0], nopPts[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 6. Waddeneilanden (Texel, Vlieland, Terschelling, Ameland, Schiermonnikoog)
+  const islands = [
+    // Texel
+    [[4.70, 53.00], [4.75, 53.10], [4.85, 53.17], [4.90, 53.12], [4.82, 53.02]],
+    // Vlieland
+    [[4.94, 53.24], [5.08, 53.30], [5.05, 53.26], [4.92, 53.22]],
+    // Terschelling
+    [[5.18, 53.35], [5.35, 53.40], [5.46, 53.42], [5.40, 53.38], [5.20, 53.33]],
+    // Ameland
+    [[5.58, 53.43], [5.75, 53.46], [5.88, 53.47], [5.80, 53.44], [5.60, 53.42]],
+    // Schiermonnikoog
+    [[6.12, 53.47], [6.25, 53.50], [6.32, 53.49], [6.20, 53.46]]
+  ];
+
+  ctx.fillStyle = '#0f2442';
+  for (const isl of islands) {
+    ctx.beginPath();
+    for (let i = 0; i < isl.length; i++) {
+      const [px, py] = toC(isl[i][0], isl[i][1]);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // 7. Waterwegen: Afsluitdijk & Houtribdijk
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2.5;
+  const [adA_x, adA_y] = toC(5.03, 52.93);
+  const [adB_x, adB_y] = toC(5.43, 53.11);
+  ctx.beginPath();
+  ctx.moveTo(adA_x, adA_y);
+  ctx.lineTo(adB_x, adB_y);
+  ctx.stroke();
+
+  const [hdA_x, hdA_y] = toC(5.29, 52.70);
+  const [hdB_x, hdB_y] = toC(5.50, 52.54);
+  ctx.beginPath();
+  ctx.moveTo(hdA_x, hdA_y);
+  ctx.lineTo(hdB_x, hdB_y);
+  ctx.stroke();
+
+  // 8. Rivieren: Rijn, Waal, Maas en IJssel (langs Teuge!)
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+  ctx.lineWidth = 3;
+
+  // IJssel rivier (stroomt direct langs Teuge / Deventer / Zutphen!)
+  const ijssel = [
+    [6.05, 51.98], [6.13, 52.02], [6.19, 52.14], [6.16, 52.25],
+    [6.10, 52.38], [6.09, 52.51], [5.92, 52.57]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < ijssel.length; i++) {
+    const [px, py] = toC(ijssel[i][0], ijssel[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Rijn / Lek
+  const rijn = [
+    [6.04, 51.87], [5.90, 51.98], [5.60, 51.96], [5.30, 51.96], [4.60, 51.90], [4.12, 51.98]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < rijn.length; i++) {
+    const [px, py] = toC(rijn[i][0], rijn[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Waal
+  const waal = [
+    [6.04, 51.87], [5.86, 51.85], [5.40, 51.88], [4.90, 51.82], [4.40, 51.88]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < waal.length; i++) {
+    const [px, py] = toC(waal[i][0], waal[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // Maas
+  const maas = [
+    [5.70, 50.78], [5.86, 51.05], [6.15, 51.35], [5.95, 51.70], [5.30, 51.75], [4.70, 51.72]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < maas.length; i++) {
+    const [px, py] = toC(maas[i][0], maas[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  // 9. Luchtruim: Amsterdam FIR Grens & Teuge ATZ
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.70)';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([12, 8]);
+
+  const firPts = [
+    [3.20, 51.35], [3.20, 53.90], [5.00, 54.00], [7.20, 53.60],
+    [7.20, 51.80], [6.10, 50.70], [5.60, 50.70], [4.20, 51.30]
+  ];
+  ctx.beginPath();
+  for (let i = 0; i < firPts.length; i++) {
+    const [px, py] = toC(firPts[i][0], firPts[i][1]);
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Teuge ATZ Cirkel (3 NM / 5.5 km radius)
+  const [tgeX, tgeY] = toC(6.0469, 52.2444);
+  const tgeRadiusPx = (5.5 / W_KM) * 2048;
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.arc(tgeX, tgeY, tgeRadiusPx, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 10. Labels en Steden
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, monospace';
+  ctx.textAlign = 'center';
+
+  // Teuge prominente radar markering
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillRect(tgeX - 6, tgeY - 6, 12, 12);
+  ctx.fillText('★ VLIEGVELD TEUGE (EHTE)', tgeX, tgeY - 14);
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#fde68a';
+  ctx.fillText('TWR 120.255 · SKYDIVE · BAAN 08/26 (1199m)', tgeX, tgeY + 22);
+
+  // Schiphol prominente radar markering
+  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, monospace';
+  ctx.fillStyle = '#00a1de';
+  ctx.fillRect(camsX - 7, camsY - 7, 14, 14);
+  ctx.fillText('★ SCHIPHOL (EHAM)', camsX, camsY - 14);
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#7dd3fc';
+  ctx.fillText('TWR 118.100 · 6 BANEN · AMSTERDAM AIRPORT', camsX, camsY + 22);
+
+  // Overige Steden & Velden
+  const cities = [
+    { name: 'ROTTERDAM (EHRD)', lon: 4.4372, lat: 51.9569, col: '#38bdf8' },
+    { name: 'EINDHOVEN (EHEH)', lon: 5.3744, lat: 51.4500, col: '#38bdf8' },
+    { name: 'GRONINGEN (EHGG)', lon: 6.5828, lat: 53.1197, col: '#38bdf8' },
+    { name: 'MAASTRICHT (EHBK)',lon: 5.7700, lat: 50.9117, col: '#38bdf8' },
+    { name: 'TEXEL (EHTX)',     lon: 4.8328, lat: 53.1150, col: '#38bdf8' },
+    { name: 'LELYSTAD (EHLE)',  lon: 5.5272, lat: 52.4608, col: '#38bdf8' },
+    { name: 'HILVERSUM (EHHV)', lon: 5.1481, lat: 52.1917, col: '#94a3b8' },
+    { name: 'DEVENTER',         lon: 6.1600, lat: 52.2550, col: '#cbd5e1' },
+    { name: 'APELDOORN',        lon: 5.9600, lat: 52.2150, col: '#cbd5e1' },
+    { name: 'ZWOLLE',           lon: 6.0900, lat: 52.5150, col: '#cbd5e1' },
+    { name: 'ARNHEM',           lon: 5.9100, lat: 51.9850, col: '#cbd5e1' },
+    { name: 'UTRECHT',          lon: 5.1200, lat: 52.0900, col: '#cbd5e1' },
+    { name: 'DEN HAAG',         lon: 4.3100, lat: 52.0800, col: '#cbd5e1' }
+  ];
+
+  ctx.font = '14px monospace';
+  for (const c of cities) {
+    const [cx, cy] = toC(c.lon, c.lat);
+    ctx.fillStyle = c.col;
+    ctx.fillRect(cx - 3, cy - 3, 6, 6);
+    ctx.fillText(c.name, cx, cy - 8);
+  }
+
+  // 11. Navigatie Fixes & VORs
+  const fixes = [
+    { name: '▲ PAM 117.80', lon: 5.10, lat: 52.33 },
+    { name: '▲ SPY 113.30', lon: 4.85, lat: 52.54 },
+    { name: '◆ ARTIP',      lon: 5.50, lat: 52.80 },
+    { name: '◆ RIVER',      lon: 4.40, lat: 51.80 },
+    { name: '◆ SUGOL',      lon: 5.30, lat: 51.70 }
+  ];
+  ctx.fillStyle = '#ec4899';
+  ctx.font = '13px monospace';
+  for (const f of fixes) {
+    const [fx, fy] = toC(f.lon, f.lat);
+    ctx.fillText(f.name, fx, fy + 12);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 16;
+  texture.generateMipmaps = true;
+  return texture;
 }
 
-function buildRealisticEarth() {
-  const texLoader = new THREE.TextureLoader();
+function buildNetherlandsRadarBackground() {
+  const W_KM = 340;
+  const H_KM = 380;
 
-  const dayTex   = texLoader.load('textures/earth_atmos_2048.jpg');
-  const cloudTex = texLoader.load('textures/earth_clouds_1024.png');
-  const normTex  = texLoader.load('textures/earth_normal_2048.jpg');
-  const specTex  = texLoader.load('textures/earth_specular_2048.jpg');
+  // 1. Grondvlak: Vlakke radar kaart van Nederland
+  const radarGeo = new THREE.PlaneGeometry(W_KM, H_KM, 1, 1);
+  radarGeo.rotateX(-Math.PI / 2);
 
-  const earthGeo = new THREE.SphereGeometry(CFG.globeRadius, 64, 64);
-  const earthMat = new THREE.MeshPhongMaterial({
-    map: dayTex,
-    normalMap: normTex,
-    normalScale: new THREE.Vector2(0.85, 0.85),
-    specularMap: specTex,
-    specular: new THREE.Color(0x224466),
-    shininess: 25,
+  const radarTex = createNetherlandsRadarTexture();
+  const radarMat = new THREE.MeshBasicMaterial({
+    map: radarTex,
+    depthWrite: true,
   });
-  S.earthMesh = new THREE.Mesh(earthGeo, earthMat);
-  S.earthGroup.add(S.earthMesh);
 
-  const cloudGeo = new THREE.SphereGeometry(CFG.globeRadius + 0.8, 48, 48);
-  const cloudMat = new THREE.MeshPhongMaterial({
-    map: cloudTex,
+  S.radarMesh = new THREE.Mesh(radarGeo, radarMat);
+  S.radarMesh.position.set(0, -0.01, 0);
+  S.earthGroup.add(S.radarMesh);
+  S.earthMesh = S.radarMesh; // compatibiliteit
+
+  // 2. Draaiende 3D radarbundel over Nederland (Surveillance Radar Sweep)
+  const sweepGeo = new THREE.RingGeometry(0, 160, 48, 1, 0, Math.PI / 4);
+  sweepGeo.rotateX(-Math.PI / 2);
+  const sweepMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
     transparent: true,
-    opacity: 0.45,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false
+    opacity: 0.10,
+    side: THREE.DoubleSide,
+    depthWrite: false,
   });
-  S.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-  S.earthGroup.add(S.cloudMesh);
+  S.radarSweepMesh = new THREE.Mesh(sweepGeo, sweepMat);
+  S.radarSweepMesh.position.set(0, 0.05, 0);
+  S.earthGroup.add(S.radarSweepMesh);
+  S.cloudMesh = S.radarSweepMesh; // compatibiliteit
 }
 
 function build3DAirports() {
   const hubMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
-  const smallMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
-  const hubGeo = new THREE.SphereGeometry(0.40, 12, 12);
-  const smallGeo = new THREE.SphereGeometry(0.24, 8, 8);
+  const smallMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  const hubGeo = new THREE.SphereGeometry(1.2, 12, 12);
+  const smallGeo = new THREE.SphereGeometry(0.7, 8, 8);
 
-  // Nauwkeurige hitbox afgestemd op Nederlandse vliegveldafstanden
-  const hitGeo = new THREE.SphereGeometry(0.70, 8, 8);
+  const hitGeo = new THREE.SphereGeometry(2.4, 8, 8);
   const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
   for (const ap of AIRPORTS) {
-    const pos = latLonToVector3(ap.lat, ap.lon, CFG.globeRadius + 0.25);
+    const pos = latLonToVector3(ap.lat, ap.lon, 0.20);
     const mesh = new THREE.Mesh(ap.hub ? hubGeo : smallGeo, ap.hub ? hubMat : smallMat);
     mesh.position.copy(pos);
     mesh.userData = { isAirport: true, airport: ap };
@@ -1286,11 +1646,12 @@ function build3DAirports() {
     S.airportsGroup.add(hitMesh);
 
     if (ap.hub) {
-      const ringGeo = new THREE.RingGeometry(0.50, 0.75, 24);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.65 });
+      const ringGeo = new THREE.RingGeometry(1.6, 2.3, 24);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.copy(pos);
-      ring.lookAt(new THREE.Vector3(0, 0, 0));
+      ring.position.y = 0.05;
       S.airportsGroup.add(ring);
     }
   }
@@ -1302,24 +1663,15 @@ function build3DAirports() {
 function buildDetailedAirportModel(airport) {
   if (!S.airportDetailGroup) return;
 
-  // Maak vorige model leeg
   while (S.airportDetailGroup.children.length > 0) {
     const obj = S.airportDetailGroup.children[0];
     S.airportDetailGroup.remove(obj);
   }
 
-  const apPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius);
-  const up = apPos.clone().normalize();
-  let north = new THREE.Vector3(0, 1, 0).projectOnPlane(up).normalize();
-  if (north.lengthSq() < 0.001) north = new THREE.Vector3(0, 0, 1).projectOnPlane(up).normalize();
-  const east = new THREE.Vector3().crossVectors(up, north).normalize();
+  const apPos = latLonToVector3(airport.lat, airport.lon, 0);
+  S.airportDetailGroup.position.set(apPos.x, 0.02, apPos.z);
+  S.airportDetailGroup.rotation.set(0, 0, 0);
 
-  // Richt de groep tangentiaal aan het aardoppervlak
-  const rotMatrix = new THREE.Matrix4().makeBasis(east, up, north);
-  S.airportDetailGroup.position.copy(apPos);
-  S.airportDetailGroup.quaternion.setFromRotationMatrix(rotMatrix);
-
-  // 1. Grondvlak / Vliegveldterrein met ECHTE Satelliet Luchtfoto (geen computer graphics)
   const texLoader = new THREE.TextureLoader();
   texLoader.setCrossOrigin('anonymous');
   const satUrl = getAirportSatelliteTextureUrl(airport);
@@ -1329,172 +1681,272 @@ function buildDetailedAirportModel(airport) {
     tex.needsUpdate = true;
   });
 
-  const groundGeo = new THREE.PlaneGeometry(0.16, 0.16);
-  groundGeo.rotateX(-Math.PI / 2);
-  const groundMat = new THREE.MeshStandardMaterial({
-    map: satTexture,
-    roughness: 0.85,
-    metalness: 0.10,
-    depthWrite: true,
-  });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.position.y = 0.0001;
-  S.airportDetailGroup.add(ground);
+  // 1. Teuge Vliegveld Specifiek Model
+  if (airport.code === 'TGE') {
+    // Grondvlak: Echte satelliet luchtfoto van Teuge (2.5 km x 2.5 km)
+    const groundGeo = new THREE.PlaneGeometry(2.5, 2.5);
+    groundGeo.rotateX(-Math.PI / 2);
+    const groundMat = new THREE.MeshStandardMaterial({
+      map: satTexture,
+      roughness: 0.85,
+      metalness: 0.10,
+      depthWrite: true,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = 0.0005;
+    S.airportDetailGroup.add(ground);
 
-  // 2. Hoofdlandingsbaan (subtiel geaccentueerd over de echte satellietfoto)
-  const rwyWidth = 0.0035; // ~220 meter zichtbaar
-  const rwyLength = 0.095; // ~6.000 meter baanlengte
-  const rwyGeo = new THREE.PlaneGeometry(rwyWidth, rwyLength);
-  rwyGeo.rotateX(-Math.PI / 2);
-  const rwyMat = new THREE.MeshStandardMaterial({
-    color: 0x111827,
-    roughness: 0.9,
-    transparent: true,
-    opacity: 0.45,
-    depthWrite: false
-  });
-  const mainRwy = new THREE.Mesh(rwyGeo, rwyMat);
-  mainRwy.position.set(0, 0.0003, 0);
-  mainRwy.rotation.y = Math.PI / 6; // 30 graden hoek
-  S.airportDetailGroup.add(mainRwy);
+    // Hoofdbaan 08/26 Teuge: Asphalt 1199m x 30m
+    const rwyWidth = 0.035;
+    const rwyLength = 1.199;
+    const rwyGeo = new THREE.PlaneGeometry(rwyWidth, rwyLength);
+    rwyGeo.rotateX(-Math.PI / 2);
+    const rwyMat = new THREE.MeshStandardMaterial({
+      color: 0x18202f,
+      roughness: 0.9,
+      depthWrite: true
+    });
+    const mainRwy = new THREE.Mesh(rwyGeo, rwyMat);
+    mainRwy.position.set(0, 0.002, 0);
+    mainRwy.rotation.y = -84 * (Math.PI / 180);
+    S.airportDetailGroup.add(mainRwy);
 
-  // Drempelstrepen (Piano keys) op baanuiteinden
-  const stripeGeo = new THREE.PlaneGeometry(0.00025, 0.003);
-  stripeGeo.rotateX(-Math.PI / 2);
-  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
+    // Drempelstrepen
+    const stripeGeo = new THREE.PlaneGeometry(0.0025, 0.035);
+    stripeGeo.rotateX(-Math.PI / 2);
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
+    for (let s = -4; s <= 4; s++) {
+      const stA = new THREE.Mesh(stripeGeo, stripeMat);
+      stA.position.set(s * 0.0035, 0.0025, -rwyLength / 2 + 0.035);
+      mainRwy.add(stA);
 
-  for (let s = -3; s <= 3; s++) {
-    // Drempel A
-    const stA = new THREE.Mesh(stripeGeo, stripeMat);
-    stA.position.set(s * 0.0004, 0.0004, -0.044);
-    mainRwy.add(stA);
-    // Drempel B
-    const stB = new THREE.Mesh(stripeGeo, stripeMat);
-    stB.position.set(s * 0.0004, 0.0004, 0.044);
-    mainRwy.add(stB);
+      const stB = new THREE.Mesh(stripeGeo, stripeMat);
+      stB.position.set(s * 0.0035, 0.0025, rwyLength / 2 - 0.035);
+      mainRwy.add(stB);
+    }
+
+    // Middenlijn
+    const dashGeo = new THREE.PlaneGeometry(0.0018, 0.030);
+    dashGeo.rotateX(-Math.PI / 2);
+    for (let d = -16; d <= 16; d++) {
+      const dash = new THREE.Mesh(dashGeo, stripeMat);
+      dash.position.set(0, 0.0025, d * 0.034);
+      mainRwy.add(dash);
+    }
+
+    // Baanverlichting
+    const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+    const redLightMat   = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const whiteLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const lightSphere   = new THREE.SphereGeometry(0.002, 6, 6);
+
+    for (let s = -4; s <= 4; s++) {
+      const gl = new THREE.Mesh(lightSphere, greenLightMat);
+      gl.position.set(s * 0.0038, 0.003, -rwyLength / 2 + 0.01);
+      mainRwy.add(gl);
+
+      const rl = new THREE.Mesh(lightSphere, redLightMat);
+      rl.position.set(s * 0.0038, 0.003, rwyLength / 2 - 0.01);
+      mainRwy.add(rl);
+    }
+
+    for (let l = -18; l <= 18; l += 2) {
+      const edgeL = new THREE.Mesh(lightSphere, whiteLightMat);
+      edgeL.position.set(-rwyWidth / 2, 0.003, l * 0.031);
+      mainRwy.add(edgeL);
+
+      const edgeR = new THREE.Mesh(lightSphere, whiteLightMat);
+      edgeR.position.set(rwyWidth / 2, 0.003, l * 0.031);
+      mainRwy.add(edgeR);
+    }
+
+    // Parallelle Taxiway Teuge
+    const twyGeo = new THREE.PlaneGeometry(0.015, 1.05);
+    twyGeo.rotateX(-Math.PI / 2);
+    const twyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+    const twy = new THREE.Mesh(twyGeo, twyMat);
+    twy.position.set(0, 0.0018, 0.055);
+    twy.rotation.y = -84 * (Math.PI / 180);
+    S.airportDetailGroup.add(twy);
+
+    // Teuge Havenkantoor & Toren
+    const towerGroup = new THREE.Group();
+    const tBaseGeo = new THREE.BoxGeometry(0.040, 0.016, 0.030);
+    const tBaseMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+    const tBase = new THREE.Mesh(tBaseGeo, tBaseMat);
+    tBase.position.y = 0.008;
+    towerGroup.add(tBase);
+
+    const cabGeo = new THREE.CylinderGeometry(0.012, 0.014, 0.010, 8);
+    const cabMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+    const cab = new THREE.Mesh(cabGeo, cabMat);
+    cab.position.y = 0.021;
+    towerGroup.add(cab);
+
+    const antGeo = new THREE.CylinderGeometry(0.001, 0.001, 0.015, 4);
+    const antMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const ant = new THREE.Mesh(antGeo, antMat);
+    ant.position.y = 0.032;
+    towerGroup.add(ant);
+
+    towerGroup.position.set(-0.06, 0.002, 0.09);
+    S.airportDetailGroup.add(towerGroup);
+
+    // Paracentrum Skydive Teuge Hangar & Dropzone
+    const skydiveHangarGeo = new THREE.BoxGeometry(0.065, 0.014, 0.045);
+    const skydiveHangarMat = new THREE.MeshPhongMaterial({ color: 0x1e3a8a });
+    const skydiveHangar = new THREE.Mesh(skydiveHangarGeo, skydiveHangarMat);
+    skydiveHangar.position.set(0.08, 0.008, 0.09);
+    S.airportDetailGroup.add(skydiveHangar);
+
+    const dzGeo = new THREE.RingGeometry(0.01, 0.035, 16);
+    dzGeo.rotateX(-Math.PI / 2);
+    const dzMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, side: THREE.DoubleSide });
+    const dz = new THREE.Mesh(dzGeo, dzMat);
+    dz.position.set(0.18, 0.002, 0.11);
+    S.airportDetailGroup.add(dz);
+
+    // Stella Aviation Hangars
+    const stellaGeo = new THREE.BoxGeometry(0.055, 0.012, 0.040);
+    const stellaMat = new THREE.MeshPhongMaterial({ color: 0x475569 });
+    const stella = new THREE.Mesh(stellaGeo, stellaMat);
+    stella.position.set(-0.16, 0.007, 0.09);
+    S.airportDetailGroup.add(stella);
+
+    // Vliegtuigen op Teuge
+    const fstPlane = createAirplaneMesh(0xf59e0b);
+    fstPlane.scale.set(0.018, 0.018, 0.018);
+    fstPlane.position.set(0.06, 0.004, 0.065);
+    fstPlane.rotation.y = Math.PI / 4;
+    S.airportDetailGroup.add(fstPlane);
+
+    const tgePlane = createAirplaneMesh(0x10b981);
+    tgePlane.scale.set(0.014, 0.014, 0.014);
+    tgePlane.position.set(-0.12, 0.004, 0.065);
+    tgePlane.rotation.y = -Math.PI / 3;
+    S.airportDetailGroup.add(tgePlane);
+
+  } else if (airport.code === 'AMS') {
+    // 2. Schiphol Specifiek Model (6 Banen complex)
+    const groundGeo = new THREE.PlaneGeometry(6.5, 6.5);
+    groundGeo.rotateX(-Math.PI / 2);
+    const groundMat = new THREE.MeshStandardMaterial({
+      map: satTexture,
+      roughness: 0.85,
+      metalness: 0.10,
+      depthWrite: true,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = 0.0005;
+    S.airportDetailGroup.add(ground);
+
+    // Kaagbaan 24/06 (3500m)
+    const kbGeo = new THREE.PlaneGeometry(0.045, 3.5);
+    kbGeo.rotateX(-Math.PI / 2);
+    const rMat = new THREE.MeshStandardMaterial({ color: 0x18202f, roughness: 0.9, depthWrite: true });
+    const kaagbaan = new THREE.Mesh(kbGeo, rMat);
+    kaagbaan.position.set(-0.3, 0.002, 0.2);
+    kaagbaan.rotation.y = Math.PI / 6;
+    S.airportDetailGroup.add(kaagbaan);
+
+    // Polderbaan 36L/18R (3800m)
+    const pbGeo = new THREE.PlaneGeometry(0.045, 3.8);
+    pbGeo.rotateX(-Math.PI / 2);
+    const polderbaan = new THREE.Mesh(pbGeo, rMat);
+    polderbaan.position.set(-1.8, 0.002, -0.2);
+    S.airportDetailGroup.add(polderbaan);
+
+    // Terminal en pieren
+    const termGeo = new THREE.BoxGeometry(0.60, 0.035, 0.35);
+    const termMat = new THREE.MeshPhongMaterial({ color: 0x64748b });
+    const term = new THREE.Mesh(termGeo, termMat);
+    term.position.set(0, 0.018, 0);
+    S.airportDetailGroup.add(term);
+
+    // Verkeerstoren Schiphol Centrum (101 meter)
+    const tGeo = new THREE.CylinderGeometry(0.015, 0.022, 0.10, 8);
+    const tMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+    const tower = new THREE.Mesh(tGeo, tMat);
+    tower.position.set(0.12, 0.05, -0.05);
+    S.airportDetailGroup.add(tower);
+
+    // Vliegtuigen op Schiphol
+    const kPlane = createAirplaneMesh(0x00a1de);
+    kPlane.scale.set(0.032, 0.032, 0.032);
+    kPlane.position.set(-0.3, 0.004, 0.1);
+    kPlane.rotation.y = Math.PI / 6;
+    S.airportDetailGroup.add(kPlane);
+
+  } else {
+    // 3. Regionale Luchthaven Standaard Model
+    const groundGeo = new THREE.PlaneGeometry(3.0, 3.0);
+    groundGeo.rotateX(-Math.PI / 2);
+    const groundMat = new THREE.MeshStandardMaterial({
+      map: satTexture,
+      roughness: 0.85,
+      metalness: 0.10,
+      depthWrite: true,
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.position.y = 0.0005;
+    S.airportDetailGroup.add(ground);
+
+    const rwyGeo = new THREE.PlaneGeometry(0.040, 2.2);
+    rwyGeo.rotateX(-Math.PI / 2);
+    const rMat = new THREE.MeshStandardMaterial({ color: 0x18202f, roughness: 0.9, depthWrite: true });
+    const rwy = new THREE.Mesh(rwyGeo, rMat);
+    rwy.position.set(0, 0.002, 0);
+    rwy.rotation.y = Math.PI / 4;
+    S.airportDetailGroup.add(rwy);
+
+    const tGeo = new THREE.CylinderGeometry(0.012, 0.016, 0.035, 8);
+    const tMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+    const tower = new THREE.Mesh(tGeo, tMat);
+    tower.position.set(-0.08, 0.018, 0.08);
+    S.airportDetailGroup.add(tower);
+
+    const pl = createAirplaneMesh(0x00a1de);
+    pl.scale.set(0.022, 0.022, 0.022);
+    pl.position.set(0, 0.004, -0.15);
+    pl.rotation.y = Math.PI / 4;
+    S.airportDetailGroup.add(pl);
   }
-
-  // Onderbroken middenlijn (Centerline dashes)
-  const dashGeo = new THREE.PlaneGeometry(0.0002, 0.0035);
-  dashGeo.rotateX(-Math.PI / 2);
-  for (let d = -8; d <= 8; d++) {
-    const dash = new THREE.Mesh(dashGeo, stripeMat);
-    dash.position.set(0, 0.0004, d * 0.005);
-    mainRwy.add(dash);
-  }
-
-  // 3. Tweede Kruisende Landingsbaan (bijv. Polderbaan 18R / 36L)
-  const crossRwy = new THREE.Mesh(rwyGeo, rwyMat);
-  crossRwy.position.set(0.02, 0.00028, 0);
-  crossRwy.rotation.y = -Math.PI / 3;
-  S.airportDetailGroup.add(crossRwy);
-
-  // 4. Baanverlichting (Groene drempellichten, rode stoplichten, witte randlichten)
-  const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
-  const redLightMat   = new THREE.MeshBasicMaterial({ color: 0xef4444 });
-  const whiteLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const lightSphere   = new THREE.SphereGeometry(0.00015, 6, 6);
-
-  for (let s = -3; s <= 3; s++) {
-    const gl = new THREE.Mesh(lightSphere, greenLightMat);
-    gl.position.set(s * 0.00045, 0.0005, -0.045);
-    mainRwy.add(gl);
-
-    const rl = new THREE.Mesh(lightSphere, redLightMat);
-    rl.position.set(s * 0.00045, 0.0005, 0.045);
-    mainRwy.add(rl);
-  }
-
-  // Witte randverlichting langs beide zijden
-  for (let l = -9; l <= 9; l += 2) {
-    const edgeL = new THREE.Mesh(lightSphere, whiteLightMat);
-    edgeL.position.set(-rwyWidth / 2, 0.0005, l * 0.0045);
-    mainRwy.add(edgeL);
-
-    const edgeR = new THREE.Mesh(lightSphere, whiteLightMat);
-    edgeR.position.set(rwyWidth / 2, 0.0005, l * 0.0045);
-    mainRwy.add(edgeR);
-  }
-
-  // 5. Verkeerstoren (Control Tower)
-  const towerGroup = new THREE.Group();
-  const shaftGeo = new THREE.CylinderGeometry(0.0003, 0.0004, 0.0028, 8);
-  const shaftMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
-  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-  shaft.position.y = 0.0014;
-  towerGroup.add(shaft);
-
-  // Glazen torencabine
-  const cabGeo = new THREE.CylinderGeometry(0.00065, 0.0005, 0.0007, 8);
-  const cabMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
-  const cab = new THREE.Mesh(cabGeo, cabMat);
-  cab.position.y = 0.0028;
-  towerGroup.add(cab);
-
-  // Radardome bovenop
-  const domeGeo = new THREE.SphereGeometry(0.00035, 8, 8);
-  const domeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
-  const dome = new THREE.Mesh(domeGeo, domeMat);
-  dome.position.y = 0.0033;
-  towerGroup.add(dome);
-
-  towerGroup.position.set(-0.015, 0.0002, 0.005);
-  S.airportDetailGroup.add(towerGroup);
-
-  // 6. Terminalgebouw & Gates
-  const termGeo = new THREE.BoxGeometry(0.012, 0.0012, 0.004);
-  const termMat = new THREE.MeshPhongMaterial({ color: 0x64748b });
-  const terminal = new THREE.Mesh(termGeo, termMat);
-  terminal.position.set(-0.022, 0.0006, -0.01);
-  S.airportDetailGroup.add(terminal);
-
-  // 7. Gereedstaand vliegtuig op de landingsbaan (Klaar voor start)
-  const planeOnRwy = createAirplaneMesh(0x00a1de);
-  planeOnRwy.scale.set(0.0008, 0.0008, 0.0008);
-  planeOnRwy.position.set(0, 0.0005, -0.030);
-  planeOnRwy.rotation.y = Math.PI / 6;
-  S.airportDetailGroup.add(planeOnRwy);
-
-  // Parkeer vliegtuig aan de terminal gate
-  const planeAtGate = createAirplaneMesh(0xc8102e);
-  planeAtGate.scale.set(0.0008, 0.0008, 0.0008);
-  planeAtGate.position.set(-0.022, 0.0005, -0.006);
-  planeAtGate.rotation.y = Math.PI;
-  S.airportDetailGroup.add(planeAtGate);
 }
 
 function createAirplaneMesh(colorHex) {
   const group = new THREE.Group();
   const mat = new THREE.MeshPhongMaterial({
     color: colorHex,
-    shininess: 60,
+    shininess: 70,
     emissive: colorHex,
-    emissiveIntensity: 0.15
+    emissiveIntensity: 0.20
   });
 
-  const bodyGeo = new THREE.CylinderGeometry(0.28, 0.22, 2.6, 8);
+  // Vliegtuig model geschaald voor Nederlandse vluchtradar (2.8 eenheden spanwijdte)
+  const bodyGeo = new THREE.CylinderGeometry(0.25, 0.20, 2.2, 8);
   bodyGeo.rotateX(Math.PI / 2);
   const body = new THREE.Mesh(bodyGeo, mat);
   group.add(body);
 
-  const wingGeo = new THREE.BoxGeometry(3.4, 0.05, 0.7);
+  const wingGeo = new THREE.BoxGeometry(2.8, 0.06, 0.65);
   const wing = new THREE.Mesh(wingGeo, mat);
   wing.position.set(0, 0, 0.1);
   group.add(wing);
 
-  const tailGeo = new THREE.BoxGeometry(0.08, 0.9, 0.6);
+  const tailGeo = new THREE.BoxGeometry(0.08, 0.75, 0.55);
   const tail = new THREE.Mesh(tailGeo, mat);
-  tail.position.set(0, 0.5, -1.0);
+  tail.position.set(0, 0.42, -0.85);
   group.add(tail);
 
+  // Boordverlichting (rood bakboord, groen stuurboord)
   const redMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
   const greenMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
   const lightGeo = new THREE.SphereGeometry(0.12, 6, 6);
 
   const redLight = new THREE.Mesh(lightGeo, redMat);
-  redLight.position.set(-1.7, 0, 0.1);
+  redLight.position.set(-1.4, 0, 0.1);
   const greenLight = new THREE.Mesh(lightGeo, greenMat);
-  greenLight.position.set(1.7, 0, 0.1);
+  greenLight.position.set(1.4, 0, 0.1);
   group.add(redLight);
   group.add(greenLight);
 
@@ -1503,21 +1955,26 @@ function createAirplaneMesh(colorHex) {
 
 function spawnFlight(origin, dest, airline, startProgress = 0) {
   const aircraft = airline.types[Math.floor(Math.random() * airline.types.length)];
-  const oVec = latLonToVector3(origin.lat, origin.lon, CFG.globeRadius);
-  const dVec = latLonToVector3(dest.lat, dest.lon, CFG.globeRadius);
+  const oVec = latLonToVector3(origin.lat, origin.lon, 0.05);
+  const dVec = latLonToVector3(dest.lat, dest.lon, 0.05);
 
-  const dist = oVec.distanceTo(dVec);
-  const mid = oVec.clone().add(dVec).multiplyScalar(0.5);
-  const alt = CFG.globeRadius + 3.0 + (dist * 0.08);
-  mid.normalize().multiplyScalar(alt);
+  const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
+  const isGA = (airline.code === 'TGE' || airline.code === 'VTE');
+  const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
 
-  const curve = new THREE.QuadraticBezierCurve3(oVec, mid, dVec);
+  // 3D Bezier curve
+  const p0 = oVec;
+  const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
+  const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
+  const p3 = dVec;
+
+  const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
   const points = curve.getPoints(36);
   const arcGeo = new THREE.BufferGeometry().setFromPoints(points);
   const arcMat = new THREE.LineBasicMaterial({
     color: airline.color,
     transparent: true,
-    opacity: 0.28,
+    opacity: 0.32,
     linewidth: 1
   });
   const arcLine = new THREE.Line(arcGeo, arcMat);
@@ -1527,19 +1984,22 @@ function spawnFlight(origin, dest, airline, startProgress = 0) {
   planeMesh.userData = { isFlight: true };
   S.flightsGroup.add(planeMesh);
 
-  const distKm = haversineKm(origin.lat, origin.lon, dest.lat, dest.lon);
-  const speedKmh = 820 + Math.floor(Math.random() * 140);
-  const durationH = distKm / speedKmh;
+  const speedKmh = isGA ? (220 + Math.floor(Math.random() * 80)) : (720 + Math.floor(Math.random() * 180));
+  const durationH = Math.max(0.08, distKm / speedKmh);
 
   const id = S.flights.length + 1;
+  const flightNum = isGA ? (airline.code === 'TGE' ? 'FST' : 'TGE') : `${Math.floor(Math.random() * 9000) + 1000}`;
+  const callsign = isGA ? `${airline.code === 'TGE' ? 'SKYDIVE1' : 'PH-TGE'}` : `${airline.code}${flightNum}`;
+
   const flight = {
     id,
-    callsign: `${airline.code}${Math.floor(Math.random() * 9000) + 1000}`,
+    callsign,
     airline,
     aircraft,
     origin,
     dest,
-    altitude: 9500 + Math.floor(Math.random() * 2500),
+    distKm,
+    altitude: Math.round(cruiseAltKm * 1000), // meters
     speedKmh,
     durationH,
     progress: startProgress,
@@ -1548,7 +2008,7 @@ function spawnFlight(origin, dest, airline, startProgress = 0) {
     arcLine,
     planeMesh,
     hovered: false,
-    status: startProgress === 0 ? 'Opstijgen' : (startProgress > 0.85 ? 'Final Approach' : 'Kruissnelheid')
+    status: startProgress === 0 ? 'Opstijgen' : (startProgress > 0.88 ? 'Final Approach' : 'Kruissnelheid')
   };
 
   planeMesh.userData.flight = flight;
@@ -1560,7 +2020,27 @@ function build3DFlights() {
   const count = CFG.flightCount;
   S.flights = [];
 
-  for (let i = 0; i < count; i++) {
+  // Vaste vluchten voor Vliegveld Teuge
+  const tgeAp = AIRPORTS.find(a => a.code === 'TGE') || AIRPORTS[1];
+  const amsAp = AIRPORTS.find(a => a.code === 'AMS') || AIRPORTS[0];
+  const txeAp = AIRPORTS.find(a => a.code === 'TXE') || AIRPORTS[7];
+  const leyAp = AIRPORTS.find(a => a.code === 'LEY') || AIRPORTS[5];
+  const grqAp = AIRPORTS.find(a => a.code === 'GRQ') || AIRPORTS[4];
+
+  const tgeAir = AIRLINES.find(a => a.code === 'TGE') || AIRLINES[3];
+  const vteAir = AIRLINES.find(a => a.code === 'VTE') || AIRLINES[4];
+
+  // 1. Skydive Teuge (PH-FST Supervan)
+  spawnFlight(tgeAp, tgeAp, tgeAir, 0.35);
+  // 2. Vliegschool Teuge (PH-TGE Diamond DA40) Teuge -> Texel
+  spawnFlight(tgeAp, txeAp, vteAir, 0.55);
+  // 3. Vliegschool Teuge Lelystad -> Teuge
+  spawnFlight(leyAp, tgeAp, vteAir, 0.20);
+  // 4. Zakenvlucht Teuge -> Schiphol
+  spawnFlight(tgeAp, amsAp, vteAir, 0.70);
+
+  // Overige vluchten boven Nederland
+  for (let i = 4; i < count; i++) {
     const oIdx = Math.floor(Math.random() * AIRPORTS.length);
     let dIdx = Math.floor(Math.random() * AIRPORTS.length);
     while (dIdx === oIdx) dIdx = Math.floor(Math.random() * AIRPORTS.length);
@@ -1604,6 +2084,9 @@ async function loadWasm() {
 }
 
 // ═══════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════
 //  INZOOMEN TOT 300 METER BOVEN LANDINGSBAAN
 // ═══════════════════════════════════════════════════════
 function zoomToAirportRunway(airport, targetAltMeters = 300) {
@@ -1611,34 +2094,22 @@ function zoomToAirportRunway(airport, targetAltMeters = 300) {
   S.followFlight = null;
   S.selectedAirport = airport;
 
-  const apPos = latLonToVector3(airport.lat, airport.lon, CFG.globeRadius);
-  const up = apPos.clone().normalize();
-  let north = new THREE.Vector3(0, 1, 0).projectOnPlane(up).normalize();
-  if (north.lengthSq() < 0.001) north = new THREE.Vector3(0, 0, 1).projectOnPlane(up).normalize();
-  const east = new THREE.Vector3().crossVectors(up, north).normalize();
+  const apPos = latLonToVector3(airport.lat, airport.lon, 0);
+  const altUnits = Math.max(0.25, (targetAltMeters / 1000));
 
-  // Bereken 3D eenheden voor gewenste hoogte in meters (300m = ~0.00471 units)
-  const altUnits = Math.max(0.0035, (targetAltMeters / CFG.metersPerUnit));
+  // Plaats camera schuin achter de drempel met zicht op de hoofdbaan
+  const camPos = new THREE.Vector3(apPos.x + 0.45, altUnits, apPos.z + 0.65);
 
-  // Plaats camera net achter de baanthreshold op 300m hoogte met zicht langs de baan
-  const camPos = apPos.clone()
-    .addScaledVector(up, altUnits)
-    .addScaledVector(north, -0.006)
-    .addScaledVector(east, 0.0035);
-
-  S.cameraTargetLook = apPos.clone();
+  S.cameraTargetLook = new THREE.Vector3(apPos.x, 0.005, apPos.z);
   S.cameraTargetPos = camPos;
   S.isZoomingToAirport = true;
 
-  // Pas controls aan voor micro-zoom rond de baan
-  S.controls.minDistance = 0.0018; // Tot 115 meter boven de grond!
-  S.controls.maxDistance = 120.0;
+  S.controls.minDistance = 0.15; // Tot 150m boven de grond!
+  S.controls.maxDistance = 450;
   S.controls.target.copy(apPos);
 
-  // Bouw en activeer het gedetailleerde 3D baanmodel
   buildDetailedAirportModel(airport);
 
-  // Update UI tekst
   const apAltDisp = document.getElementById('ap-disp-altitude');
   if (apAltDisp) apAltDisp.textContent = `📷 Hoogte: ${targetAltMeters} m (${airport.activeRunway})`;
 
@@ -1648,9 +2119,10 @@ function zoomToAirportRunway(airport, targetAltMeters = 300) {
 function zoomToGlobe() {
   S.followFlight = null;
   S.cameraTargetLook = new THREE.Vector3(0, 0, 0);
-  S.cameraTargetPos = new THREE.Vector3(0, 50, 260);
-  S.controls.minDistance = 100.1;
-  S.controls.maxDistance = 500;
+  S.cameraTargetPos = new THREE.Vector3(0, 160, 45);
+  S.controls.minDistance = 0.20;
+  S.controls.maxDistance = 450;
+  ATC.logMessage('RADAR', 'Volledig overzicht van het Nederlandse luchtruim actief.', true);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1680,9 +2152,9 @@ function animate(now) {
     }
   }
 
-  // Wolken langzaam laten roteren
-  if (S.cloudMesh && S.layers.clouds) {
-    S.cloudMesh.rotation.y += 0.00015;
+  // Surveillance Radarbundel laten roteren
+  if (S.radarSweepMesh && S.layers.clouds) {
+    S.radarSweepMesh.rotation.y -= 0.012;
   }
 
   // Vluchten positie updaten
@@ -1700,7 +2172,7 @@ function animate(now) {
     f.planeMesh.position.copy(p);
 
     const tangent = f.curve.getTangentAt(f.progress).normalize();
-    const up = p.clone().normalize();
+    const up = new THREE.Vector3(0, 1, 0);
     const right = new THREE.Vector3().crossVectors(up, tangent).normalize();
     const correctedUp = new THREE.Vector3().crossVectors(tangent, right).normalize();
 
@@ -1716,7 +2188,7 @@ function animate(now) {
     S.camera.position.lerp(S.cameraTargetPos, 0.07);
     S.controls.target.lerp(S.cameraTargetLook, 0.07);
 
-    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.0005) {
+    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.02) {
       S.cameraTargetPos = null;
       S.cameraTargetLook = null;
       S.isZoomingToAirport = false;
@@ -1725,9 +2197,9 @@ function animate(now) {
 
   // Bereken en update camera hoogte in meters
   if (S.selectedAirport) {
-    const apPos = latLonToVector3(S.selectedAirport.lat, S.selectedAirport.lon, CFG.globeRadius);
+    const apPos = latLonToVector3(S.selectedAirport.lat, S.selectedAirport.lon, 0);
     const distCam = S.camera.position.distanceTo(apPos);
-    const altMeters = Math.round(distCam * CFG.metersPerUnit);
+    const altMeters = Math.round(distCam * 1000);
 
     const hudAlt = document.getElementById('hud-cam-alt');
     const apAltDisp = document.getElementById('ap-disp-altitude');
@@ -1747,9 +2219,6 @@ function animate(now) {
   S.renderer.render(S.scene, S.camera);
 }
 
-// ═══════════════════════════════════════════════════════
-//  3D INTERACTIE & RAYCASTING
-// ═══════════════════════════════════════════════════════
 function setupInteraction(container) {
   const onPointerMove = (e) => {
     S.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;

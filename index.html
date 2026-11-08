@@ -763,7 +763,7 @@
       <img src="favicon.svg" alt="logo" />
       <div>
         <div class="brand-name">PetersWorld</div>
-        <div class="brand-sub">Schiphol & Nederland · 300m Baan · Live Radio</div>
+        <div class="brand-sub">Nederland Live Vluchtradar · Schiphol & Teuge · 300m Baan</div>
       </div>
     </div>
 
@@ -785,7 +785,7 @@
         <span id="liveatc-txt">🔴 Live Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.0.1</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.1.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -834,6 +834,7 @@
             <option value="eham_dep">🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)</option>
           </optgroup>
           <optgroup label="🇳🇱 Nederlandse Regionale & Militaire Velden">
+            <option value="ehte_twr">🇳🇱 Teuge Radio / Toren (120.255 MHz - Skydive & GA)</option>
             <option value="ehrd_twr">🇳🇱 Rotterdam The Hague Toren (118.200 MHz)</option>
             <option value="eheh_twr">🇳🇱 Eindhoven Airport Toren (131.000 MHz)</option>
             <option value="ehgg_twr">🇳🇱 Groningen Airport Eelde Toren (118.700 MHz)</option>
@@ -846,7 +847,6 @@
             <option value="ehkd_twr">🇳🇱 Den Helder De Kooy (118.850 MHz)</option>
             <option value="ehse_twr">🇳🇱 Breda Seppe (120.655 MHz)</option>
             <option value="ehtx_twr">🇳🇱 Texel Airport (119.855 MHz)</option>
-            <option value="ehte_twr">🇳🇱 Teuge Airport (120.255 MHz)</option>
             <option value="ehhv_twr">🇳🇱 Hilversum Radio (121.205 MHz)</option>
           </optgroup>
         </select>
@@ -1041,7 +1041,7 @@
       <div class="btn-row">
         <button class="btn zoom-btn" id="btn-zoom-300" title="Zoom direct in tot 300 meter boven de landingsbaan">🔍 300m Baan</button>
         <button class="btn zoom-btn" id="btn-zoom-1500" title="Zoom naar naderingshoogte (1.5 km)">🛬 1.5 km</button>
-        <button class="btn" id="btn-zoom-globe" title="Volledige aardbol overzicht">🌍 Globe</button>
+        <button class="btn" id="btn-zoom-globe" title="Volledig overzicht van het Nederlandse luchtruim">🇳🇱 Radar NL</button>
       </div>
     </div>
     <div class="sep"></div>
@@ -1052,7 +1052,7 @@
         <button class="btn active" data-layer="flights" id="btn-flights">✈ Vluchten</button>
         <button class="btn active" data-layer="airports" id="btn-airports">🔵 Hubs</button>
         <button class="btn active" data-layer="trails" id="btn-trails">〜 Bogen</button>
-        <button class="btn active" data-layer="clouds" id="btn-clouds">☁ Wolken</button>
+        <button class="btn active" data-layer="clouds" id="btn-clouds">📡 Radarbundel</button>
       </div>
     </div>
     <div class="sep"></div>
@@ -1077,9 +1077,9 @@
 
   <!-- Mobiele Navigatiebalk voor Smartphone & Tablet -->
   <nav id="mobile-nav" class="mobile-nav-bar" aria-label="Mobiele navigatie">
-    <button class="m-nav-btn active" id="m-btn-globe" data-tab="globe" title="Toon 3D aardbol en baan overzicht">
-      <span class="m-nav-icon">🌍</span>
-      <span class="m-nav-label">3D Baan</span>
+    <button class="m-nav-btn active" id="m-btn-globe" data-tab="globe" title="Toon Nederland radar en baan overzicht">
+      <span class="m-nav-icon">📡</span>
+      <span class="m-nav-label">Radar NL</span>
     </button>
     <button class="m-nav-btn" id="m-btn-flights" data-tab="flights" title="Luchthaven vluchtenbord & regie">
       <span class="m-nav-icon">🏢</span>
