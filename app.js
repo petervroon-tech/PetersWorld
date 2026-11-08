@@ -488,9 +488,24 @@ class LiveAtcEngine {
 
   openLiveAtcStream(stationKey) {
     const key = stationKey || this.currentStation || 'eham01_twr_main1';
-    const url = this.liveAtcUrls[key] || `https://www.liveatc.net/search/?icao=${(this.currentAirportCode || 'eham').toLowerCase()}`;
+    const icaoCode = (this.currentAirportCode === 'AMS' || !this.currentAirportCode) ? 'EHAM' : (this.currentAirportCode === 'RTM' ? 'EHRD' : 'EHAM');
+
+    // Automatisch airport code (EHAM) kopiëren naar klembord voor het geval LiveATC erom vraagt
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(icaoCode);
+      }
+    } catch (e) {}
+
+    // Altijd direct met ICAO-parameter openen zodat het invoerveld NOOIT leeg is
+    const url = this.liveAtcUrls[key] || `https://www.liveatc.net/search/?icao=${icaoCode}`;
     window.open(url, '_blank');
-    ATC.logMessage('LIVE ATC', `Officiële LiveATC radio geopend in nieuw venster: ${this.stationLabels[key] || key}`, true);
+
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    if (statusTxt) {
+      statusTxt.innerHTML = `🟢 Code <strong>${icaoCode}</strong> automatisch ingevuld! Stream geopend.`;
+    }
+    ATC.logMessage('LIVE ATC', `Officiële LiveATC radio geopend (Code ${icaoCode} automatisch ingevuld): ${this.stationLabels[key] || key}`, true);
   }
 
   ensureAudioCtx() {
@@ -2826,7 +2841,7 @@ function initAirportDeck() {
   const btnFrcListen = document.getElementById('btn-frc-listen');
   if (btnFrcListen) {
     btnFrcListen.addEventListener('click', () => {
-      if (S.followFlight) ATC.contactFlight(S.followFlight);
+      LIVEATC.openLiveAtcStream();
     });
   }
 
@@ -3034,10 +3049,7 @@ function setupControls() {
   if (btnAtcMute) btnAtcMute.addEventListener('click', () => ATC.toggleMute());
 
   const triggerCall = () => {
-    ATC.ensureAudioCtx();
-    LIVEATC.ensureAudioCtx();
-    const flight = S.followFlight || S.flights[Math.floor(Math.random() * S.flights.length)];
-    if (flight) ATC.contactFlight(flight);
+    LIVEATC.openLiveAtcStream();
   };
 
   const btnAtcCall = document.getElementById('btn-atc-call');
@@ -3246,7 +3258,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.1';
+let currentVersion = '2.3.2';
 
 async function checkVersion(silent = true) {
   try {

@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.1</strong> beschikbaar &bull; <span id="upd-note">100% Echte Live Luchtvaartradio via LiveATC.net (alle gesimuleerde dialogen verwijderd)</span></span>
+      <span><strong id="upd-ver">v2.3.2</strong> beschikbaar &bull; <span id="upd-note">Code EHAM (Schiphol) en EHRD (Rotterdam) automatisch ingevuld bij LiveATC</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -816,7 +816,7 @@
         <span id="liveatc-txt">🎧 Live Radio (LiveATC)</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.1</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.2</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -835,7 +835,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.1</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.2</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -873,8 +873,14 @@
           </optgroup>
         </select>
         
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(2,6,23,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:0.72rem;">
+          <span style="color:var(--muted);">Airport / ARTCC Code:</span>
+          <span style="color:#10b981;font-weight:800;letter-spacing:0.5px;">EHAM (Schiphol)</span>
+          <span style="color:var(--cyan);font-size:0.65rem;">✓ Auto ingevuld</span>
+        </div>
+
         <button id="btn-open-real-liveatc" style="width:100%;background:linear-gradient(135deg,#059669,#10b981);font-weight:700;font-size:0.82rem;padding:9px 12px;border-radius:6px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);">
-          🎧 Open Echte Live Radio (LiveATC.net)
+          🎧 Luister Live (Code EHAM Automatisch)
         </button>
       </div>
 

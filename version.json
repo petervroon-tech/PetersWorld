@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.3.1",
-  "build": 37,
-  "timestamp": "2026-11-08T08:13:50.659010+00:00",
-  "git_hash": "d30d709",
+  "version": "2.3.2",
+  "build": 38,
+  "timestamp": "2026-11-08T08:22:25.531390+00:00",
+  "git_hash": "60b7d19",
   "features": [
+    "Airport Code EHAM (Schiphol) en EHRD (Rotterdam) automatisch ingevuld bij LiveATC streams",
     "100% Echte Live Luchtvaartradio direct gekoppeld met officiële LiveATC.net Schiphol audio streams",
     "Alle gesimuleerde radiogesprekken en verzonnen teksten volledig verwijderd",
     "100% Echte Live Vliegbewegingen (ADS-B Transponder Data van Flightradar24)",
