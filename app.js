@@ -908,8 +908,12 @@ class LiveAtcEngine {
     }
   }
 
-  startRecording() {
+  async startRecording() {
     this.ensureAudioCtx();
+
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      try { await this.audioCtx.resume(); } catch (e) {}
+    }
 
     // Start radio automatisch als deze nog niet speelt
     if (!this.isPlaying) {
@@ -920,37 +924,27 @@ class LiveAtcEngine {
     this.pcmChunks = [];
     this.recordStartTime = Date.now();
     this.isRecording = true;
+    this.isFinalizing = false;
 
-    // 1. Direct WebAudio PCM recorder voor 100% zuivere WAV opname
+    // 1. Directe Web Audio PCM recorder voor 100% zuivere WAV opname
     let pcmHooked = false;
     if (this.audioCtx) {
       try {
-        if (!this.mediaSourceNode) {
-          this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
-          this.mediaSourceNode.connect(this.audioCtx.destination);
+        const stream = this.getAudioStream();
+        let audioSource = null;
+        if (stream && typeof this.audioCtx.createMediaStreamSource === 'function') {
+          try { audioSource = this.audioCtx.createMediaStreamSource(stream); } catch (e) {}
         }
-        const sp = this.audioCtx.createScriptProcessor(4096, 1, 1);
-        sp.onaudioprocess = (e) => {
-          if (this.isRecording) {
-            const ch = e.inputBuffer.getChannelData(0);
-            this.pcmChunks.push(new Float32Array(ch));
-          }
-        };
-        this.mediaSourceNode.connect(sp);
-        sp.connect(this.audioCtx.destination);
-        this.scriptProcessorNode = sp;
-        pcmHooked = true;
-      } catch (err) {
-        console.warn('Direct MediaElementSource hook warning, probeer stream hook:', err);
-      }
-    }
+        if (!audioSource && !this.mediaSourceNode && this.audioEl) {
+          try {
+            this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
+            audioSource = this.mediaSourceNode;
+          } catch (e) {}
+        } else if (!audioSource && this.mediaSourceNode) {
+          audioSource = this.mediaSourceNode;
+        }
 
-    // 2. Stream recorder via captureStream als back-up
-    const stream = this.getAudioStream();
-    if (stream) {
-      if (!pcmHooked && this.audioCtx && typeof this.audioCtx.createMediaStreamSource === 'function') {
-        try {
-          const streamSrc = this.audioCtx.createMediaStreamSource(stream);
+        if (audioSource) {
           const sp = this.audioCtx.createScriptProcessor(4096, 1, 1);
           sp.onaudioprocess = (e) => {
             if (this.isRecording) {
@@ -958,30 +952,39 @@ class LiveAtcEngine {
               this.pcmChunks.push(new Float32Array(ch));
             }
           };
-          streamSrc.connect(sp);
-          sp.connect(this.audioCtx.destination);
+          audioSource.connect(sp);
+          // Koppel aan een onhoorbare sink zodat de WebAudio scheduler de onaudioprocess blijft aanroepen
+          const recSink = this.audioCtx.createGain();
+          recSink.gain.value = 0.00001;
+          sp.connect(recSink);
+          recSink.connect(this.audioCtx.destination);
           this.scriptProcessorNode = sp;
+          this.recSinkNode = recSink;
           pcmHooked = true;
-        } catch (e) {}
+        }
+      } catch (err) {
+        console.warn('Direct MediaElementSource hook warning, probeer stream hook:', err);
       }
+    }
 
-      if (typeof MediaRecorder !== 'undefined') {
-        try {
-          let mime = '';
-          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
-          else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
-          else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+    // 2. Stream recorder via captureStream als back-up
+    const stream = this.getAudioStream();
+    if (stream && typeof MediaRecorder !== 'undefined') {
+      try {
+        let mime = '';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
+        else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
+        else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
 
-          this.mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-          this.mediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
-          };
-          this.mediaRecorder.onstop = () => {
-            this.finalizeWavRecording();
-          };
-          this.mediaRecorder.start(250);
-        } catch (e) {}
-      }
+        this.mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        this.mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
+        };
+        this.mediaRecorder.onstop = () => {
+          this.finalizeWavRecording();
+        };
+        this.mediaRecorder.start(250);
+      } catch (e) {}
     }
 
     const btnRecord = document.getElementById('btn-liveatc-record');
@@ -1033,7 +1036,7 @@ class LiveAtcEngine {
   }
 
   stopRecording() {
-    if (!this.isRecording) return;
+    if (!this.isRecording || this.isFinalizing) return;
     this.isRecording = false;
 
     if (this.recordTimerId) {
@@ -1050,7 +1053,7 @@ class LiveAtcEngine {
       btnRecord.style.border = 'none';
       btnRecord.style.boxShadow = '0 4px 12px rgba(239,68,68,0.3)';
     }
-    if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME (WAV)';
+    if (btnRecordTxt) btnRecordTxt.textContent = '⏳ WAV VERWERKEN...';
     if (recBar) recBar.style.display = 'none';
 
     const hudRec = document.getElementById('hud-record-status');
@@ -1068,6 +1071,10 @@ class LiveAtcEngine {
       try { this.scriptProcessorNode.disconnect(); } catch (e) {}
       this.scriptProcessorNode = null;
     }
+    if (this.recSinkNode) {
+      try { this.recSinkNode.disconnect(); } catch (e) {}
+      this.recSinkNode = null;
+    }
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       try {
@@ -1081,36 +1088,70 @@ class LiveAtcEngine {
   }
 
   async finalizeWavRecording() {
+    if (this.isFinalizing) return;
+    this.isFinalizing = true;
+
     const sRate = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 44100;
+    const btnRecordTxt = document.getElementById('record-btn-text');
 
-    // Prioriteit 1: Rechtstreeks opgevangen ongecomprimeerde PCM audiomonsters
-    if (this.pcmChunks && this.pcmChunks.length > 0) {
-      const wavBlob = encodeWav(this.pcmChunks, sRate);
-      this.saveRecordingBlob(wavBlob, 'wav');
-      return;
-    }
-
-    // Prioriteit 2: Decodeer geregistreerde brokken via AudioContext naar zuivere WAV
-    if (this.recordedChunks && this.recordedChunks.length > 0) {
-      try {
-        const rawBlob = new Blob(this.recordedChunks, { type: this.recordedChunks[0].type || 'audio/webm' });
-        const arrayBuf = await rawBlob.arrayBuffer();
-        if (this.audioCtx && typeof this.audioCtx.decodeAudioData === 'function') {
-          const audioBuf = await this.audioCtx.decodeAudioData(arrayBuf);
-          const chData = audioBuf.getChannelData(0);
-          const wavBlob = encodeWav([chData], audioBuf.sampleRate || sRate);
-          this.saveRecordingBlob(wavBlob, 'wav');
-          return;
-        }
-      } catch (err) {
-        console.warn('Audio decoding naar WAV mislukt, genereer fallback:', err);
+    try {
+      // Prioriteit 1: Rechtstreeks opgevangen ongecomprimeerde PCM audiomonsters
+      if (this.pcmChunks && this.pcmChunks.length > 0) {
+        const wavBlob = encodeWav(this.pcmChunks, sRate);
+        this.saveRecordingBlob(wavBlob, 'wav');
+        return;
       }
-    }
 
-    // Fallback: genereer altijd een geldige WAV
-    const emptyPcm = [new Float32Array(Math.round(sRate * 0.5))];
-    const wavBlob = encodeWav(emptyPcm, sRate);
-    this.saveRecordingBlob(wavBlob, 'wav');
+      // Prioriteit 2: Decodeer geregistreerde brokken via AudioContext met een strikte timeout (blijft nooit hangen!)
+      if (this.recordedChunks && this.recordedChunks.length > 0) {
+        try {
+          const rawBlob = new Blob(this.recordedChunks, { type: this.recordedChunks[0].type || 'audio/webm' });
+          const arrayBuf = await rawBlob.arrayBuffer();
+
+          if (this.audioCtx) {
+            if (this.audioCtx.state === 'suspended') {
+              try { await this.audioCtx.resume(); } catch (e) {}
+            }
+
+            const decoded = await new Promise((resolve, reject) => {
+              const timer = setTimeout(() => reject(new Error('Decode timeout')), 1200);
+              try {
+                this.audioCtx.decodeAudioData(arrayBuf, (buf) => {
+                  clearTimeout(timer);
+                  resolve(buf);
+                }, (err) => {
+                  clearTimeout(timer);
+                  reject(err);
+                });
+              } catch (err) {
+                clearTimeout(timer);
+                reject(err);
+              }
+            });
+
+            if (decoded && decoded.numberOfChannels > 0) {
+              const chData = decoded.getChannelData(0);
+              const wavBlob = encodeWav([chData], decoded.sampleRate || sRate);
+              this.saveRecordingBlob(wavBlob, 'wav');
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Veilige fallback voor audio decodeer timeout:', err);
+        }
+      }
+
+      // Fallback: genereer altijd een geldige WAV (nooit hangen!)
+      const emptyPcm = [new Float32Array(Math.round(sRate * 0.5))];
+      const wavBlob = encodeWav(emptyPcm, sRate);
+      this.saveRecordingBlob(wavBlob, 'wav');
+    } catch (criticalErr) {
+      console.error('Kritieke fout in WAV recording:', criticalErr);
+    } finally {
+      this.isFinalizing = false;
+      this.isRecording = false;
+      if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME (WAV)';
+    }
   }
 
   saveRecordingBlob(blob, ext = 'wav') {
@@ -1135,7 +1176,7 @@ class LiveAtcEngine {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
+      try { document.body.removeChild(a); } catch (e) {}
     }, 2000);
 
     const lastRecBar = document.getElementById('liveatc-last-recording');
@@ -1148,6 +1189,9 @@ class LiveAtcEngine {
       lastRecLink.download = fileName;
       lastRecLink.textContent = '💾 Download .WAV';
     }
+
+    const btnRecordTxt = document.getElementById('record-btn-text');
+    if (btnRecordTxt) btnRecordTxt.textContent = '🎙️ START OPNAME (WAV)';
 
     ATC.logMessage('OPNAME', `🎙️ OPNAME VOLTOOID EN EXCLUSIEF OPGESLAGEN ALS WAV: ${fileName}`, true);
   }
@@ -3799,11 +3843,21 @@ function setupControls() {
   const btnCtrlDaylight = document.getElementById('btn-ctrl-daylight');
   if (btnCtrlDaylight) btnCtrlDaylight.addEventListener('click', toggleDaylight);
 
-  document.getElementById('btn-refresh').addEventListener('click', () => checkVersion(false));
-  document.getElementById('btn-apply-upd').addEventListener('click', applyUpdate);
-  document.getElementById('btn-dismiss-upd').addEventListener('click', () => {
-    document.getElementById('update-banner').classList.remove('show');
-  });
+  const btnRefresh = document.getElementById('btn-refresh');
+  if (btnRefresh) btnRefresh.addEventListener('click', () => forceAppUpdate());
+
+  const pillVer = document.getElementById('pill-ver');
+  if (pillVer) pillVer.addEventListener('click', () => forceAppUpdate());
+
+  const btnApplyUpd = document.getElementById('btn-apply-upd');
+  if (btnApplyUpd) btnApplyUpd.addEventListener('click', () => forceAppUpdate());
+
+  const btnDismissUpd = document.getElementById('btn-dismiss-upd');
+  if (btnDismissUpd) {
+    btnDismissUpd.addEventListener('click', () => {
+      document.getElementById('update-banner').classList.remove('show');
+    });
+  }
 
   // Start responsieve interface voor smartphones, tablets en laptops
   initResponsiveUI();
@@ -4623,14 +4677,73 @@ function setDaylightMode(enabled) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  VERSIE CONTROLE (GitHub Pages Auto-Detect)
+//  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.2';
+let currentVersion = '2.5.3';
+
+async function forceAppUpdate() {
+  const btnRefresh = document.getElementById('btn-refresh');
+  const pillVer = document.getElementById('ver-txt');
+  const btnApply = document.getElementById('btn-apply-upd');
+
+  if (btnRefresh) {
+    btnRefresh.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+    btnRefresh.style.transform = 'rotate(720deg)';
+  }
+  if (pillVer) pillVer.textContent = 'Bijwerken...';
+  if (btnApply) btnApply.textContent = 'Bezig met bijwerken...';
+
+  ATC.logMessage('SYSTEEM', '🔄 Handmatige update gestart: cache wordt 100% leeggemaakt en nieuwste versie wordt direct geladen...', true);
+
+  // 1. Wis Service Worker registraties
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
+    }
+  } catch (e) {}
+
+  // 2. Verwijder alle CacheStorage caches
+  try {
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (const k of keys) {
+        await caches.delete(k);
+      }
+    }
+  } catch (e) {}
+
+  // 3. Wis browser sessionStorage
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
+
+  // 4. Haal nieuwste versie op van de server
+  let latestVer = Date.now();
+  try {
+    const res = await fetch(`version.json?nocache=${Date.now()}`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.version) latestVer = data.version;
+    }
+  } catch (e) {}
+
+  // 5. Herlaad direct met cache-busters
+  setTimeout(() => {
+    const targetUrl = `index.html?v=${latestVer}&t=${Date.now()}`;
+    window.location.replace(targetUrl);
+  }, 450);
+}
 
 async function checkVersion(silent = true) {
   try {
     const res = await fetch(`${CFG.versionFile}?t=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (!silent) await forceAppUpdate();
+      return;
+    }
     const data = await res.json();
 
     const pillTxt = document.getElementById('ver-txt');
@@ -4646,19 +4759,20 @@ async function checkVersion(silent = true) {
       const dot = document.getElementById('ver-dot');
       if (dot) dot.className = 'dot gold';
     } else if (!silent) {
-      const btn = document.getElementById('btn-refresh');
-      btn.style.transform = 'rotate(360deg)';
-      setTimeout(() => { btn.style.transform = ''; }, 500);
+      // Als de gebruiker handmatig op 🔄 klikt: direct geforceerd herladen en cachen wissen!
+      await forceAppUpdate();
     }
   } catch (e) {
-    console.warn('[Versie] Check mislukt:', e);
+    if (!silent) {
+      await forceAppUpdate();
+    } else {
+      console.warn('[Versie] Check mislukt:', e);
+    }
   }
 }
 
 async function applyUpdate() {
-  const btn = document.getElementById('btn-apply-upd');
-  if (btn) btn.textContent = 'Bezig met bijwerken...';
-  window.location.href = 'reset.html';
+  await forceAppUpdate();
 }
 
 // ═══════════════════════════════════════════════════════

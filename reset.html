@@ -113,8 +113,8 @@
 
       // 5. Herlaad automatisch naar een unieke URL die gegarandeerd vers van het netwerk komt
       setTimeout(function() {
-        window.location.replace('index.html?clean=' + Date.now());
-      }, 1200);
+        window.location.replace('index.html?v=' + Date.now() + '&clean=true');
+      }, 800);
     }
 
     purgeAndReset();

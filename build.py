@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.5.2"
+DEFAULT_VERSION = "2.5.3"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (252 voor v2.5.2)
-    code0 = bytes([0]) + i32_const(252) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (253 voor v2.5.3)
+    code0 = bytes([0]) + i32_const(253) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,6 +253,8 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "WAV opname hang-beveiliging: directe Web Audio PCM verwerking zonder asynchrone decodeerhaperingen; opnames sluiten altijd soepel af en downloaden direct",
+            "Directe handmatige update: klik op 🔄 of de versie-pill om per direct alle browsercaches en Service Workers te legen en de nieuwste appversie te forceren",
             "Vrij verplaatsen en overal neerzetten (Drag & Drop) en 8-kanten resizen voor zowel Luchthaven Bord & Regie als ATC Gesprekken: sleepbare koppen, randen en hoeken, vrij overal op het scherm/bord te plaatsen met positiegeheugen en ↺ herstelknoppen",
             "Gesprekken opnemen uitsluitend in ongecomprimeerd WAV-formaat (.wav) met directe PCM-encoder en Web Audio decodering",
             "Vergroten, verkleinen & minimaliseren voor Luchthaven Bord & Regie en ATC Gesprekken: sleepbare breedteregelaars, compacte/normale/brede formaten en één-klik minimaliseerfunctie voor maximale schermruimte om vliegende vliegtuigen te volgen",
@@ -305,7 +307,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 252) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 253) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
