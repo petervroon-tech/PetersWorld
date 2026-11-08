@@ -1482,6 +1482,17 @@ function build3DAirports() {
 // ═══════════════════════════════════════════════════════
 //  GEDETAILLEERD 3D LANDINGSBAAN & LUCHTHAVEN MODEL (VOOR 300M ZOOM)
 // ═══════════════════════════════════════════════════════
+function getAirportSatelliteTextureUrl(airport) {
+  if (!airport || airport.code === 'AMS') return 'textures/runways/schiphol_satellite_highres.jpg';
+  // Esri World Imagery satelliet tile voor elk Nederlands vliegveld
+  const zoom = 15;
+  const latRad = airport.lat * Math.PI / 180;
+  const n = Math.pow(2, zoom);
+  const x = Math.floor((airport.lon + 180) / 360 * n);
+  const y = Math.floor((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n);
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
+}
+
 function buildDetailedAirportModel(airport) {
   if (!S.airportDetailGroup) return;
 
@@ -3106,7 +3117,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.5';
+let currentVersion = '2.3.6';
 
 async function checkVersion(silent = true) {
   try {
