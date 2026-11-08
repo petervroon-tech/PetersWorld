@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.4</strong> beschikbaar &bull; <span id="upd-note">LiveATC-zoekpagina vervangen door directe Schiphol webplayers (Airports.stream & Broadcastify) — 100% direct, GEEN code invullen!</span></span>
+      <span><strong id="upd-ver">v2.3.5</strong> beschikbaar &bull; <span id="upd-note">Live radio datum- & klokverificatie (U:M:S) toegevoegd & videospeler verwijderd</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -804,10 +804,6 @@
     </div>
 
     <div class="header-right">
-      <div class="pill runwaycam-pill active" id="btn-toggle-runwaycam" title="Echte beelden & live webcams van de startbaan">
-        <span class="dot red"></span>
-        <span id="txt-runwaycam">📹 Echte Baan Cam</span>
-      </div>
       <div class="pill daylight-pill active" id="btn-toggle-daylight" title="Schakel tussen Realistische Nacht/Zon en Dagzicht">
         <span id="txt-daylight">☀️ Dagzicht: AAN</span>
       </div>
@@ -816,7 +812,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.4</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.5</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -828,14 +824,14 @@
       <span id="hud-fps" class="hud-val cy">60 fps</span>
     </div>
     <div class="hud-row"><span class="hud-label">Camera hoogte</span><span class="hud-val cy" id="hud-cam-alt">300 m</span></div>
-    <div class="hud-row"><span class="hud-label">Echte Baan Cam</span><span class="hud-val gr" id="hud-cam-status">LIVE HD</span></div>
+    <div class="hud-row"><span class="hud-label">Live datum & tijd</span><span class="hud-val cy" id="hud-live-clock">--:--:--</span></div>
     <div class="hud-row"><span class="hud-label">Vlucht datafeed</span><span class="hud-val gr" id="hud-feed-mode">🟢 LIVE ADS-B (FR24)</span></div>
     <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">60</span></div>
     <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">7.420</span></div>
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.4</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.5</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -875,6 +871,29 @@
           <span style="color:var(--cyan);font-size:0.65rem;">✓ Directe audio</span>
         </div>
 
+        <!-- Live Stream Realtime Verificatiebox (Datum, Uur, Minuut, Seconde) -->
+        <div id="atc-live-verification-box" style="background:rgba(8,18,36,0.9);border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="dot green" style="background:#10b981;box-shadow:0 0 8px #10b981;" id="atc-live-indicator-dot"></span>
+              <span style="font-size:0.72rem;font-weight:800;color:#10b981;letter-spacing:0.5px;">LIVE VERIFICATIE</span>
+            </div>
+            <span style="font-size:0.65rem;color:var(--cyan);font-family:var(--mono);font-weight:700;" id="live-stream-badge">🔴 REALTIME KLOK</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:rgba(0,0,0,0.45);border-radius:4px;font-family:var(--mono);">
+            <span style="font-size:0.68rem;color:#94a3b8;">📅 Live Datum:</span>
+            <span style="font-size:0.74rem;color:#fff;font-weight:700;" id="live-stream-date">--</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:rgba(0,0,0,0.45);border-radius:4px;font-family:var(--mono);">
+            <span style="font-size:0.68rem;color:#94a3b8;">⏱️ Actuele Tijd (U:M:S):</span>
+            <span style="font-size:0.82rem;color:var(--cyan);font-weight:800;letter-spacing:1px;" id="live-stream-clock">--:--:--</span>
+          </div>
+          <div id="live-stream-start-row" style="display:none;align-items:center;justify-content:space-between;padding:4px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);border-radius:4px;font-family:var(--mono);">
+            <span style="font-size:0.65rem;color:#fca5a5;">🔴 Stream gestart om:</span>
+            <span style="font-size:0.7rem;color:#fff;font-weight:700;" id="live-stream-started-at">--:--:--</span>
+          </div>
+        </div>
+
         <a id="btn-open-real-liveatc" href="https://airports.stream/amsterdam-schiphol-airport" target="_blank" rel="noopener noreferrer" style="width:100%;text-decoration:none;box-sizing:border-box;background:linear-gradient(135deg,#059669,#10b981);font-weight:700;font-size:0.84rem;padding:11px 12px;border-radius:6px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);">
           🎧 Luister Live Schiphol Toren (Airports.stream)
         </a>
@@ -885,7 +904,7 @@
       </div>
 
       <div class="liveatc-status-row" style="margin-top:6px;">
-        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% Directe spelers &bull; Geen code invullen!</span>
+        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% Directe streams &bull; Geen code invullen!</span>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
@@ -896,51 +915,12 @@
 
     <div id="atc-log" class="atc-log-box">
       <div class="atc-msg-line">
-        <span class="atc-speaker">📻 RADIO:</span> 100% Echte live vliegbewegingen en directe koppeling naar officiële LiveATC Schiphol audio streams. Geen gesimuleerde dialogen.
+        <span class="atc-speaker">📻 RADIO:</span> 100% Echte live vliegbewegingen en directe koppeling naar Schiphol radio streams.
       </div>
     </div>
 
     <!-- Verborgen HTML5 Audio Element voor echte LiveATC streams -->
     <audio id="liveatc-audio-element" preload="none" crossorigin="anonymous"></audio>
-  </div>
-
-  <!-- Echte Baan Beelden Deck (Live Webcam & Satelliet Beelden) -->
-  <div id="runway-cam-deck" class="show" aria-label="Echte Baan Beelden">
-    <div class="cam-header">
-      <div class="cam-title-wrap">
-        <span class="cam-badge-live" id="cam-badge">LIVE CAM</span>
-        <span class="cam-title" id="cam-title">🇳🇱 Schiphol Kaagbaan (Baan 24)</span>
-      </div>
-      <div class="cam-controls-top">
-        <button class="btn-icon-sm" id="btn-cam-min" title="Minimaliseer / Vergroot">–</button>
-        <button class="btn-icon-sm" id="btn-cam-close" title="Sluit Baan Camera">&times;</button>
-      </div>
-    </div>
-
-    <!-- Media View (Video Stream of Satelliet Foto) -->
-    <div class="cam-view-wrap" id="cam-view-container">
-      <iframe id="cam-iframe" class="cam-video-iframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      <img id="cam-sat-img" class="cam-sat-img" src="textures/runways/schiphol_satellite_highres.jpg" alt="Echte Satelliet Luchtfoto van Startbaan" style="display:none;" />
-      
-      <!-- OSD Overlay -->
-      <div class="cam-osd-overlay">
-        <span id="cam-osd-topleft">CAM 01 · KAAGBAAN 24 · LIVE HD</span>
-        <span id="cam-osd-topright">REC ● 1080p 60fps</span>
-      </div>
-      <div class="cam-osd-bottom">
-        <span id="cam-osd-botleft">TWR 118.100 MHz · SCHIPHOL TOWER</span>
-        <span id="cam-osd-botright">WIND 220° 12kt · QNH 1014</span>
-      </div>
-    </div>
-
-    <!-- Camera Bediening & Modus -->
-    <div class="cam-selector-bar">
-      <select id="cam-select" class="cam-select" title="Kies startbaancamera"></select>
-      <div style="display:flex;gap:4px;">
-        <button class="cam-btn-tab active" id="btn-cam-mode-live">🎥 Live Video</button>
-        <button class="cam-btn-tab" id="btn-cam-mode-sat">🛰️ Satelliet</button>
-      </div>
-    </div>
   </div>
 
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
@@ -974,7 +954,6 @@
           <div style="display:flex;gap:6px;">
             <button class="btn-zoom-300-quick" id="btn-banner-zoom-30" style="background:rgba(56,189,248,.25);border-color:var(--cyan);color:var(--cyan);font-weight:700;">🔍 30m Grond</button>
             <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🛬 Baanzicht (300m)</button>
-            <button class="btn-zoom-300-quick" id="btn-banner-runwaycam" style="background:rgba(239,68,68,.25);border-color:var(--red);color:#fca5a5;">📹 Echte Baan Cam</button>
           </div>
         </div>
       </div>
@@ -1121,9 +1100,8 @@
     </div>
     <div class="sep"></div>
     <div class="ctrl-group">
-      <span class="ctrl-label">LiveATC & Baan Cam</span>
+      <span class="ctrl-label">Live Radio</span>
       <div class="btn-row">
-        <button class="btn radio-btn" id="btn-ctrl-runwaycam" style="border-color:rgba(239,68,68,.5);color:#fca5a5;">📹 Baan Cam</button>
         <button class="btn radio-btn" id="btn-atc-trigger">🎙️ Zend Oproep</button>
       </div>
     </div>
@@ -1149,13 +1127,9 @@
       <span class="m-nav-icon">🏢</span>
       <span class="m-nav-label">Vluchten</span>
     </button>
-    <button class="m-nav-btn" id="m-btn-atc" data-tab="atc" title="LiveATC verkeersleiding radio">
+    <button class="m-nav-btn" id="m-btn-atc" data-tab="atc" title="Live verkeersleiding radio">
       <span class="m-nav-icon">📻</span>
-      <span class="m-nav-label">LiveATC</span>
-    </button>
-    <button class="m-nav-btn" id="m-btn-cam" data-tab="cam" title="Echte startbaan camera & satelliet">
-      <span class="m-nav-icon">📹</span>
-      <span class="m-nav-label">Baan Cam</span>
+      <span class="m-nav-label">Radio</span>
     </button>
     <button class="m-nav-btn" id="m-btn-daylight" data-tab="daylight" title="Schakel dag- of nachtzicht">
       <span class="m-nav-icon">☀️</span>
@@ -1177,6 +1151,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.3.4"></script>
+  <script src="app.js?v=2.3.5"></script>
 </body>
 </html>

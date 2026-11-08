@@ -493,8 +493,78 @@ class LiveAtcEngine {
       });
     }
 
+    const btnBcfy = document.getElementById('btn-open-broadcastify');
+    if (btnBcfy) {
+      btnBcfy.addEventListener('click', () => {
+        this.recordStreamStart('Schiphol Broadcastify Popout');
+      });
+    }
+
+    this.initLiveClock();
     this.updateAtcUi();
     this.initVisualizer();
+  }
+
+  formatDateTime(d = new Date()) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+    const hours = pad(d.getHours());
+    const mins = pad(d.getMinutes());
+    const secs = pad(d.getSeconds());
+    return {
+      date: `${day}-${month}-${year}`,
+      time: `${hours}:${mins}:${secs}`,
+      clock: `${hours}:${mins}:${secs} CET`,
+      full: `${day}-${month}-${year} ${hours}:${mins}:${secs}`
+    };
+  }
+
+  initLiveClock() {
+    const tick = () => {
+      const dt = this.formatDateTime();
+      const elDate = document.getElementById('live-stream-date');
+      const elClock = document.getElementById('live-stream-clock');
+      const hudClock = document.getElementById('hud-live-clock');
+
+      if (elDate) elDate.textContent = dt.date;
+      if (elClock) elClock.textContent = dt.clock;
+      if (hudClock) hudClock.textContent = `${dt.date} ${dt.time}`;
+    };
+
+    tick();
+    setInterval(tick, 1000);
+  }
+
+  recordStreamStart(stationName = 'Schiphol Toren 118.100 MHz') {
+    this.streamStartedAt = new Date();
+    const dt = this.formatDateTime(this.streamStartedAt);
+    const startRow = document.getElementById('live-stream-start-row');
+    const startedAtDisp = document.getElementById('live-stream-started-at');
+    const dot = document.getElementById('atc-live-indicator-dot');
+    const badge = document.getElementById('live-stream-badge');
+
+    if (startRow) startRow.style.display = 'flex';
+    if (startedAtDisp) startedAtDisp.textContent = `${dt.date} om ${dt.time} CET`;
+    if (dot) {
+      dot.style.background = '#ef4444';
+      dot.style.boxShadow = '0 0 10px #ef4444';
+    }
+    if (badge) {
+      badge.textContent = '🔴 LIVE ACTIEF';
+      badge.style.color = '#f87171';
+    }
+
+    const hudStatus = document.getElementById('hud-liveatc-status');
+    if (hudStatus) hudStatus.innerHTML = `🔴 LIVE (${dt.time})`;
+
+    const statusTxt = document.getElementById('liveatc-status-txt');
+    if (statusTxt) {
+      statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Gestart op: <strong>${dt.date} om ${dt.time} CET</strong>`;
+    }
+
+    ATC.logMessage('LIVE RADIO', `🔴 LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET (${stationName}) — 100% Realtime Live`, true);
   }
 
   getDirectLiveAtcUrl(stationKey) {
@@ -532,7 +602,7 @@ class LiveAtcEngine {
     }
 
     const statusTxt = document.getElementById('liveatc-status-txt');
-    if (statusTxt) {
+    if (statusTxt && !this.streamStartedAt) {
       statusTxt.innerHTML = `🟢 100% Directe streams &bull; <strong>Geen code invullen!</strong>`;
     }
   }
@@ -543,8 +613,9 @@ class LiveAtcEngine {
     if (!win) {
       window.location.href = url;
     }
+    const stationName = (this.currentAirportCode === 'RTM') ? 'Rotterdam Toren' : 'Schiphol Toren 118.100 MHz';
+    this.recordStreamStart(stationName);
     this.updateAtcUi();
-    ATC.logMessage('LIVE RADIO', `Directe live toren audio geopend (zonder invoervelden of codes): ${url}`, true);
   }
 
   ensureAudioCtx() {
@@ -640,6 +711,7 @@ class LiveAtcEngine {
           return;
         }
         this.isPlaying = true;
+        this.recordStreamStart(label);
         if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
@@ -963,283 +1035,16 @@ class LiveRadarManager {
 const LIVE_RADAR = new LiveRadarManager();
 
 // ═══════════════════════════════════════════════════════
-//  ECHTE BAAN BEELDEN (LIVE WEBCAMS & SATELLIET LUCHTFOTO'S)
+//  BAAN BEELDEN / VIDEOSPELER (VERWIJDERD CONFORM VERZOEK)
 // ═══════════════════════════════════════════════════════
-const RUNWAY_CAMS = {
-  TGE: [
-    {
-      id: 'tge_rwy26',
-      name: '🇳🇱 Vliegveld Teuge Baan 26 (1199m - Hoofdbaan)',
-      type: 'satellite',
-      satImage: getAirportSatelliteTextureUrl({ lat: 52.2444, lon: 6.0469, code: 'TGE' }),
-      osd: 'CAM TGE · TEUGE RUNWAY 26 · PARACENTRUM & GA',
-      freq: '120.255 MHz RADIO',
-      desc: 'Start- en landingsbaan 08/26 (1199m), Paracentrum Teuge en vliegschool'
-    },
-    {
-      id: 'tge_para',
-      name: '🪂 Paracentrum Skydive Teuge Dropzone',
-      type: 'satellite',
-      satImage: getAirportSatelliteTextureUrl({ lat: 52.2444, lon: 6.0469, code: 'TGE' }),
-      osd: 'CAM TGE-DZ · PARACENTRUM TEUGE · DROPZONE',
-      freq: '120.255 MHz RADIO',
-      desc: 'Parachutisten landingsveld en hangar van Skydive Teuge (PH-FST Supervan)'
-    }
-  ],
-  AMS: [
-    {
-      id: 'ams_kaagbaan',
-      name: '🇳🇱 Schiphol Kaagbaan (Baan 24/06)',
-      type: 'youtube',
-      channelId: 'UCDRT7uomQAQFfFzGT4T7Ekg', // AMS LIVE
-      osd: 'CAM 01 · KAAGBAAN 24 · LIVE HD',
-      freq: '118.100 MHz TWR',
-      satImage: 'textures/runways/schiphol_satellite_highres.jpg',
-      desc: 'Echte live videobeelden van landingen en starts op Schiphol Kaagbaan & Polderbaan'
-    },
-    {
-      id: 'ams_polderbaan',
-      name: '🇳🇱 Schiphol Polderbaan (Baan 36L/18R)',
-      type: 'youtube',
-      channelId: 'UCDRT7uomQAQFfFzGT4T7Ekg',
-      osd: 'CAM 02 · POLDERBAAN 36L · TOUCHDOWN CAM',
-      freq: '118.275 MHz TWR',
-      satImage: 'textures/runways/schiphol_satellite_highres.jpg',
-      desc: 'Echte camerabeelden van touch-downs en naderingen op de Polderbaan'
-    },
-    {
-      id: 'ams_sat',
-      name: '🛰️ Schiphol Kaagbaan Satelliet Luchtfoto (Ultra HD)',
-      type: 'satellite',
-      satImage: 'textures/runways/schiphol_satellite_highres.jpg',
-      osd: 'SAT 01 · SCHIPHOL AIRFIELD ORTHOPHOTO 25CM',
-      freq: '118.100 MHz TWR',
-      desc: 'Echte satelliet luchtfoto van startbanen 24, 36L, 18C en platform Schiphol'
-    }
-  ],
-  RTM: [
-    {
-      id: 'rtm_rwy',
-      name: '🇳🇱 Rotterdam The Hague Airport Baan 24/06',
-      type: 'satellite',
-      satImage: 'textures/runways/schiphol_satellite_highres.jpg',
-      osd: 'CAM RTM · ROTTERDAM RUNWAY 24 · HD',
-      freq: '118.200 MHz TWR',
-      desc: 'Luchtfoto en baancomplex van baan 24/06 Rotterdam'
-    }
-  ],
-  EIN: [
-    {
-      id: 'ein_rwy',
-      name: '🇳🇱 Eindhoven Airport Baan 21/03',
-      type: 'satellite',
-      satImage: 'textures/runways/schiphol_satellite_highres.jpg',
-      osd: 'CAM EIN · EINDHOVEN RUNWAY 21 · HD',
-      freq: '131.000 MHz TWR',
-      desc: 'Luchtfoto en baancomplex van baan 21/03 Eindhoven'
-    }
-  ]
+const RUNWAY_CAM = {
+  init() {},
+  open() {},
+  close() {},
+  toggle() {},
+  tuneToAirport() {},
+  isOpen: false
 };
-
-function getAirportSatelliteTextureUrl(airport) {
-  if (!airport || airport.code === 'AMS') return 'textures/runways/schiphol_satellite_highres.jpg';
-  // Esri World Imagery satelliet tile voor elk Nederlands vliegveld
-  const zoom = 15;
-  const latRad = airport.lat * Math.PI / 180;
-  const n = Math.pow(2, zoom);
-  const x = Math.floor((airport.lon + 180) / 360 * n);
-  const y = Math.floor((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n);
-  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${x}`;
-}
-
-class RunwayCamEngine {
-  constructor() {
-    this.deckEl = null;
-    this.iframeEl = null;
-    this.imgEl = null;
-    this.selectEl = null;
-    this.titleEl = null;
-    this.badgeEl = null;
-    this.osdTopLeft = null;
-    this.osdTopRight = null;
-    this.osdBotLeft = null;
-    this.osdBotRight = null;
-    this.btnModeLive = null;
-    this.btnModeSat = null;
-    this.currentMode = 'live'; // 'live' of 'sat'
-    this.currentCam = null;
-    this.isOpen = true; // Standaard actief zodat gebruiker direct echte beelden ziet
-  }
-
-  init() {
-    this.deckEl = document.getElementById('runway-cam-deck');
-    this.iframeEl = document.getElementById('cam-iframe');
-    this.imgEl = document.getElementById('cam-sat-img');
-    this.selectEl = document.getElementById('cam-select');
-    this.titleEl = document.getElementById('cam-title');
-    this.badgeEl = document.getElementById('cam-badge');
-    this.osdTopLeft = document.getElementById('cam-osd-topleft');
-    this.osdTopRight = document.getElementById('cam-osd-topright');
-    this.osdBotLeft = document.getElementById('cam-osd-botleft');
-    this.osdBotRight = document.getElementById('cam-osd-botright');
-    this.btnModeLive = document.getElementById('btn-cam-mode-live');
-    this.btnModeSat = document.getElementById('btn-cam-mode-sat');
-
-    const btnToggle = document.getElementById('btn-toggle-runwaycam');
-    const btnBanner = document.getElementById('btn-banner-runwaycam');
-    const btnCtrl = document.getElementById('btn-ctrl-runwaycam');
-    const btnClose = document.getElementById('btn-cam-close');
-    const btnMin = document.getElementById('btn-cam-min');
-
-    if (btnToggle) btnToggle.addEventListener('click', () => this.toggle());
-    if (btnBanner) btnBanner.addEventListener('click', () => this.open());
-    if (btnCtrl) btnCtrl.addEventListener('click', () => this.toggle());
-    if (btnClose) btnClose.addEventListener('click', () => this.close());
-    if (btnMin) btnMin.addEventListener('click', () => {
-      if (this.deckEl) this.deckEl.classList.toggle('minimized');
-    });
-
-    if (this.selectEl) {
-      this.selectEl.addEventListener('change', (e) => {
-        this.selectCamById(e.target.value);
-      });
-    }
-
-    if (this.btnModeLive) {
-      this.btnModeLive.addEventListener('click', () => this.setMode('live'));
-    }
-    if (this.btnModeSat) {
-      this.btnModeSat.addEventListener('click', () => this.setMode('sat'));
-    }
-
-    // Start direct met Schiphol Kaagbaan Cam
-    this.tuneToAirport(S.selectedAirport || AIRPORTS[0]);
-  }
-
-  open() {
-    this.isOpen = true;
-    if (this.deckEl) this.deckEl.classList.add('show');
-    const btnToggle = document.getElementById('btn-toggle-runwaycam');
-    if (btnToggle) btnToggle.classList.add('active');
-    if (this.currentCam) this.applyCam(this.currentCam);
-    ATC.logMessage('BAAN CAM', `Echte beelden gestart: ${this.currentCam ? this.currentCam.name : 'Startbaancamera'}.`, false);
-
-    if (window.innerWidth <= 640) {
-      const deck = document.getElementById('right-deck');
-      const atc = document.getElementById('atc-console');
-      if (deck) deck.classList.remove('show-mobile');
-      if (atc) atc.classList.remove('show-mobile');
-      const btns = document.querySelectorAll('.m-nav-btn');
-      btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'cam'));
-    }
-  }
-
-  close() {
-    this.isOpen = false;
-    if (this.deckEl) this.deckEl.classList.remove('show');
-    const btnToggle = document.getElementById('btn-toggle-runwaycam');
-    if (btnToggle) btnToggle.classList.remove('active');
-    if (this.iframeEl) this.iframeEl.src = '';
-
-    if (window.innerWidth <= 640) {
-      const btns = document.querySelectorAll('.m-nav-btn');
-      btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'globe'));
-    }
-  }
-
-  toggle() {
-    if (this.isOpen) this.close();
-    else this.open();
-  }
-
-  tuneToAirport(airport) {
-    if (!airport) return;
-    const cams = RUNWAY_CAMS[airport.code] || [
-      {
-        id: `${airport.code.toLowerCase()}_sat`,
-        name: `🛰️ ${airport.flag} ${airport.name} (${airport.activeRunway})`,
-        type: 'satellite',
-        satImage: getAirportSatelliteTextureUrl(airport),
-        osd: `SAT ${airport.code} · ${airport.activeRunway} · ECHTE LUCHTFOTO`,
-        freq: `${airport.freqs ? airport.freqs.twr : '118.100'} MHz`,
-        desc: `Echte satelliet luchtfoto van de landingsbanen op ${airport.name}`
-      },
-      ...RUNWAY_CAMS['AMS']
-    ];
-
-    if (this.selectEl) {
-      this.selectEl.innerHTML = '';
-      for (const cam of cams) {
-        const opt = document.createElement('option');
-        opt.value = cam.id;
-        opt.textContent = cam.name;
-        this.selectEl.appendChild(opt);
-      }
-    }
-
-    const firstCam = cams[0];
-    this.currentCam = firstCam;
-    if (this.isOpen) {
-      this.applyCam(firstCam);
-    }
-  }
-
-  selectCamById(camId) {
-    for (const group of Object.values(RUNWAY_CAMS)) {
-      const found = group.find(c => c.id === camId);
-      if (found) {
-        this.currentCam = found;
-        this.applyCam(found);
-        return;
-      }
-    }
-    if (this.currentCam && this.currentCam.id === camId) {
-      this.applyCam(this.currentCam);
-    }
-  }
-
-  setMode(mode) {
-    this.currentMode = mode;
-    if (this.btnModeLive) this.btnModeLive.classList.toggle('active', mode === 'live');
-    if (this.btnModeSat) this.btnModeSat.classList.toggle('active', mode === 'sat');
-    if (this.currentCam) this.applyCam(this.currentCam);
-  }
-
-  applyCam(cam) {
-    if (!cam) return;
-    const ap = S.selectedAirport || AIRPORTS[0];
-
-    if (this.titleEl) this.titleEl.textContent = cam.name;
-    if (this.badgeEl) this.badgeEl.textContent = this.currentMode === 'live' ? 'LIVE CAM' : 'SATELLIET';
-    if (this.osdTopLeft) this.osdTopLeft.textContent = cam.osd || `CAM · ${ap.activeRunway} · LIVE HD`;
-    if (this.osdTopRight) this.osdTopRight.textContent = this.currentMode === 'live' ? 'REC ● 1080p 60fps' : 'GEO ● 25cm ORTHOPHOTO';
-    if (this.osdBotLeft) this.osdBotLeft.textContent = `TWR ${ap.freqs ? ap.freqs.twr : '118.100'} MHz · ${ap.code} TOWER`;
-    if (this.osdBotRight) this.osdBotRight.textContent = `WIND ${ap.weather ? ap.weather.wind : '220° 12kt'} · QNH ${ap.weather ? ap.weather.qnh : '1014'}`;
-
-    if (this.currentMode === 'live' && cam.type === 'youtube') {
-      if (this.imgEl) this.imgEl.style.display = 'none';
-      if (this.iframeEl) {
-        this.iframeEl.style.display = 'block';
-        const url = `https://www.youtube.com/embed/live_stream?channel=${cam.channelId}&autoplay=1&mute=1&playsinline=1`;
-        if (this.iframeEl.src !== url) {
-          this.iframeEl.src = url;
-        }
-      }
-    } else {
-      // Satelliet foto modus
-      if (this.iframeEl) {
-        this.iframeEl.style.display = 'none';
-        this.iframeEl.src = '';
-      }
-      if (this.imgEl) {
-        this.imgEl.style.display = 'block';
-        this.imgEl.src = cam.satImage || getAirportSatelliteTextureUrl(ap);
-      }
-    }
-  }
-}
-
-const RUNWAY_CAM = new RunwayCamEngine();
 
 // ═══════════════════════════════════════════════════════
 //  ATC RADIO ENGINE (VHF WEBAUDIO FILTERING & DIALOGEN)
@@ -3301,7 +3106,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.4';
+let currentVersion = '2.3.5';
 
 async function checkVersion(silent = true) {
   try {
