@@ -279,7 +279,113 @@
       gap: 4px;
     }
 
-    /* ── Panel Resizer Handles ── */
+    /* ── Panel Vrij Verplaatsen (Drag & Drop) & 8-Kanten Resizing ── */
+    .panel-drag-grip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--cyan);
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: grab;
+      user-select: none;
+      letter-spacing: 0.5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .panel-drag-grip:hover {
+      background: rgba(56, 189, 248, 0.28);
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    }
+    .panel-drag-grip:active,
+    .panel-dragging .panel-drag-grip {
+      cursor: grabbing;
+      background: rgba(56, 189, 248, 0.45);
+    }
+
+    .panel-bottom-dragbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0;
+      margin-top: 4px;
+      cursor: grab;
+      user-select: none;
+      opacity: 0.5;
+      transition: opacity 0.15s ease, background 0.15s ease;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      color: #94a3b8;
+    }
+    .panel-bottom-dragbar:hover {
+      opacity: 1;
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.1);
+    }
+    .panel-dragging .panel-bottom-dragbar {
+      cursor: grabbing;
+      opacity: 1;
+    }
+
+    #right-deck.panel-dragging,
+    #atc-console.panel-dragging {
+      transition: none !important;
+      user-select: none !important;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.9), 0 0 30px rgba(56, 189, 248, 0.5) !important;
+      opacity: 0.96;
+      z-index: 35 !important;
+      cursor: grabbing !important;
+    }
+
+    /* ── 8-Kanten Resizer Handles (Alle Kanten & Hoeken) ── */
+    .p-resizer {
+      position: absolute;
+      z-index: 25;
+      transition: background 0.15s ease;
+    }
+    .p-resizer-w {
+      left: -5px; top: 8px; bottom: 8px; width: 10px; cursor: ew-resize;
+    }
+    .p-resizer-e {
+      right: -5px; top: 8px; bottom: 8px; width: 10px; cursor: ew-resize;
+    }
+    .p-resizer-n {
+      top: -5px; left: 8px; right: 8px; height: 10px; cursor: ns-resize;
+    }
+    .p-resizer-s {
+      bottom: -5px; left: 8px; right: 8px; height: 10px; cursor: ns-resize;
+    }
+    .p-resizer-nw {
+      top: -6px; left: -6px; width: 14px; height: 14px; cursor: nwse-resize; z-index: 28;
+    }
+    .p-resizer-ne {
+      top: -6px; right: -6px; width: 14px; height: 14px; cursor: nesw-resize; z-index: 28;
+    }
+    .p-resizer-sw {
+      bottom: -6px; left: -6px; width: 14px; height: 14px; cursor: nesw-resize; z-index: 28;
+    }
+    .p-resizer-se {
+      bottom: -6px; right: -6px; width: 14px; height: 14px; cursor: nwse-resize; z-index: 28;
+    }
+    .p-resizer:hover,
+    .p-resizer.resizing {
+      background: rgba(56, 189, 248, 0.28);
+    }
+    .p-resizer-nw:hover, .p-resizer-ne:hover, .p-resizer-sw:hover, .p-resizer-se:hover,
+    .p-resizer-nw.resizing, .p-resizer-ne.resizing, .p-resizer-sw.resizing, .p-resizer-se.resizing {
+      background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      border-radius: 2px;
+    }
+
+    /* ── Panel Resizer Handles (Legacy compat) ── */
     .panel-resizer-handle {
       position: absolute;
       top: 0;
@@ -925,7 +1031,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.5.1</strong> beschikbaar &bull; <span id="upd-note">Gesprekken opnemen uitsluitend in WAV (.wav) &bull; Formaatregeling & minimaliseren &bull; Live ADS-B radar</span></span>
+      <span><strong id="upd-ver">v2.5.2</strong> beschikbaar &bull; <span id="upd-note">Vrij verplaatsen & overal neerzetten &bull; 8-Kanten resizen &bull; Luchthaven Bord & ATC Gesprekken</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -957,7 +1063,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.1</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.2</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -982,14 +1088,25 @@
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
     <div class="hud-row"><span class="hud-label">Gesprek opname</span><span class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY (WAV)</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.5.1</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.5.2</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
   <div id="atc-console" aria-label="ATC Radio Transceiver">
+    <!-- 8-Kanten Resizers voor Gesprekkenvenster -->
+    <div class="p-resizer p-resizer-w" data-dir="w" title="Sleep linker rand"></div>
+    <div class="p-resizer p-resizer-e" data-dir="e" title="Sleep rechter rand"></div>
+    <div class="p-resizer p-resizer-n" data-dir="n" title="Sleep bovenrand"></div>
+    <div class="p-resizer p-resizer-s" data-dir="s" title="Sleep onderrand"></div>
+    <div class="p-resizer p-resizer-nw" data-dir="nw" title="Sleep linksboven hoek"></div>
+    <div class="p-resizer p-resizer-ne" data-dir="ne" title="Sleep rechtsboven hoek"></div>
+    <div class="p-resizer p-resizer-sw" data-dir="sw" title="Sleep linksonder hoek"></div>
+    <div class="p-resizer p-resizer-se" data-dir="se" title="Sleep rechtsonder hoek"></div>
     <div class="panel-resizer-handle resizer-right" id="resizer-atc" title="Sleep naar links of rechts om het gesprekkenpaneel breder of smaller te maken"></div>
-    <div class="atc-header">
+
+    <div class="atc-header" id="atc-drag-header" title="Sleep vanaf hier om het gesprekkenvenster vrij overal neer te zetten">
       <div class="atc-freq-wrap" id="atc-header-click" title="Klik om in of uit te klappen" style="cursor:pointer;flex:1;">
+        <span class="panel-drag-grip" id="drag-grip-atc" title="Sleep om dit venster vrij overal op het bord/scherm neer te zetten">⠿ Verplaats</span>
         <span class="atc-tx-indicator" id="atc-tx-led">RX</span>
         <span class="atc-freq" id="atc-freq-disp">118.100 MHz</span>
         <span class="atc-channel" id="atc-channel-disp">SCHIPHOL TOWER</span>
@@ -997,6 +1114,7 @@
       </div>
       <div class="atc-actions">
         <button class="btn-icon-sm" id="btn-atc-mute" title="Geluid Aan/Uit">🔊</button>
+        <button class="btn-icon-sm" id="btn-reset-pos-atc" title="Herstel standaardpositie linksonder">↺</button>
         <button class="btn-icon-sm" id="btn-size-atc" title="Formaat wisselen: Compact (280px) / Normaal (360px) / Groot (490px) [R]">📐</button>
         <button class="btn-icon-sm" id="btn-min-atc" title="Minimaliseer / Klap in (meer ruimte voor vliegende vliegtuigen) [M]">➖</button>
         <button class="btn-icon-sm" id="btn-close-atc" title="Sluit gesprekken venster">&times;</button>
@@ -1190,6 +1308,9 @@
 
     <!-- HTML5 Audio Element voor echte LiveATC streams -->
     <audio id="liveatc-audio-element" preload="none"></audio>
+    <div class="panel-bottom-dragbar" id="drag-bottom-atc" title="Sleep vanaf onderkant om dit venster vrij overal neer te zetten">
+      <span>•••••••• ✥ Verplaats gesprekkenvenster ••••••••</span>
+    </div>
   </div>
 
   <!-- Zwevende Herstelknop voor Gesprekken (verschijnt als venster gesloten is) -->
@@ -1199,15 +1320,27 @@
 
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->
   <div id="right-deck">
+    <!-- 8-Kanten Resizers voor Luchthaven Bord -->
+    <div class="p-resizer p-resizer-w" data-dir="w" title="Sleep linker rand"></div>
+    <div class="p-resizer p-resizer-e" data-dir="e" title="Sleep rechter rand"></div>
+    <div class="p-resizer p-resizer-n" data-dir="n" title="Sleep bovenrand"></div>
+    <div class="p-resizer p-resizer-s" data-dir="s" title="Sleep onderrand"></div>
+    <div class="p-resizer p-resizer-nw" data-dir="nw" title="Sleep linksboven hoek"></div>
+    <div class="p-resizer p-resizer-ne" data-dir="ne" title="Sleep rechtsboven hoek"></div>
+    <div class="p-resizer p-resizer-sw" data-dir="sw" title="Sleep linksonder hoek"></div>
+    <div class="p-resizer p-resizer-se" data-dir="se" title="Sleep rechtsonder hoek"></div>
     <div class="panel-resizer-handle resizer-left" id="resizer-right-deck" title="Sleep naar links of rechts om het luchthavenbord breder of smaller te maken"></div>
-    <!-- Header Bar with Resize, Minimize and Close Controls -->
-    <div class="deck-header-bar">
+
+    <!-- Header Bar with Move, Resize, Minimize and Close Controls -->
+    <div class="deck-header-bar" id="deck-drag-header" title="Sleep vanaf hier om het luchthavenbord vrij overal neer te zetten">
       <div class="deck-header-title" id="deck-header-click" title="Klik om in of uit te klappen">
+        <span class="panel-drag-grip" id="drag-grip-deck" title="Sleep om dit venster vrij overal op het bord/scherm neer te zetten">⠿ Verplaats</span>
         <span class="dh-icon">🏢</span>
         <span class="dh-label">Luchthaven Bord & Regie</span>
         <span class="dh-min-tag" id="right-deck-min-tag" style="display:none;font-size:0.65rem;color:var(--gold);font-family:var(--mono);font-weight:700;margin-left:4px;">(Ingeklapt ➕)</span>
       </div>
       <div class="deck-header-actions">
+        <button class="btn-icon-sm" id="btn-reset-pos-deck" title="Herstel standaardpositie rechtsboven">↺</button>
         <button class="btn-icon-sm" id="btn-size-right-deck" title="Formaat wisselen: Compact (280px) / Normaal (390px) / Breed (540px) [B]">📐</button>
         <button class="btn-icon-sm" id="btn-min-right-deck" title="Minimaliseer / Klap in (meer ruimte voor vliegende vliegtuigen) [M]">➖</button>
         <button class="btn-icon-sm" id="btn-close-right-deck" title="Sluit paneel">&times;</button>
@@ -1323,6 +1456,9 @@
       <div id="flight-list" class="fids-scroll"></div>
     </div>
     </div><!-- /right-deck-content -->
+    <div class="panel-bottom-dragbar" id="drag-bottom-deck" title="Sleep vanaf onderkant om dit venster vrij overal neer te zetten">
+      <span>•••••••• ✥ Verplaats luchthavenbord ••••••••</span>
+    </div>
   </div>
 
   <!-- Zwevende Herstelknop voor Luchthaven Bord (verschijnt als venster gesloten is) -->
@@ -1456,6 +1592,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.4.0"></script>
+  <script src="app.js?v=2.5.2"></script>
 </body>
 </html>

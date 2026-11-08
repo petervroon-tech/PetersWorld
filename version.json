@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.1",
-  "build": 56,
-  "timestamp": "2026-11-08T13:27:40.850595+00:00",
-  "git_hash": "dbb5116",
+  "version": "2.5.2",
+  "build": 57,
+  "timestamp": "2026-11-08T13:38:51.820309+00:00",
+  "git_hash": "d6bfaf8",
   "features": [
+    "Vrij verplaatsen en overal neerzetten (Drag & Drop) en 8-kanten resizen voor zowel Luchthaven Bord & Regie als ATC Gesprekken: sleepbare koppen, randen en hoeken, vrij overal op het scherm/bord te plaatsen met positiegeheugen en ↺ herstelknoppen",
     "Gesprekken opnemen uitsluitend in ongecomprimeerd WAV-formaat (.wav) met directe PCM-encoder en Web Audio decodering",
     "Vergroten, verkleinen & minimaliseren voor Luchthaven Bord & Regie en ATC Gesprekken: sleepbare breedteregelaars, compacte/normale/brede formaten en één-klik minimaliseerfunctie voor maximale schermruimte om vliegende vliegtuigen te volgen",
     "100% Echte Live ATC Radio: directe koppeling met officiële live Icecast radiofeeds van de verkeerstoren (Kaagbaan/Aalsmeerbaan, Polderbaan, Zwanenburgerbaan, Delivery) via s1-bos.liveatc.net. Het statische ochtendbandje is definitief vervangen.",

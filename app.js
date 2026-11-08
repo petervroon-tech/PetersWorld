@@ -3838,17 +3838,25 @@ class PanelResizerManager {
     this.atcConsole = document.getElementById('atc-console');
     this.btnSizeDeck = document.getElementById('btn-size-right-deck');
     this.btnMinDeck = document.getElementById('btn-min-right-deck');
+    this.btnResetPosDeck = document.getElementById('btn-reset-pos-deck');
     this.btnCloseDeck = document.getElementById('btn-close-right-deck');
     this.deckHeaderClick = document.getElementById('deck-header-click');
     this.deckMinTag = document.getElementById('right-deck-min-tag');
     this.floatOpenDeck = document.getElementById('floating-open-deck');
+    this.dragGripDeck = document.getElementById('drag-grip-deck');
+    this.dragHeaderDeck = document.getElementById('deck-drag-header');
+    this.dragBottomDeck = document.getElementById('drag-bottom-deck');
 
     this.btnSizeAtc = document.getElementById('btn-size-atc');
     this.btnMinAtc = document.getElementById('btn-min-atc');
+    this.btnResetPosAtc = document.getElementById('btn-reset-pos-atc');
     this.btnCloseAtc = document.getElementById('btn-close-atc');
     this.atcHeaderClick = document.getElementById('atc-header-click');
     this.atcMinTag = document.getElementById('atc-min-tag');
     this.floatOpenAtc = document.getElementById('floating-open-atc');
+    this.dragGripAtc = document.getElementById('drag-grip-atc');
+    this.dragHeaderAtc = document.getElementById('atc-drag-header');
+    this.dragBottomAtc = document.getElementById('drag-bottom-atc');
 
     this.resizerDeck = document.getElementById('resizer-right-deck');
     this.resizerAtc = document.getElementById('resizer-atc');
@@ -3861,13 +3869,70 @@ class PanelResizerManager {
 
   loadSavedState() {
     try {
-      const savedDeckWidth = localStorage.getItem('pw_deck_width');
-      if (savedDeckWidth && this.rightDeck && window.innerWidth > 640) {
-        const w = parseInt(savedDeckWidth, 10);
-        if (w >= 260 && w <= 750) {
-          this.rightDeck.style.width = `${w}px`;
+      if (window.innerWidth > 640) {
+        // 1. Deck Positie & Grootte
+        const deckX = localStorage.getItem('pw_deck_x');
+        const deckY = localStorage.getItem('pw_deck_y');
+        if (deckX !== null && deckY !== null && this.rightDeck) {
+          const x = parseInt(deckX, 10);
+          const y = parseInt(deckY, 10);
+          if (!isNaN(x) && !isNaN(y)) {
+            const clampedX = Math.max(0, Math.min(window.innerWidth - 80, x));
+            const clampedY = Math.max(35, Math.min(window.innerHeight - 50, y));
+            this.rightDeck.style.left = `${clampedX}px`;
+            this.rightDeck.style.top = `${clampedY}px`;
+            this.rightDeck.style.right = 'auto';
+            this.rightDeck.style.bottom = 'auto';
+          }
+        }
+        const savedDeckWidth = localStorage.getItem('pw_deck_width');
+        if (savedDeckWidth && this.rightDeck) {
+          const w = parseInt(savedDeckWidth, 10);
+          if (w >= 240 && w <= window.innerWidth - 20) {
+            this.rightDeck.style.width = `${w}px`;
+          }
+        }
+        const savedDeckHeight = localStorage.getItem('pw_deck_height');
+        if (savedDeckHeight && this.rightDeck) {
+          const h = parseInt(savedDeckHeight, 10);
+          if (h >= 100 && h <= window.innerHeight - 50) {
+            this.rightDeck.style.maxHeight = `${h}px`;
+            this.rightDeck.style.height = `${h}px`;
+          }
+        }
+
+        // 2. ATC Console Positie & Grootte
+        const atcX = localStorage.getItem('pw_atc_x');
+        const atcY = localStorage.getItem('pw_atc_y');
+        if (atcX !== null && atcY !== null && this.atcConsole) {
+          const x = parseInt(atcX, 10);
+          const y = parseInt(atcY, 10);
+          if (!isNaN(x) && !isNaN(y)) {
+            const clampedX = Math.max(0, Math.min(window.innerWidth - 80, x));
+            const clampedY = Math.max(35, Math.min(window.innerHeight - 50, y));
+            this.atcConsole.style.left = `${clampedX}px`;
+            this.atcConsole.style.top = `${clampedY}px`;
+            this.atcConsole.style.right = 'auto';
+            this.atcConsole.style.bottom = 'auto';
+          }
+        }
+        const savedAtcWidth = localStorage.getItem('pw_atc_width');
+        if (savedAtcWidth && this.atcConsole) {
+          const w = parseInt(savedAtcWidth, 10);
+          if (w >= 240 && w <= window.innerWidth - 20) {
+            this.atcConsole.style.width = `${w}px`;
+          }
+        }
+        const savedAtcHeight = localStorage.getItem('pw_atc_height');
+        if (savedAtcHeight && this.atcConsole) {
+          const h = parseInt(savedAtcHeight, 10);
+          if (h >= 100 && h <= window.innerHeight - 50) {
+            this.atcConsole.style.maxHeight = `${h}px`;
+            this.atcConsole.style.height = `${h}px`;
+          }
         }
       }
+
       const savedDeckSize = localStorage.getItem('pw_deck_size');
       if (savedDeckSize) {
         const idx = this.deckSizes.findIndex(s => s.key === savedDeckSize);
@@ -3883,13 +3948,6 @@ class PanelResizerManager {
         this.toggleDeckMinimize(true);
       }
 
-      const savedAtcWidth = localStorage.getItem('pw_atc_width');
-      if (savedAtcWidth && this.atcConsole && window.innerWidth > 640) {
-        const w = parseInt(savedAtcWidth, 10);
-        if (w >= 260 && w <= 700) {
-          this.atcConsole.style.width = `${w}px`;
-        }
-      }
       const savedAtcSize = localStorage.getItem('pw_atc_size');
       if (savedAtcSize) {
         const idx = this.atcSizes.findIndex(s => s.key === savedAtcSize);
@@ -3919,6 +3977,13 @@ class PanelResizerManager {
       this.btnMinDeck.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleDeckMinimize();
+      });
+    }
+
+    if (this.btnResetPosDeck) {
+      this.btnResetPosDeck.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetPosition('deck');
       });
     }
 
@@ -3954,6 +4019,13 @@ class PanelResizerManager {
       this.btnMinAtc.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleAtcMinimize();
+      });
+    }
+
+    if (this.btnResetPosAtc) {
+      this.btnResetPosAtc.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetPosition('atc');
       });
     }
 
@@ -4108,102 +4180,253 @@ class PanelResizerManager {
     ATC.logMessage('SCHERM', shouldMin ? '🔍 Maximaal Zicht geactiveerd: beide vensters ingeklapt voor vrij zicht op vliegende vliegtuigen.' : '📋 Beide vensters uitgeklapt.', false);
   }
 
+  bringToFront(panel) {
+    if (!panel) return;
+    if (this.rightDeck) this.rightDeck.style.zIndex = '18';
+    if (this.atcConsole) this.atcConsole.style.zIndex = '18';
+    panel.style.zIndex = '28';
+  }
+
+  resetPosition(key) {
+    if (key === 'deck' && this.rightDeck) {
+      try {
+        localStorage.removeItem('pw_deck_x');
+        localStorage.removeItem('pw_deck_y');
+        localStorage.removeItem('pw_deck_width');
+        localStorage.removeItem('pw_deck_height');
+      } catch (e) {}
+      this.rightDeck.style.left = '';
+      this.rightDeck.style.top = '80px';
+      this.rightDeck.style.right = '16px';
+      this.rightDeck.style.bottom = '';
+      this.rightDeck.style.width = '390px';
+      this.rightDeck.style.maxHeight = 'calc(100vh - 110px)';
+      this.rightDeck.style.height = '';
+      ATC.logMessage('SCHERM', '🏢 Luchthaven Bord hersteld naar standaardpositie (rechtsboven).', false);
+    } else if (key === 'atc' && this.atcConsole) {
+      try {
+        localStorage.removeItem('pw_atc_x');
+        localStorage.removeItem('pw_atc_y');
+        localStorage.removeItem('pw_atc_width');
+        localStorage.removeItem('pw_atc_height');
+      } catch (e) {}
+      this.atcConsole.style.left = '16px';
+      this.atcConsole.style.bottom = '85px';
+      this.atcConsole.style.top = '';
+      this.atcConsole.style.right = '';
+      this.atcConsole.style.width = '360px';
+      this.atcConsole.style.maxHeight = 'calc(100vh - 180px)';
+      this.atcConsole.style.height = '';
+      ATC.logMessage('SCHERM', '📻 Gesprekkenvenster hersteld naar standaardpositie (linksonder).', false);
+    }
+  }
+
+  setupFreeDragging(panel, dragHandles, key) {
+    if (!panel || !dragHandles || dragHandles.length === 0) return;
+
+    dragHandles.forEach(handle => {
+      if (!handle) return;
+
+      const onStart = (e) => {
+        if (window.innerWidth <= 640) return; // Smartphone gebruikt vaste bottom-sheet modal
+        const target = e.target;
+        if (target.closest('button') || target.closest('select') || target.closest('input') || target.closest('a') || (target.classList && target.classList.contains('p-resizer'))) {
+          return;
+        }
+
+        this.bringToFront(panel);
+        panel.classList.add('panel-dragging');
+        document.body.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
+
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+        const rect = panel.getBoundingClientRect();
+        const startX = clientX;
+        const startY = clientY;
+        const origLeft = rect.left;
+        const origTop = rect.top;
+
+        const onMove = (ev) => {
+          const curX = (ev.touches && ev.touches[0]) ? ev.touches[0].clientX : ev.clientX;
+          const curY = (ev.touches && ev.touches[0]) ? ev.touches[0].clientY : ev.clientY;
+          const dx = curX - startX;
+          const dy = curY - startY;
+
+          const maxLeft = Math.max(0, window.innerWidth - 80);
+          const maxTop = Math.max(35, window.innerHeight - 50);
+
+          const newLeft = Math.max(0, Math.min(maxLeft, Math.round(origLeft + dx)));
+          const newTop = Math.max(35, Math.min(maxTop, Math.round(origTop + dy)));
+
+          panel.style.left = `${newLeft}px`;
+          panel.style.top = `${newTop}px`;
+          panel.style.right = 'auto';
+          panel.style.bottom = 'auto';
+        };
+
+        const onEnd = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('mouseup', onEnd);
+          window.removeEventListener('touchend', onEnd);
+
+          panel.classList.remove('panel-dragging');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+
+          const finalLeft = parseInt(panel.style.left, 10);
+          const finalTop = parseInt(panel.style.top, 10);
+          if (!isNaN(finalLeft) && !isNaN(finalTop)) {
+            try {
+              localStorage.setItem(`pw_${key}_x`, finalLeft);
+              localStorage.setItem(`pw_${key}_y`, finalTop);
+            } catch (err) {}
+          }
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+
+        if (e.preventDefault && e.cancelable) e.preventDefault();
+      };
+
+      handle.addEventListener('mousedown', onStart);
+      handle.addEventListener('touchstart', onStart, { passive: false });
+    });
+  }
+
+  setupMultiDirectionalResizing(panel, key) {
+    if (!panel) return;
+    const resizers = panel.querySelectorAll('.p-resizer, .panel-resizer-handle');
+    resizers.forEach(resizer => {
+      let dir = resizer.getAttribute('data-dir');
+      if (!dir) {
+        if (resizer.classList.contains('resizer-left')) dir = 'w';
+        else if (resizer.classList.contains('resizer-right')) dir = 'e';
+        else dir = 'e';
+      }
+
+      const onStart = (e) => {
+        if (window.innerWidth <= 640) return;
+        this.bringToFront(panel);
+        panel.classList.add('resizing');
+        resizer.classList.add('resizing');
+        document.body.style.userSelect = 'none';
+
+        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+        const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+        const rect = panel.getBoundingClientRect();
+        const startX = clientX;
+        const startY = clientY;
+        const startLeft = rect.left;
+        const startTop = rect.top;
+        const startWidth = rect.width;
+        const startHeight = rect.height;
+
+        const onMove = (ev) => {
+          const curX = (ev.touches && ev.touches[0]) ? ev.touches[0].clientX : ev.clientX;
+          const curY = (ev.touches && ev.touches[0]) ? ev.touches[0].clientY : ev.clientY;
+          const dx = curX - startX;
+          const dy = curY - startY;
+
+          let newWidth = startWidth;
+          let newHeight = startHeight;
+          let newLeft = startLeft;
+          let newTop = startTop;
+
+          // Horizontaal schalen
+          if (dir.includes('e')) {
+            newWidth = Math.max(250, Math.min(window.innerWidth - startLeft - 10, startWidth + dx));
+            panel.style.width = `${Math.round(newWidth)}px`;
+          } else if (dir.includes('w')) {
+            newWidth = Math.max(250, Math.min(startLeft + startWidth - 10, startWidth - dx));
+            newLeft = startLeft + (startWidth - newWidth);
+            panel.style.width = `${Math.round(newWidth)}px`;
+            panel.style.left = `${Math.round(newLeft)}px`;
+            panel.style.right = 'auto';
+          }
+
+          // Verticaal schalen
+          if (dir.includes('s')) {
+            newHeight = Math.max(100, Math.min(window.innerHeight - startTop - 10, startHeight + dy));
+            panel.style.maxHeight = `${Math.round(newHeight)}px`;
+            panel.style.height = `${Math.round(newHeight)}px`;
+          } else if (dir.includes('n')) {
+            newHeight = Math.max(100, Math.min(startTop + startHeight - 40, startHeight - dy));
+            newTop = startTop + (startHeight - newHeight);
+            panel.style.maxHeight = `${Math.round(newHeight)}px`;
+            panel.style.height = `${Math.round(newHeight)}px`;
+            panel.style.top = `${Math.round(newTop)}px`;
+            panel.style.bottom = 'auto';
+          }
+        };
+
+        const onEnd = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('touchmove', onMove);
+          window.removeEventListener('mouseup', onEnd);
+          window.removeEventListener('touchend', onEnd);
+
+          panel.classList.remove('resizing');
+          resizer.classList.remove('resizing');
+          document.body.style.userSelect = '';
+
+          try {
+            if (panel.style.width) localStorage.setItem(`pw_${key}_width`, parseInt(panel.style.width, 10));
+            if (panel.style.height) localStorage.setItem(`pw_${key}_height`, parseInt(panel.style.height, 10));
+            if (panel.style.left) localStorage.setItem(`pw_${key}_x`, parseInt(panel.style.left, 10));
+            if (panel.style.top) localStorage.setItem(`pw_${key}_y`, parseInt(panel.style.top, 10));
+          } catch (err) {}
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+
+        if (e.preventDefault && e.cancelable) e.preventDefault();
+      };
+
+      resizer.addEventListener('mousedown', onStart);
+      resizer.addEventListener('touchstart', onStart, { passive: false });
+    });
+  }
+
   setupDragResizing() {
-    // 1. Right Deck sleepregelaar (linker rand)
-    if (this.resizerDeck && this.rightDeck) {
-      let isDragging = false;
-      let startX = 0;
-      let startWidth = 0;
+    // 1. Vrij verplaatsen (Drag & Drop over het hele scherm/bord)
+    this.setupFreeDragging(this.rightDeck, [this.dragGripDeck, this.dragHeaderDeck, this.dragBottomDeck], 'deck');
+    this.setupFreeDragging(this.atcConsole, [this.dragGripAtc, this.dragHeaderAtc, this.dragBottomAtc], 'atc');
 
-      const onMouseDown = (e) => {
-        if (window.innerWidth <= 640 || this.deckMinimized) return;
-        isDragging = true;
-        startX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        startWidth = this.rightDeck.getBoundingClientRect().width;
-        this.rightDeck.classList.add('resizing');
-        this.resizerDeck.classList.add('resizing');
-        document.body.style.cursor = 'ew-resize';
-        document.body.style.userSelect = 'none';
-        if (e.preventDefault) e.preventDefault();
-      };
+    // 2. Multi-directioneel resizen van alle 8 kanten & hoeken
+    this.setupMultiDirectionalResizing(this.rightDeck, 'deck');
+    this.setupMultiDirectionalResizing(this.atcConsole, 'atc');
 
-      const onMouseMove = (e) => {
-        if (!isDragging) return;
-        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        const dx = startX - clientX;
-        const maxW = Math.min(window.innerWidth - 80, 750);
-        const newW = Math.max(250, Math.min(maxW, Math.round(startWidth + dx)));
-        this.rightDeck.style.width = `${newW}px`;
-      };
-
-      const onMouseUp = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        this.rightDeck.classList.remove('resizing');
-        this.resizerDeck.classList.remove('resizing');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        const finalW = parseInt(this.rightDeck.style.width, 10);
-        if (finalW) {
-          try { localStorage.setItem('pw_deck_width', finalW); } catch (e) {}
-        }
-      };
-
-      this.resizerDeck.addEventListener('mousedown', onMouseDown);
-      this.resizerDeck.addEventListener('touchstart', onMouseDown, { passive: false });
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('touchmove', onMouseMove, { passive: false });
-      window.addEventListener('mouseup', onMouseUp);
-      window.addEventListener('touchend', onMouseUp);
+    // 3. Focus / Z-Index Elevation
+    if (this.rightDeck) {
+      this.rightDeck.addEventListener('pointerdown', () => this.bringToFront(this.rightDeck));
+    }
+    if (this.atcConsole) {
+      this.atcConsole.addEventListener('pointerdown', () => this.bringToFront(this.atcConsole));
     }
 
-    // 2. ATC Console sleepregelaar (rechter rand)
-    if (this.resizerAtc && this.atcConsole) {
-      let isDragging = false;
-      let startX = 0;
-      let startWidth = 0;
-
-      const onMouseDown = (e) => {
-        if (window.innerWidth <= 640 || this.atcMinimized) return;
-        isDragging = true;
-        startX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        startWidth = this.atcConsole.getBoundingClientRect().width;
-        this.atcConsole.classList.add('resizing');
-        this.resizerAtc.classList.add('resizing');
-        document.body.style.cursor = 'ew-resize';
-        document.body.style.userSelect = 'none';
-        if (e.preventDefault) e.preventDefault();
-      };
-
-      const onMouseMove = (e) => {
-        if (!isDragging) return;
-        const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-        const dx = clientX - startX;
-        const maxW = Math.min(window.innerWidth - 80, 700);
-        const newW = Math.max(250, Math.min(maxW, Math.round(startWidth + dx)));
-        this.atcConsole.style.width = `${newW}px`;
-      };
-
-      const onMouseUp = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        this.atcConsole.classList.remove('resizing');
-        this.resizerAtc.classList.remove('resizing');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        const finalW = parseInt(this.atcConsole.style.width, 10);
-        if (finalW) {
-          try { localStorage.setItem('pw_atc_width', finalW); } catch (e) {}
+    // 4. Viewport clamp bij scherm resize
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 640) {
+        if (this.rightDeck && this.rightDeck.style.left) {
+          const curLeft = parseInt(this.rightDeck.style.left, 10);
+          const maxL = Math.max(0, window.innerWidth - 80);
+          if (curLeft > maxL) this.rightDeck.style.left = `${maxL}px`;
         }
-      };
-
-      this.resizerAtc.addEventListener('mousedown', onMouseDown);
-      this.resizerAtc.addEventListener('touchstart', onMouseDown, { passive: false });
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('touchmove', onMouseMove, { passive: false });
-      window.addEventListener('mouseup', onMouseUp);
-      window.addEventListener('touchend', onMouseUp);
-    }
+        if (this.atcConsole && this.atcConsole.style.left) {
+          const curLeft = parseInt(this.atcConsole.style.left, 10);
+          const maxL = Math.max(0, window.innerWidth - 80);
+          if (curLeft > maxL) this.atcConsole.style.left = `${maxL}px`;
+        }
+      }
+    });
   }
 
   setupKeyboardShortcuts() {
@@ -4220,6 +4443,9 @@ class PanelResizerManager {
         this.cycleAtcSize();
       } else if (key === 'M') {
         this.toggleMinimizeAll();
+      } else if (key === 'X') {
+        this.resetPosition('deck');
+        this.resetPosition('atc');
       }
     });
   }
@@ -4399,7 +4625,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.1';
+let currentVersion = '2.5.2';
 
 async function checkVersion(silent = true) {
   try {
