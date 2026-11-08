@@ -1,9 +1,9 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.2.0",
-  "build": 33,
-  "timestamp": "2026-11-08T07:38:27.961671+00:00",
-  "git_hash": "62c4577",
+  "version": "2.2.1",
+  "build": 34,
+  "timestamp": "2026-11-08T07:48:00.715068+00:00",
+  "git_hash": "5c96d4b",
   "features": [
     "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
     "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",

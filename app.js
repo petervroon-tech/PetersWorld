@@ -1123,6 +1123,9 @@ const S = {
   // Simulatie state
   flights: [],
   followFlight: null,
+  flightViewMode: 'chase30m',
+  lastFlightPos: null,
+  spotterPos: null,
   selectedAirport: AIRPORTS[0],
   paused: false,
   speed: 1,
@@ -1808,40 +1811,49 @@ async function loadWasm() {
 
 
 // ═══════════════════════════════════════════════════════
-//  CAMERA NAVIGATIE: 30 METER ZOOM & FLIGHTRADER LIVE TRACKING
+//  CAMERA NAVIGATIE: 30 METER ZOOM & STABIELE FLIGHTRADAR TRACKING
 // ═══════════════════════════════════════════════════════
 function selectFlight(flight, viewMode = 'chase30m') {
   if (!flight) return;
   S.followFlight = flight;
   S.flightViewMode = viewMode;
+  S.isZoomingToAirport = false;
+  S.cameraTargetPos = null;
+  S.cameraTargetLook = null;
 
   const p = flight.curve.getPointAt(flight.progress);
   const dir = flight.curve.getTangentAt(flight.progress).normalize();
+  S.lastFlightPos = p.clone();
 
-  if (viewMode === 'ground30m') {
-    // Spotter op 30 meter boven de grond kijkend naar passerend vliegtuig
-    S.cameraTargetPos = new THREE.Vector3(p.x + 0.08, 0.030, p.z + 0.08);
-    S.cameraTargetLook = p.clone();
-  } else if (viewMode === 'cockpit') {
-    // Cockpit view recht vooruit over het landschap
-    S.cameraTargetPos = new THREE.Vector3(p.x + dir.x * 0.005, p.y + 0.002, p.z + dir.z * 0.005);
-    S.cameraTargetLook = new THREE.Vector3(p.x + dir.x * 0.5, p.y, p.z + dir.z * 0.5);
-  } else {
-    // Chase 30m: camera volgt 30m boven de grond / achter het vliegtuig
-    const camAlt = Math.max(0.030, p.y + 0.025);
-    S.cameraTargetPos = new THREE.Vector3(p.x - dir.x * 0.08, camAlt, p.z - dir.z * 0.08);
-    S.cameraTargetLook = p.clone();
-  }
-
-  // Toegang tot 5 meter boven de grond (tot 30 meter zoom!)
+  // Stel minDistance in tot 5 meter (tot 30 meter haarscherp!)
   S.controls.minDistance = 0.005;
   S.controls.maxDistance = 450;
-  S.controls.target.copy(p);
+
+  if (viewMode === 'cockpit') {
+    // 1. Cockpit camera: exact vanuit de cockpit recht vooruit (geen OrbitControls interferentie)
+    S.controls.enabled = false;
+    S.camera.position.copy(p).addScaledVector(dir, 0.003).add(new THREE.Vector3(0, 0.0015, 0));
+    S.camera.lookAt(p.clone().addScaledVector(dir, 1.0));
+  } else if (viewMode === 'ground30m') {
+    // 2. Spotter view: camera staat vast op 30 meter hoogte boven de grond en volgt het vliegtuig
+    S.controls.enabled = false;
+    const right = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+    S.spotterPos = new THREE.Vector3(p.x + right.x * 0.09, 0.030, p.z + right.z * 0.09);
+    S.camera.position.copy(S.spotterPos);
+    S.camera.lookAt(p);
+  } else {
+    // 3. Chase 30m: camera staat 30m achter en 15m boven het vliegtuig
+    S.controls.enabled = true;
+    const chaseOffset = dir.clone().multiplyScalar(-0.045).add(new THREE.Vector3(0, 0.018, 0));
+    S.camera.position.copy(p).add(chaseOffset);
+    S.controls.target.copy(p);
+    S.camera.lookAt(p);
+    S.controls.update();
+  }
 
   updateFlightCardUI(flight);
-  ATC.contactFlight(flight);
-
-  ATC.logMessage('RADAR', `Live Flightradar tracking actief voor ${flight.callsign} (${flight.airline.name}) op ${Math.round(flight.altitude)} m.`, true);
+  // Geen automatische audio-oproep in loop: audio speelt alleen op klik van de radioknop
+  ATC.logMessage('RADAR', `Vliegtuig ${flight.callsign} (${flight.airline.name}) geselecteerd [${viewMode}].`, false);
 }
 
 function updateFlightCardUI(flight) {
@@ -1863,28 +1875,30 @@ function updateFlightCardUI(flight) {
     if (elAlt) elAlt.textContent = `${Number(flight.altitude).toLocaleString('nl-NL')} m (${Math.round(flight.altitude * 3.28084)} ft)`;
     if (elSpd) elSpd.textContent = `${flight.speedKmh} km/h (${Math.round(flight.speedKmh * 0.539957)} kts)`;
     if (elStatus) elStatus.textContent = flight.status || 'In vlucht';
-    if (elHdg) elHdg.textContent = `${flight.heading || 260}°`;
+    if (elHdg) elHdg.textContent = `${flight.heading || 264}°`;
   }
 }
 
 function zoomToAirportRunway(airport, targetAltMeters = 30) {
   if (!airport) return;
   S.followFlight = null;
+  S.flightViewMode = 'chase30m';
+  S.controls.enabled = true;
+  S.lastFlightPos = null;
+  S.spotterPos = null;
   S.selectedAirport = airport;
 
   const apPos = latLonToVector3(airport.lat, airport.lon, 0);
-  // targetAltMeters kan 30 meter zijn (0.030 km)!
   const altKm = Math.max(0.025, targetAltMeters / 1000);
 
   // Plaats camera op 30 meter boven de grond net voor de baandrempel met uitzicht over de baan
-  const camPos = new THREE.Vector3(apPos.x + 0.10, altKm, apPos.z + 0.15);
+  const camPos = new THREE.Vector3(apPos.x + 0.08, altKm, apPos.z + 0.12);
 
   S.cameraTargetLook = new THREE.Vector3(apPos.x, 0.002, apPos.z);
   S.cameraTargetPos = camPos;
   S.isZoomingToAirport = true;
 
-  // MinDistance op 0.005 (~5 meter) zodat de gebruiker tot 30 meter kan inzoomen!
-  S.controls.minDistance = 0.005;
+  S.controls.minDistance = 0.005; // Tot 5 meter boven de grond!
   S.controls.maxDistance = 450;
   S.controls.target.copy(apPos);
 
@@ -1893,11 +1907,15 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
   const apAltDisp = document.getElementById('ap-disp-altitude');
   if (apAltDisp) apAltDisp.textContent = `📷 Hoogte: ${targetAltMeters} m (${airport.activeRunway})`;
 
-  ATC.logMessage('CAMERA', `Ingezoomd tot ${targetAltMeters} meter boven de grond op ${airport.name} (${airport.activeRunway}).`, true);
+  ATC.logMessage('CAMERA', `Ingezoomd tot ${targetAltMeters} meter boven ${airport.name} (${airport.activeRunway}).`, true);
 }
 
 function zoomToGlobe() {
   S.followFlight = null;
+  S.flightViewMode = 'chase30m';
+  S.controls.enabled = true;
+  S.lastFlightPos = null;
+  S.spotterPos = null;
   S.cameraTargetLook = new THREE.Vector3(0, 0, 0);
   S.cameraTargetPos = new THREE.Vector3(0, 160, 45);
   S.controls.minDistance = 0.010;
@@ -1939,14 +1957,37 @@ function animate(now) {
     S.radarSweepMesh.rotation.y -= 0.012;
   }
 
-  // Vluchten positie updaten
+  // Vluchten positie updaten (vloeiende retourvlucht ipv harde loop)
   const dtSim = dt * S.speed;
   for (const f of S.flights) {
     if (!S.paused) {
       f.progress += f.progressRate * dtSim;
       if (f.progress >= 1.0) {
+        // Realistische omkeer naar retourvlucht (geen abrupte sprong)
+        const oldOrig = f.origin;
+        f.origin = f.dest;
+        f.dest = oldOrig;
         f.progress = 0;
-        f.status = 'Kruissnelheid';
+
+        const oVec = latLonToVector3(f.origin.lat, f.origin.lon, 0.05);
+        const dVec = latLonToVector3(f.dest.lat, f.dest.lon, 0.05);
+        const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
+        const isGA = (f.airline.code === 'TGE' || f.airline.code === 'VTE');
+        const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
+
+        const p0 = oVec;
+        const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
+        const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
+        const p3 = dVec;
+        f.curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+
+        const pts = f.curve.getPoints(36);
+        f.arcLine.geometry.setFromPoints(pts);
+        f.status = 'Klimmen na vertrek';
+
+        if (S.followFlight === f) {
+          updateFlightCardUI(f);
+        }
       }
     }
 
@@ -1962,36 +2003,54 @@ function animate(now) {
     f.planeMesh.quaternion.setFromRotationMatrix(m);
   }
 
-  // Geanimeerde camera navigatie & 30m Flightradar tracking
+  // Stabiele camera tracking: 30m zonder OrbitControls conflict
   if (S.followFlight) {
     const f = S.followFlight;
     const p = f.curve.getPointAt(f.progress);
     const dir = f.curve.getTangentAt(f.progress).normalize();
 
     if (S.flightViewMode === 'cockpit') {
-      S.camera.position.set(p.x + dir.x * 0.005, p.y + 0.002, p.z + dir.z * 0.005);
-      S.controls.target.set(p.x + dir.x * 0.5, p.y, p.z + dir.z * 0.5);
+      // 1. Cockpit: 100% stabiel, direct vooruit kijkend
+      S.controls.enabled = false;
+      S.camera.position.copy(p).addScaledVector(dir, 0.003).add(new THREE.Vector3(0, 0.0015, 0));
+      S.camera.lookAt(p.clone().addScaledVector(dir, 1.0));
     } else if (S.flightViewMode === 'ground30m') {
-      S.controls.target.lerp(p, 0.08);
+      // 2. Spotter view: camera vast op 30m hoogte, kijkt naar vliegtuig
+      S.controls.enabled = false;
+      if (S.spotterPos) {
+        S.camera.position.copy(S.spotterPos);
+        S.camera.lookAt(p);
+      }
     } else {
-      // Chase 30m: volgt vloeiend achter het vliegtuig op gekozen hoogte
-      S.controls.target.lerp(p, 0.08);
-      const camAlt = Math.max(0.030, p.y + 0.025);
-      const desiredCam = new THREE.Vector3(p.x - dir.x * 0.08, camAlt, p.z - dir.z * 0.08);
-      S.camera.position.lerp(desiredCam, 0.06);
+      // 3. Chase 30m: camera beweegt mee met de exacte delta-verplaatsing (geen conflict met OrbitControls!)
+      S.controls.enabled = true;
+      if (S.lastFlightPos) {
+        const delta = p.clone().sub(S.lastFlightPos);
+        S.camera.position.add(delta);
+        S.controls.target.add(delta);
+      } else {
+        S.controls.target.copy(p);
+      }
     }
-  } else if (S.cameraTargetLook && S.cameraTargetPos) {
-    S.camera.position.lerp(S.cameraTargetPos, 0.07);
-    S.controls.target.lerp(S.cameraTargetLook, 0.07);
+    S.lastFlightPos = p.clone();
+  } else {
+    // Niet in volgmodus: normale OrbitControls navigatie
+    S.controls.enabled = true;
+    S.lastFlightPos = null;
 
-    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.005) {
-      S.cameraTargetPos = null;
-      S.cameraTargetLook = null;
-      S.isZoomingToAirport = false;
+    if (S.cameraTargetLook && S.cameraTargetPos) {
+      S.camera.position.lerp(S.cameraTargetPos, 0.08);
+      S.controls.target.lerp(S.cameraTargetLook, 0.08);
+
+      if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.01) {
+        S.cameraTargetPos = null;
+        S.cameraTargetLook = null;
+        S.isZoomingToAirport = false;
+      }
     }
   }
 
-  // Bereken en toon exacte camera hoogte in meters (tot 30 meter boven de grond!)
+  // Exacte camera hoogte weergave (tot 30 meter boven de grond!)
   const groundAltMeters = Math.max(1, Math.round(S.camera.position.y * 1000));
   const hudAlt = document.getElementById('hud-cam-alt');
   const apAltDisp = document.getElementById('ap-disp-altitude');
@@ -2010,7 +2069,9 @@ function animate(now) {
     S.cameraLight.position.copy(S.camera.position);
   }
 
-  S.controls.update();
+  if (S.controls.enabled) {
+    S.controls.update();
+  }
   S.renderer.render(S.scene, S.camera);
 }
 
