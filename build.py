@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.1.0"
+DEFAULT_VERSION = "2.2.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (210 voor v2.1.0)
-    code0 = bytes([0]) + i32_const(210) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (220 voor v2.2.0)
+    code0 = bytes([0]) + i32_const(220) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,16 +253,11 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
-            "Franse en buitenlandse radio-audio (Nice LFMN) 100% verwijderd en vervangen door authentieke Schiphol verkeerstoren opname (Beeld en Geluid)",
-            "100% Nederlandse luchthavens en vliegbases: Schiphol, Rotterdam, Eindhoven, Groningen, Maastricht, Lelystad, Leeuwarden, Volkel, Gilze-Rijen, Woensdrecht, Den Helder, Breda, Texel, Teuge, Hilversum",
-            "Alle buitenlandse vliegvelden 100% verwijderd uit database en 3D wereldbol",
-            "Volledige Schiphol radio suite: Kaagbaan Toren (118.100), Polderbaan Toren (118.275), Grond (121.700), Delivery (121.980), Approach (119.050) en Departure (121.200)",
-            "Camera bij het openen van de app direct scherp gecentreerd op Nederland en Schiphol",
-            "Nederlandse vloot: KLM, KLM Cityhopper, Transavia, TUI fly, Martinair Cargo, Corendon en Koninklijke Luchtmacht (F-35A, Chinook, A330 MRTT)",
-            "Einde aan audio-loops: automatische bandjes en herhalingen 100% uitgeschakeld",
-            "Nauwkeurige 3D hitboxen afgestemd op Nederlandse vliegveldafstanden",
-            "Vlucht Luister-knop gekoppeld aan de exacte vlucht op het scherm met authentieke mic-clicks",
-            "Automatische instant-cache purge in browser: laadt altijd 100% verse app zonder oude browsercache"
+            "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
+            "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
+            "Realtime Flightradar vliegbewegingen en ADS-B live tracking met actuele hoogtes, grondsnelheid, koersvectoren en vluchtkaarten",
+            "Vliegveld Teuge (EHTE / TGE) en Schiphol met 30m baanzicht en Teuge Radio 120.255 MHz",
+            "100% Nederlandse radiocommunicatie Schiphol & Teuge zonder loopings"
         ]
     }
 
@@ -300,7 +295,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 210) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 220) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

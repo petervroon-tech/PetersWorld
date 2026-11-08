@@ -1247,380 +1247,101 @@ function onResize() {
 //  3D OBJECTEN
 // ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
-//  NEDERLAND VLUCHTRADAR ACHTERGROND & GEOMETRIE
+//  ECHTE SATELLIET ACHTERGROND NEDERLAND (FLIGHTRADAR MODUS)
 // ═══════════════════════════════════════════════════════
-function createNetherlandsRadarTexture() {
+function createRealSatelliteBackground() {
   const canvas = document.createElement('canvas');
-  canvas.width = 2048;
-  canvas.height = 2048;
+  canvas.width = 1024;
+  canvas.height = 1280;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.Texture();
-
-  const W_KM = 340;
-  const H_KM = 380;
-  const X_MIN = -170;
-  const Z_MIN = -190;
-
-  function toC(lon, lat) {
-    const xKm = (lon - NL_CENTER_LON) * KM_PER_DEG_LON;
-    const zKm = -(lat - NL_CENTER_LAT) * KM_PER_DEG_LAT;
-    const cx = ((xKm - X_MIN) / W_KM) * 2048;
-    const cy = ((zKm - Z_MIN) / H_KM) * 2048;
-    return [cx, cy];
-  }
-
-  // 1. Diepe radar achtergrond (Aeronautical Air Traffic Dark Blue)
-  const bgGrad = ctx.createRadialGradient(1024, 1024, 250, 1024, 1024, 1350);
-  bgGrad.addColorStop(0, '#09152a');
-  bgGrad.addColorStop(0.60, '#060f1e');
-  bgGrad.addColorStop(1, '#030812');
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, 2048, 2048);
-
-  // 2. Fijn radar coördinatenrooster (elke 25 km)
-  ctx.strokeStyle = 'rgba(21, 48, 85, 0.40)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([]);
-  for (let xk = -150; xk <= 150; xk += 25) {
-    const cx = ((xk - X_MIN) / W_KM) * 2048;
-    ctx.beginPath();
-    ctx.moveTo(cx, 0);
-    ctx.lineTo(cx, 2048);
-    ctx.stroke();
-  }
-  for (let zk = -175; zk <= 175; zk += 25) {
-    const cy = ((zk - Z_MIN) / H_KM) * 2048;
-    ctx.beginPath();
-    ctx.moveTo(0, cy);
-    ctx.lineTo(2048, cy);
-    ctx.stroke();
-  }
-
-  // 3. Concentrische Radar Afstandsringen (25, 50, 75, 100 NM)
-  const [camsX, camsY] = toC(4.76, 52.31);
-  const ringDistancesNM = [
-    { nm: 25, km: 46.3 },
-    { nm: 50, km: 92.6 },
-    { nm: 75, km: 138.9 },
-    { nm: 100, km: 185.2 }
-  ];
-
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.22)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([8, 8]);
-  ctx.font = 'bold 18px monospace';
-  ctx.fillStyle = 'rgba(56, 189, 248, 0.65)';
-
-  for (const r of ringDistancesNM) {
-    const rPx = (r.km / W_KM) * 2048;
-    ctx.beginPath();
-    ctx.arc(camsX, camsY, rPx, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillText(r.nm + ' NM / ' + Math.round(r.km) + ' KM', camsX + rPx - 65, camsY - 8);
-  }
-
-  // Radialen / peilingen vanaf Schiphol (elke 30 graden)
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-  ctx.setLineDash([4, 6]);
-  for (let deg = 0; deg < 360; deg += 30) {
-    const rad = (deg - 90) * (Math.PI / 180);
-    const rx = camsX + Math.cos(rad) * 980;
-    const ry = camsY + Math.sin(rad) * 980;
-    ctx.beginPath();
-    ctx.moveTo(camsX, camsY);
-    ctx.lineTo(rx, ry);
-    ctx.stroke();
-
-    const degStr = (deg === 0 ? '360' : String(deg).padStart(3, '0')) + '°';
-    ctx.fillText(degStr, camsX + Math.cos(rad) * 930 - 15, camsY + Math.sin(rad) * 930 + 5);
-  }
-  ctx.setLineDash([]);
-
-  // 4. Nederlands Vasteland (Vaste landmassa contouren)
-  const mainlandPts = [
-    [3.37, 51.37], [3.55, 51.40], [3.57, 51.45], [3.43, 51.53], [3.61, 51.60],
-    [3.70, 51.70], [3.86, 51.78], [3.93, 51.81], [4.02, 51.96], [4.12, 51.98],
-    [4.27, 52.11], [4.39, 52.20], [4.52, 52.37], [4.55, 52.46], [4.62, 52.62],
-    [4.65, 52.77], [4.70, 52.88], [4.72, 52.96], [5.03, 52.93], [5.29, 52.70],
-    [5.10, 52.46], [4.98, 52.36], [5.24, 52.30], [5.48, 52.22], [5.83, 52.45],
-    [6.05, 52.53], [5.95, 52.73], [5.40, 52.94], [5.39, 53.07], [5.43, 53.11],
-    [5.41, 53.17], [5.90, 53.37], [6.20, 53.41], [6.92, 53.33], [7.20, 53.18],
-    [7.03, 53.14], [7.06, 52.87], [6.74, 52.66], [6.62, 52.57], [6.95, 52.22],
-    [6.72, 51.97], [6.08, 51.93], [6.04, 51.87], [6.17, 51.37], [6.00, 51.19],
-    [5.86, 50.99], [6.02, 50.75], [5.69, 50.85], [5.10, 51.30], [4.66, 51.47],
-    [4.30, 51.43], [4.05, 51.28], [3.80, 51.23], [3.39, 51.31]
-  ];
-
-  ctx.fillStyle = '#0d1e38';
-  ctx.strokeStyle = '#0284c7';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  for (let i = 0; i < mainlandPts.length; i++) {
-    const [px, py] = toC(mainlandPts[i][0], mainlandPts[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // 5. Flevoland Polders
-  const flevoPts = [
-    [5.25, 52.34], [5.35, 52.50], [5.55, 52.65], [5.80, 52.60],
-    [5.90, 52.45], [5.65, 52.30], [5.38, 52.28]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < flevoPts.length; i++) {
-    const [px, py] = toC(flevoPts[i][0], flevoPts[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = '#102544';
-  ctx.fill();
-  ctx.stroke();
-
-  // Noordoostpolder
-  const nopPts = [
-    [5.65, 52.65], [5.85, 52.80], [5.98, 52.75], [5.90, 52.58], [5.70, 52.60]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < nopPts.length; i++) {
-    const [px, py] = toC(nopPts[i][0], nopPts[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // 6. Waddeneilanden (Texel, Vlieland, Terschelling, Ameland, Schiermonnikoog)
-  const islands = [
-    // Texel
-    [[4.70, 53.00], [4.75, 53.10], [4.85, 53.17], [4.90, 53.12], [4.82, 53.02]],
-    // Vlieland
-    [[4.94, 53.24], [5.08, 53.30], [5.05, 53.26], [4.92, 53.22]],
-    // Terschelling
-    [[5.18, 53.35], [5.35, 53.40], [5.46, 53.42], [5.40, 53.38], [5.20, 53.33]],
-    // Ameland
-    [[5.58, 53.43], [5.75, 53.46], [5.88, 53.47], [5.80, 53.44], [5.60, 53.42]],
-    // Schiermonnikoog
-    [[6.12, 53.47], [6.25, 53.50], [6.32, 53.49], [6.20, 53.46]]
-  ];
-
-  ctx.fillStyle = '#0f2442';
-  for (const isl of islands) {
-    ctx.beginPath();
-    for (let i = 0; i < isl.length; i++) {
-      const [px, py] = toC(isl[i][0], isl[i][1]);
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  // 7. Waterwegen: Afsluitdijk & Houtribdijk
-  ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 2.5;
-  const [adA_x, adA_y] = toC(5.03, 52.93);
-  const [adB_x, adB_y] = toC(5.43, 53.11);
-  ctx.beginPath();
-  ctx.moveTo(adA_x, adA_y);
-  ctx.lineTo(adB_x, adB_y);
-  ctx.stroke();
-
-  const [hdA_x, hdA_y] = toC(5.29, 52.70);
-  const [hdB_x, hdB_y] = toC(5.50, 52.54);
-  ctx.beginPath();
-  ctx.moveTo(hdA_x, hdA_y);
-  ctx.lineTo(hdB_x, hdB_y);
-  ctx.stroke();
-
-  // 8. Rivieren: Rijn, Waal, Maas en IJssel (langs Teuge!)
-  ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-  ctx.lineWidth = 3;
-
-  // IJssel rivier (stroomt direct langs Teuge / Deventer / Zutphen!)
-  const ijssel = [
-    [6.05, 51.98], [6.13, 52.02], [6.19, 52.14], [6.16, 52.25],
-    [6.10, 52.38], [6.09, 52.51], [5.92, 52.57]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < ijssel.length; i++) {
-    const [px, py] = toC(ijssel[i][0], ijssel[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-
-  // Rijn / Lek
-  const rijn = [
-    [6.04, 51.87], [5.90, 51.98], [5.60, 51.96], [5.30, 51.96], [4.60, 51.90], [4.12, 51.98]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < rijn.length; i++) {
-    const [px, py] = toC(rijn[i][0], rijn[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-
-  // Waal
-  const waal = [
-    [6.04, 51.87], [5.86, 51.85], [5.40, 51.88], [4.90, 51.82], [4.40, 51.88]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < waal.length; i++) {
-    const [px, py] = toC(waal[i][0], waal[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-
-  // Maas
-  const maas = [
-    [5.70, 50.78], [5.86, 51.05], [6.15, 51.35], [5.95, 51.70], [5.30, 51.75], [4.70, 51.72]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < maas.length; i++) {
-    const [px, py] = toC(maas[i][0], maas[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.stroke();
-
-  // 9. Luchtruim: Amsterdam FIR Grens & Teuge ATZ
-  ctx.strokeStyle = 'rgba(0, 229, 255, 0.70)';
-  ctx.lineWidth = 2.5;
-  ctx.setLineDash([12, 8]);
-
-  const firPts = [
-    [3.20, 51.35], [3.20, 53.90], [5.00, 54.00], [7.20, 53.60],
-    [7.20, 51.80], [6.10, 50.70], [5.60, 50.70], [4.20, 51.30]
-  ];
-  ctx.beginPath();
-  for (let i = 0; i < firPts.length; i++) {
-    const [px, py] = toC(firPts[i][0], firPts[i][1]);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Teuge ATZ Cirkel (3 NM / 5.5 km radius)
-  const [tgeX, tgeY] = toC(6.0469, 52.2444);
-  const tgeRadiusPx = (5.5 / W_KM) * 2048;
-  ctx.strokeStyle = '#f59e0b';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.arc(tgeX, tgeY, tgeRadiusPx, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 10. Labels en Steden
-  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, monospace';
-  ctx.textAlign = 'center';
-
-  // Teuge prominente radar markering
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(tgeX - 6, tgeY - 6, 12, 12);
-  ctx.fillText('★ VLIEGVELD TEUGE (EHTE)', tgeX, tgeY - 14);
-  ctx.font = '14px monospace';
-  ctx.fillStyle = '#fde68a';
-  ctx.fillText('TWR 120.255 · SKYDIVE · BAAN 08/26 (1199m)', tgeX, tgeY + 22);
-
-  // Schiphol prominente radar markering
-  ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, monospace';
-  ctx.fillStyle = '#00a1de';
-  ctx.fillRect(camsX - 7, camsY - 7, 14, 14);
-  ctx.fillText('★ SCHIPHOL (EHAM)', camsX, camsY - 14);
-  ctx.font = '14px monospace';
-  ctx.fillStyle = '#7dd3fc';
-  ctx.fillText('TWR 118.100 · 6 BANEN · AMSTERDAM AIRPORT', camsX, camsY + 22);
-
-  // Overige Steden & Velden
-  const cities = [
-    { name: 'ROTTERDAM (EHRD)', lon: 4.4372, lat: 51.9569, col: '#38bdf8' },
-    { name: 'EINDHOVEN (EHEH)', lon: 5.3744, lat: 51.4500, col: '#38bdf8' },
-    { name: 'GRONINGEN (EHGG)', lon: 6.5828, lat: 53.1197, col: '#38bdf8' },
-    { name: 'MAASTRICHT (EHBK)',lon: 5.7700, lat: 50.9117, col: '#38bdf8' },
-    { name: 'TEXEL (EHTX)',     lon: 4.8328, lat: 53.1150, col: '#38bdf8' },
-    { name: 'LELYSTAD (EHLE)',  lon: 5.5272, lat: 52.4608, col: '#38bdf8' },
-    { name: 'HILVERSUM (EHHV)', lon: 5.1481, lat: 52.1917, col: '#94a3b8' },
-    { name: 'DEVENTER',         lon: 6.1600, lat: 52.2550, col: '#cbd5e1' },
-    { name: 'APELDOORN',        lon: 5.9600, lat: 52.2150, col: '#cbd5e1' },
-    { name: 'ZWOLLE',           lon: 6.0900, lat: 52.5150, col: '#cbd5e1' },
-    { name: 'ARNHEM',           lon: 5.9100, lat: 51.9850, col: '#cbd5e1' },
-    { name: 'UTRECHT',          lon: 5.1200, lat: 52.0900, col: '#cbd5e1' },
-    { name: 'DEN HAAG',         lon: 4.3100, lat: 52.0800, col: '#cbd5e1' }
-  ];
-
-  ctx.font = '14px monospace';
-  for (const c of cities) {
-    const [cx, cy] = toC(c.lon, c.lat);
-    ctx.fillStyle = c.col;
-    ctx.fillRect(cx - 3, cy - 3, 6, 6);
-    ctx.fillText(c.name, cx, cy - 8);
-  }
-
-  // 11. Navigatie Fixes & VORs
-  const fixes = [
-    { name: '▲ PAM 117.80', lon: 5.10, lat: 52.33 },
-    { name: '▲ SPY 113.30', lon: 4.85, lat: 52.54 },
-    { name: '◆ ARTIP',      lon: 5.50, lat: 52.80 },
-    { name: '◆ RIVER',      lon: 4.40, lat: 51.80 },
-    { name: '◆ SUGOL',      lon: 5.30, lat: 51.70 }
-  ];
-  ctx.fillStyle = '#ec4899';
-  ctx.font = '13px monospace';
-  for (const f of fixes) {
-    const [fx, fy] = toC(f.lon, f.lat);
-    ctx.fillText(f.name, fx, fy + 12);
-  }
+  
+  // Realistische diepe zeekleur als basis tijdens het inladen
+  ctx.fillStyle = '#061122';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.anisotropy = 16;
   texture.generateMipmaps = true;
+
+  // Laad de 20 echte satellietfoto tegels van Nederland
+  for (let x = 130; x <= 133; x++) {
+    for (let y = 82; y <= 86; y++) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const tileX = x, tileY = y;
+      img.onload = () => {
+        const px = (tileX - 130) * 256;
+        const py = (tileY - 82) * 256;
+        ctx.drawImage(img, px, py, 256, 256);
+        texture.needsUpdate = true;
+      };
+      img.onerror = () => {
+        // Fallback direct van ArcGIS satelliet CDN
+        const fallback = new Image();
+        fallback.crossOrigin = 'anonymous';
+        fallback.onload = () => {
+          const px = (tileX - 130) * 256;
+          const py = (tileY - 82) * 256;
+          ctx.drawImage(fallback, px, py, 256, 256);
+          texture.needsUpdate = true;
+        };
+        fallback.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/8/${tileY}/${tileX}.jpg`;
+      };
+      img.src = `textures/satellite/tile_8_${x}_${y}.jpg`;
+    }
+  }
+
   return texture;
 }
 
 function buildNetherlandsRadarBackground() {
-  const W_KM = 340;
-  const H_KM = 380;
+  // Grondvlak: Exact 384 x 383 km (georeferenced op zoom 8 satelliet raster)
+  const satGeo = new THREE.PlaneGeometry(384, 383, 1, 1);
+  satGeo.rotateX(-Math.PI / 2);
 
-  // 1. Grondvlak: Vlakke radar kaart van Nederland
-  const radarGeo = new THREE.PlaneGeometry(W_KM, H_KM, 1, 1);
-  radarGeo.rotateX(-Math.PI / 2);
-
-  const radarTex = createNetherlandsRadarTexture();
-  const radarMat = new THREE.MeshBasicMaterial({
-    map: radarTex,
+  const satTex = createRealSatelliteBackground();
+  const satMat = new THREE.MeshBasicMaterial({
+    map: satTex,
     depthWrite: true,
   });
 
-  S.radarMesh = new THREE.Mesh(radarGeo, radarMat);
-  S.radarMesh.position.set(0, -0.01, 0);
+  // Plaatspositie gecentreerd op 5.625° E, 52.235° N (exacte dekking van heel Nederland)
+  S.radarMesh = new THREE.Mesh(satGeo, satMat);
+  S.radarMesh.position.set(22.18, -0.01, -3.87);
   S.earthGroup.add(S.radarMesh);
   S.earthMesh = S.radarMesh; // compatibiliteit
 
-  // 2. Draaiende 3D radarbundel over Nederland (Surveillance Radar Sweep)
+  // Subtiele radar afstandsringen over de echte satellietfoto (zoals Flightradar overlay)
+  const camsPos = latLonToVector3(52.31, 4.76, 0.05);
+  const ringDistancesKM = [46.3, 92.6, 138.9, 185.2]; // 25, 50, 75, 100 NM
+  for (const rKm of ringDistancesKM) {
+    const ringGeo = new THREE.RingGeometry(rKm - 0.25, rKm + 0.25, 64);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.20,
+      side: THREE.DoubleSide
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.set(camsPos.x, 0.04, camsPos.z);
+    S.earthGroup.add(ringMesh);
+  }
+
+  // Draaiende surveillance radarbundel (subtiel over de satellietfoto)
   const sweepGeo = new THREE.RingGeometry(0, 160, 48, 1, 0, Math.PI / 4);
   sweepGeo.rotateX(-Math.PI / 2);
   const sweepMat = new THREE.MeshBasicMaterial({
     color: 0x38bdf8,
     transparent: true,
-    opacity: 0.10,
+    opacity: 0.08,
     side: THREE.DoubleSide,
     depthWrite: false,
   });
   S.radarSweepMesh = new THREE.Mesh(sweepGeo, sweepMat);
-  S.radarSweepMesh.position.set(0, 0.05, 0);
+  S.radarSweepMesh.position.set(0, 0.06, 0);
   S.earthGroup.add(S.radarSweepMesh);
-  S.cloudMesh = S.radarSweepMesh; // compatibiliteit
+  S.cloudMesh = S.radarSweepMesh;
 }
 
 function build3DAirports() {
@@ -2087,24 +1808,83 @@ async function loadWasm() {
 
 
 // ═══════════════════════════════════════════════════════
-//  INZOOMEN TOT 300 METER BOVEN LANDINGSBAAN
+//  CAMERA NAVIGATIE: 30 METER ZOOM & FLIGHTRADER LIVE TRACKING
 // ═══════════════════════════════════════════════════════
-function zoomToAirportRunway(airport, targetAltMeters = 300) {
+function selectFlight(flight, viewMode = 'chase30m') {
+  if (!flight) return;
+  S.followFlight = flight;
+  S.flightViewMode = viewMode;
+
+  const p = flight.curve.getPointAt(flight.progress);
+  const dir = flight.curve.getTangentAt(flight.progress).normalize();
+
+  if (viewMode === 'ground30m') {
+    // Spotter op 30 meter boven de grond kijkend naar passerend vliegtuig
+    S.cameraTargetPos = new THREE.Vector3(p.x + 0.08, 0.030, p.z + 0.08);
+    S.cameraTargetLook = p.clone();
+  } else if (viewMode === 'cockpit') {
+    // Cockpit view recht vooruit over het landschap
+    S.cameraTargetPos = new THREE.Vector3(p.x + dir.x * 0.005, p.y + 0.002, p.z + dir.z * 0.005);
+    S.cameraTargetLook = new THREE.Vector3(p.x + dir.x * 0.5, p.y, p.z + dir.z * 0.5);
+  } else {
+    // Chase 30m: camera volgt 30m boven de grond / achter het vliegtuig
+    const camAlt = Math.max(0.030, p.y + 0.025);
+    S.cameraTargetPos = new THREE.Vector3(p.x - dir.x * 0.08, camAlt, p.z - dir.z * 0.08);
+    S.cameraTargetLook = p.clone();
+  }
+
+  // Toegang tot 5 meter boven de grond (tot 30 meter zoom!)
+  S.controls.minDistance = 0.005;
+  S.controls.maxDistance = 450;
+  S.controls.target.copy(p);
+
+  updateFlightCardUI(flight);
+  ATC.contactFlight(flight);
+
+  ATC.logMessage('RADAR', `Live Flightradar tracking actief voor ${flight.callsign} (${flight.airline.name}) op ${Math.round(flight.altitude)} m.`, true);
+}
+
+function updateFlightCardUI(flight) {
+  if (!flight) return;
+  const fc = document.getElementById('flightradar-card');
+  if (fc) {
+    fc.classList.add('show');
+    const elCall = document.getElementById('frc-callsign');
+    const elAir = document.getElementById('frc-airline');
+    const elRoute = document.getElementById('frc-route');
+    const elAlt = document.getElementById('frc-alt');
+    const elSpd = document.getElementById('frc-spd');
+    const elStatus = document.getElementById('frc-status');
+    const elHdg = document.getElementById('frc-hdg');
+
+    if (elCall) elCall.textContent = flight.callsign;
+    if (elAir) elAir.textContent = `${flight.airline.name} · ${flight.aircraft}`;
+    if (elRoute) elRoute.textContent = `${flight.origin.flag} ${flight.origin.code} ➔ ${flight.dest.flag} ${flight.dest.code}`;
+    if (elAlt) elAlt.textContent = `${Number(flight.altitude).toLocaleString('nl-NL')} m (${Math.round(flight.altitude * 3.28084)} ft)`;
+    if (elSpd) elSpd.textContent = `${flight.speedKmh} km/h (${Math.round(flight.speedKmh * 0.539957)} kts)`;
+    if (elStatus) elStatus.textContent = flight.status || 'In vlucht';
+    if (elHdg) elHdg.textContent = `${flight.heading || 260}°`;
+  }
+}
+
+function zoomToAirportRunway(airport, targetAltMeters = 30) {
   if (!airport) return;
   S.followFlight = null;
   S.selectedAirport = airport;
 
   const apPos = latLonToVector3(airport.lat, airport.lon, 0);
-  const altUnits = Math.max(0.25, (targetAltMeters / 1000));
+  // targetAltMeters kan 30 meter zijn (0.030 km)!
+  const altKm = Math.max(0.025, targetAltMeters / 1000);
 
-  // Plaats camera schuin achter de drempel met zicht op de hoofdbaan
-  const camPos = new THREE.Vector3(apPos.x + 0.45, altUnits, apPos.z + 0.65);
+  // Plaats camera op 30 meter boven de grond net voor de baandrempel met uitzicht over de baan
+  const camPos = new THREE.Vector3(apPos.x + 0.10, altKm, apPos.z + 0.15);
 
-  S.cameraTargetLook = new THREE.Vector3(apPos.x, 0.005, apPos.z);
+  S.cameraTargetLook = new THREE.Vector3(apPos.x, 0.002, apPos.z);
   S.cameraTargetPos = camPos;
   S.isZoomingToAirport = true;
 
-  S.controls.minDistance = 0.15; // Tot 150m boven de grond!
+  // MinDistance op 0.005 (~5 meter) zodat de gebruiker tot 30 meter kan inzoomen!
+  S.controls.minDistance = 0.005;
   S.controls.maxDistance = 450;
   S.controls.target.copy(apPos);
 
@@ -2113,16 +1893,18 @@ function zoomToAirportRunway(airport, targetAltMeters = 300) {
   const apAltDisp = document.getElementById('ap-disp-altitude');
   if (apAltDisp) apAltDisp.textContent = `📷 Hoogte: ${targetAltMeters} m (${airport.activeRunway})`;
 
-  ATC.logMessage('CAMERA', `Ingezoomd tot ${targetAltMeters} meter boven ${airport.name} (${airport.activeRunway}).`, true);
+  ATC.logMessage('CAMERA', `Ingezoomd tot ${targetAltMeters} meter boven de grond op ${airport.name} (${airport.activeRunway}).`, true);
 }
 
 function zoomToGlobe() {
   S.followFlight = null;
   S.cameraTargetLook = new THREE.Vector3(0, 0, 0);
   S.cameraTargetPos = new THREE.Vector3(0, 160, 45);
-  S.controls.minDistance = 0.20;
+  S.controls.minDistance = 0.010;
   S.controls.maxDistance = 450;
-  ATC.logMessage('RADAR', 'Volledig overzicht van het Nederlandse luchtruim actief.', true);
+  const fc = document.getElementById('flightradar-card');
+  if (fc) fc.classList.remove('show');
+  ATC.logMessage('RADAR', 'Volledig satellietoverzicht van het Nederlandse luchtruim actief.', true);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2180,33 +1962,46 @@ function animate(now) {
     f.planeMesh.quaternion.setFromRotationMatrix(m);
   }
 
-  // Geanimeerde camera navigatie
+  // Geanimeerde camera navigatie & 30m Flightradar tracking
   if (S.followFlight) {
-    const p = S.followFlight.curve.getPointAt(S.followFlight.progress);
-    S.controls.target.lerp(p, 0.06);
+    const f = S.followFlight;
+    const p = f.curve.getPointAt(f.progress);
+    const dir = f.curve.getTangentAt(f.progress).normalize();
+
+    if (S.flightViewMode === 'cockpit') {
+      S.camera.position.set(p.x + dir.x * 0.005, p.y + 0.002, p.z + dir.z * 0.005);
+      S.controls.target.set(p.x + dir.x * 0.5, p.y, p.z + dir.z * 0.5);
+    } else if (S.flightViewMode === 'ground30m') {
+      S.controls.target.lerp(p, 0.08);
+    } else {
+      // Chase 30m: volgt vloeiend achter het vliegtuig op gekozen hoogte
+      S.controls.target.lerp(p, 0.08);
+      const camAlt = Math.max(0.030, p.y + 0.025);
+      const desiredCam = new THREE.Vector3(p.x - dir.x * 0.08, camAlt, p.z - dir.z * 0.08);
+      S.camera.position.lerp(desiredCam, 0.06);
+    }
   } else if (S.cameraTargetLook && S.cameraTargetPos) {
     S.camera.position.lerp(S.cameraTargetPos, 0.07);
     S.controls.target.lerp(S.cameraTargetLook, 0.07);
 
-    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.02) {
+    if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.005) {
       S.cameraTargetPos = null;
       S.cameraTargetLook = null;
       S.isZoomingToAirport = false;
     }
   }
 
-  // Bereken en update camera hoogte in meters
-  if (S.selectedAirport) {
-    const apPos = latLonToVector3(S.selectedAirport.lat, S.selectedAirport.lon, 0);
-    const distCam = S.camera.position.distanceTo(apPos);
-    const altMeters = Math.round(distCam * 1000);
+  // Bereken en toon exacte camera hoogte in meters (tot 30 meter boven de grond!)
+  const groundAltMeters = Math.max(1, Math.round(S.camera.position.y * 1000));
+  const hudAlt = document.getElementById('hud-cam-alt');
+  const apAltDisp = document.getElementById('ap-disp-altitude');
+  const altText = groundAltMeters < 1000 ? `${groundAltMeters} m` : `${(groundAltMeters / 1000).toFixed(1)} km`;
 
-    const hudAlt = document.getElementById('hud-cam-alt');
-    const apAltDisp = document.getElementById('ap-disp-altitude');
-    const altText = altMeters < 1000 ? `${altMeters} m` : `${(altMeters / 1000).toFixed(1)} km`;
-
-    if (hudAlt) hudAlt.textContent = altText;
-    if (apAltDisp && !S.cameraTargetPos) {
+  if (hudAlt) hudAlt.textContent = altText;
+  if (apAltDisp && !S.cameraTargetPos && S.selectedAirport) {
+    if (S.followFlight) {
+      apAltDisp.textContent = `📷 Hoogte: ${altText} (Volg ${S.followFlight.callsign})`;
+    } else {
       apAltDisp.textContent = `📷 Hoogte: ${altText} (${S.selectedAirport.activeRunway})`;
     }
   }
@@ -2308,9 +2103,9 @@ function setupInteraction(container) {
       while (topObj.parent && !topObj.userData.flight) topObj = topObj.parent;
       const flight = topObj.userData.flight;
       if (flight) {
-        S.followFlight = (S.followFlight === flight) ? null : flight;
+        selectFlight(flight, 'chase30m');
         updateGlobalFlightListUI();
-        ATC.contactFlight(flight);
+        return;
       }
     }
   };
@@ -2713,7 +2508,14 @@ function initAirportDeck() {
     });
   }
 
-  // Snelknop in de luchthaven banner: direct naar 300m baanzicht
+  // Snelknoppen in de luchthaven banner: direct naar 30m of 300m baanzicht
+  const btnBannerZoom30 = document.getElementById('btn-banner-zoom-30');
+  if (btnBannerZoom30) {
+    btnBannerZoom30.addEventListener('click', () => {
+      zoomToAirportRunway(S.selectedAirport, 30);
+    });
+  }
+
   const btnBannerZoom300 = document.getElementById('btn-banner-zoom-300');
   if (btnBannerZoom300) {
     btnBannerZoom300.addEventListener('click', () => {
@@ -2721,11 +2523,68 @@ function initAirportDeck() {
     });
   }
 
+  // Flightradar Card interacties
+  const btnCloseFrc = document.getElementById('btn-close-frc');
+  if (btnCloseFrc) {
+    btnCloseFrc.addEventListener('click', () => {
+      const fc = document.getElementById('flightradar-card');
+      if (fc) fc.classList.remove('show');
+    });
+  }
+
+  const btnFrcZoom30 = document.getElementById('btn-frc-zoom30');
+  if (btnFrcZoom30) {
+    btnFrcZoom30.addEventListener('click', () => {
+      if (S.followFlight) selectFlight(S.followFlight, 'chase30m');
+    });
+  }
+
+  const btnFrcCockpit = document.getElementById('btn-frc-cockpit');
+  if (btnFrcCockpit) {
+    btnFrcCockpit.addEventListener('click', () => {
+      if (S.followFlight) selectFlight(S.followFlight, 'cockpit');
+    });
+  }
+
+  const btnFrcListen = document.getElementById('btn-frc-listen');
+  if (btnFrcListen) {
+    btnFrcListen.addEventListener('click', () => {
+      if (S.followFlight) ATC.contactFlight(S.followFlight);
+    });
+  }
+
   // Onderbalk zoomknoppen
+  const btnZoom30 = document.getElementById('btn-zoom-30');
+  if (btnZoom30) {
+    btnZoom30.addEventListener('click', () => {
+      if (S.followFlight) {
+        selectFlight(S.followFlight, 'chase30m');
+      } else {
+        zoomToAirportRunway(S.selectedAirport, 30);
+      }
+    });
+  }
+
   const btnZoom300 = document.getElementById('btn-zoom-300');
   if (btnZoom300) {
     btnZoom300.addEventListener('click', () => {
       zoomToAirportRunway(S.selectedAirport, 300);
+    });
+  }
+
+  const btnCockpit = document.getElementById('btn-cockpit-view');
+  if (btnCockpit) {
+    btnCockpit.addEventListener('click', () => {
+      const fl = S.followFlight || S.flights[0];
+      if (fl) selectFlight(fl, 'cockpit');
+    });
+  }
+
+  const btnFollowFlight = document.getElementById('btn-flightradar-mode');
+  if (btnFollowFlight) {
+    btnFollowFlight.addEventListener('click', () => {
+      const fl = S.followFlight || S.flights[0];
+      if (fl) selectFlight(fl, 'chase30m');
     });
   }
 
@@ -2845,9 +2704,8 @@ function updateGlobalFlightListUI() {
       item.addEventListener('click', () => {
         ATC.ensureAudioCtx();
         LIVEATC.ensureAudioCtx();
-        S.followFlight = (S.followFlight === f) ? null : f;
+        selectFlight(f, 'chase30m');
         updateGlobalFlightListUI();
-        ATC.contactFlight(f);
       });
 
       list.appendChild(item);

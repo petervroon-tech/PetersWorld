@@ -451,6 +451,37 @@
 
     @keyframes blink { 0%,100%{opacity:.7;transform:scale(.95)} 50%{opacity:1;transform:scale(1.25)} }
 
+    /* ── Flightradar Live Vliegtuig Detail Card ── */
+    .flightradar-card {
+      position: absolute; bottom: 84px; left: 16px; width: 340px;
+      background: rgba(8, 18, 36, 0.94); border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px; backdrop-filter: var(--blur); box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      pointer-events: auto; z-index: 120; display: none; flex-direction: column; overflow: hidden;
+      transition: all var(--ease);
+    }
+    .flightradar-card.show { display: flex; }
+    .frc-header {
+      background: rgba(15, 23, 42, 0.95); padding: 8px 12px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .frc-title-group { display: flex; align-items: center; gap: 8px; }
+    .frc-badge {
+      background: #f59e0b; color: #000; font-family: var(--mono); font-size: 0.62rem;
+      font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px;
+    }
+    .frc-callsign { font-family: var(--mono); font-size: 1.05rem; font-weight: 800; color: #fff; }
+    .frc-close { background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; }
+    .frc-close:hover { color: #fff; }
+    .frc-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .frc-airline { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
+    .frc-route { font-family: var(--mono); font-size: 0.88rem; font-weight: 700; color: var(--cyan); }
+    .frc-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0; }
+    .frc-stat { background: rgba(0,0,0,0.35); padding: 5px 8px; border-radius: 6px; display: flex; flex-direction: column; }
+    .frc-stat-label { font-size: 0.62rem; color: #64748b; text-transform: uppercase; font-family: var(--mono); }
+    .frc-stat-val { font-family: var(--mono); font-size: 0.78rem; font-weight: 700; color: #f8fafc; }
+    .frc-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .frc-btn { flex: 1; font-size: 0.68rem; padding: 5px 6px; border-radius: 6px; text-align: center; }
+
     /* ── Deck Mobile/Tablet Close Bar ── */
     .deck-mobile-close-bar {
       display: none;
@@ -785,7 +816,7 @@
         <span id="liveatc-txt">🔴 Live Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.1.0</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.2.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -937,7 +968,8 @@
         <div class="ap-zoom-action-bar">
           <span class="ap-alt-display" id="ap-disp-altitude">📷 Hoogte: 300 m (Kaagbaan)</span>
           <div style="display:flex;gap:6px;">
-            <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🔍 Baanzicht (300m)</button>
+            <button class="btn-zoom-300-quick" id="btn-banner-zoom-30" style="background:rgba(56,189,248,.25);border-color:var(--cyan);color:var(--cyan);font-weight:700;">🔍 30m Grond</button>
+            <button class="btn-zoom-300-quick" id="btn-banner-zoom-300">🛬 Baanzicht (300m)</button>
             <button class="btn-zoom-300-quick" id="btn-banner-runwaycam" style="background:rgba(239,68,68,.25);border-color:var(--red);color:#fca5a5;">📹 Echte Baan Cam</button>
           </div>
         </div>
@@ -1034,14 +1066,42 @@
     <div class="tt-bar-wrap"><div class="tt-bar" id="tt-bar" style="width:0%"></div></div>
   </div>
 
-  <!-- Controls (Bottom Center) with 300m Zoom Buttons -->
+  <!-- Flightradar Live Vliegtuig Detail Card (Linksonder) -->
+  <div id="flightradar-card" class="flightradar-card">
+    <div class="frc-header">
+      <div class="frc-title-group">
+        <span class="frc-badge">LIVE ADS-B</span>
+        <span id="frc-callsign" class="frc-callsign">KLM1234</span>
+      </div>
+      <button class="frc-close" id="btn-close-frc" title="Sluit vliegtuigkaart">&times;</button>
+    </div>
+    <div class="frc-body">
+      <div id="frc-airline" class="frc-airline">KLM Royal Dutch Airlines · Boeing 737-800</div>
+      <div id="frc-route" class="frc-route">🇳🇱 AMS ➔ 🇳🇱 RTM</div>
+      <div class="frc-stats-grid">
+        <div class="frc-stat"><span class="frc-stat-label">Hoogte</span><span id="frc-alt" class="frc-stat-val cy">30 m (100 ft)</span></div>
+        <div class="frc-stat"><span class="frc-stat-label">Grondsnelheid</span><span id="frc-spd" class="frc-stat-val gr">230 km/h</span></div>
+        <div class="frc-stat"><span class="frc-stat-label">Status</span><span id="frc-status" class="frc-stat-val go">Final Approach</span></div>
+        <div class="frc-stat"><span class="frc-stat-label">Koers</span><span id="frc-hdg" class="frc-stat-val">264°</span></div>
+      </div>
+      <div class="frc-actions">
+        <button class="btn frc-btn" id="btn-frc-zoom30">🔍 Volg tot 30m</button>
+        <button class="btn frc-btn" id="btn-frc-cockpit">🛩️ Cockpit</button>
+        <button class="btn frc-btn" id="btn-frc-listen">🎙️ Luister Radio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls (Bottom Center) with 30m Zoom & Flightradar Tracking Buttons -->
   <div id="controls">
     <div class="ctrl-group">
       <span class="ctrl-label">Camera & Hoogte</span>
       <div class="btn-row">
-        <button class="btn zoom-btn" id="btn-zoom-300" title="Zoom direct in tot 300 meter boven de landingsbaan">🔍 300m Baan</button>
-        <button class="btn zoom-btn" id="btn-zoom-1500" title="Zoom naar naderingshoogte (1.5 km)">🛬 1.5 km</button>
-        <button class="btn" id="btn-zoom-globe" title="Volledig overzicht van het Nederlandse luchtruim">🇳🇱 Radar NL</button>
+        <button class="btn zoom-btn" id="btn-zoom-30" title="Zoom direct in tot 30 meter boven de grond of landingsbaan" style="border-color:#38bdf8;color:#38bdf8;font-weight:700;">🔍 30m Grond</button>
+        <button class="btn zoom-btn" id="btn-zoom-300" title="Zoom direct in tot 300 meter boven de landingsbaan">🛬 300m Baan</button>
+        <button class="btn" id="btn-flightradar-mode" title="Volg geselecteerd vliegtuig in realtime Flightradar modus (tot 30m)">✈️ Volg Vliegtuig (30m)</button>
+        <button class="btn" id="btn-cockpit-view" title="Kijk mee vanuit de cockpit van het vliegtuig">🛩️ Cockpit</button>
+        <button class="btn" id="btn-zoom-globe" title="Volledig satellietoverzicht van Nederland">🛰️ Satelliet NL</button>
       </div>
     </div>
     <div class="sep"></div>

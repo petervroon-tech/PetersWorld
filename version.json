@@ -1,14 +1,14 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.1.0",
-  "build": 31,
-  "timestamp": "2026-11-08T07:22:05.206328+00:00",
-  "git_hash": "88eed69",
+  "version": "2.2.0",
+  "build": 33,
+  "timestamp": "2026-11-08T07:38:27.961671+00:00",
+  "git_hash": "62c4577",
   "features": [
-    "Vliegveld Teuge (EHTE / TGE) toegevoegd als prominente hub met baan 08/26 (1199m), Teuge Radio 120.255 MHz, Paracentrum Skydive Teuge (PH-FST Supervan) en Vliegschool Teuge (PH-TGE)",
-    "3D Wereldbol vervangen door een dedicated live vluchtradar achtergrond van heel Nederland (Amsterdam FIR, Schiphol TMA, Teuge ATZ, radar range rings, Nederlandse kustlijn en rivieren)",
-    "Live vliegverkeer boven Nederland met realistische kruishoogtes, naderingen, klimpatronen en storingsvrije 2D/3D projectie",
-    "Volledig Nederland radaroverzicht en naadloze zoom tot 300 meter boven startbanen Teuge en Schiphol",
+    "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
+    "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
+    "Realtime Flightradar vliegbewegingen en ADS-B live tracking met actuele hoogtes, grondsnelheid, koersvectoren en vluchtkaarten",
+    "Vliegveld Teuge (EHTE / TGE) en Schiphol met 30m baanzicht en Teuge Radio 120.255 MHz",
     "100% Nederlandse radiocommunicatie Schiphol & Teuge zonder loopings"
   ]
 }
