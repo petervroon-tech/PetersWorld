@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.2.1"
+DEFAULT_VERSION = "2.3.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (221 voor v2.2.1)
-    code0 = bytes([0]) + i32_const(221) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (230 voor v2.3.0)
+    code0 = bytes([0]) + i32_const(230) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,9 +253,10 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "100% Echte Live Vliegbewegingen (ADS-B Transponder Data van Flightradar24)",
             "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
             "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
-            "Realtime Flightradar vliegbewegingen en ADS-B live tracking met actuele hoogtes, grondsnelheid, koersvectoren en vluchtkaarten",
+            "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)",
             "Vliegveld Teuge (EHTE / TGE) en Schiphol met 30m baanzicht en Teuge Radio 120.255 MHz",
             "100% Nederlandse radiocommunicatie Schiphol & Teuge zonder loopings"
         ]
@@ -295,7 +296,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 221) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 230) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

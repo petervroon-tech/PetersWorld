@@ -634,6 +634,245 @@ class LiveAtcEngine {
 const LIVEATC = new LiveAtcEngine();
 
 // ═══════════════════════════════════════════════════════
+//  LIVE RADAR MANAGER (100% ECHTE ADSB & FLIGHTRADAR24 VLUCHTDATA)
+// ═══════════════════════════════════════════════════════
+class LiveRadarManager {
+  constructor() {
+    this.enabled = true;
+    this.isFetching = false;
+    this.lastFetchTime = 0;
+    this.fetchIntervalMs = 7000;
+    this.liveFlightsMap = new Map();
+    this.timerId = null;
+    this.hasReceivedLive = false;
+  }
+
+  init() {
+    window.handleLiveFlightradarFeed = (data) => this.onDataReceived(data);
+
+    // Eerste live radar peiling na 1.2 seconde
+    setTimeout(() => this.fetchFeed(), 1200);
+
+    // Continue live polling
+    this.timerId = setInterval(() => {
+      if (this.enabled && !document.hidden) {
+        this.fetchFeed();
+      }
+    }, this.fetchIntervalMs);
+  }
+
+  fetchFeed() {
+    if (this.isFetching) return;
+    this.isFetching = true;
+
+    const oldScript = document.getElementById('fr24-feed-script');
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = 'fr24-feed-script';
+    // Bounding box voor heel Nederland: N 53.7, Z 50.7, W 3.2, O 7.2
+    script.src = `https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=53.7,50.7,3.2,7.2&callback=handleLiveFlightradarFeed&_=${Date.now()}`;
+    script.onerror = () => {
+      this.isFetching = false;
+      console.warn('[LiveRadar] Live datafeed tijdelijk niet bereikbaar, fallback actief.');
+    };
+
+    document.head.appendChild(script);
+
+    setTimeout(() => {
+      if (this.isFetching) this.isFetching = false;
+    }, 6000);
+  }
+
+  onDataReceived(data) {
+    this.isFetching = false;
+    this.lastFetchTime = Date.now();
+    if (!data || typeof data !== 'object') return;
+
+    const now = Date.now();
+    let countInNl = 0;
+
+    for (const key of Object.keys(data)) {
+      if (key === 'full_count' || key === 'version') continue;
+      const arr = data[key];
+      if (!Array.isArray(arr) || arr.length < 14) continue;
+
+      const lat = arr[1];
+      const lon = arr[2];
+
+      // Filter specifiek op Nederlands radarbereik
+      if (lat < 50.4 || lat > 54.0 || lon < 3.0 || lon > 7.5) continue;
+      countInNl++;
+
+      const icao24 = (arr[0] || key).toLowerCase();
+      const track = arr[3] || 0;
+      const altFt = arr[4] || 0;
+      const speedKts = arr[5] || 0;
+      const aircraftType = (arr[8] || 'A320').trim();
+      const reg = (arr[9] || arr[0] || '').trim();
+      const originCode = (arr[11] || 'AMS').trim();
+      const destCode = (arr[12] || '---').trim();
+      const flightNum = (arr[13] || arr[16] || reg || icao24).trim();
+      const onGround = arr[14] === 1;
+      const vspeedFpm = arr[15] || 0;
+      const callsign = (arr[16] || flightNum || reg).trim();
+      const airlineCode = (arr[18] || (callsign.length >= 3 ? callsign.substring(0, 3) : 'KLM')).trim().toUpperCase();
+
+      const altMeters = Math.max(0, Math.round(altFt * 0.3048));
+      const altKm = Math.max(0.015, altMeters / 1000);
+      const speedKmh = Math.round(speedKts * 1.852);
+
+      const targetPos = latLonToVector3(lat, lon, altKm);
+
+      // Bereken richtingsvector voor Three.js (0° = -Z, 90° = +X, 180° = +Z, 270° = -X)
+      const rad = (track * Math.PI) / 180;
+      const dirX = Math.sin(rad);
+      const dirZ = -Math.cos(rad);
+      const dirY = (vspeedFpm * 0.00508) / Math.max(40, speedKmh);
+      const dir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
+
+      // Airline lookups
+      let airlineObj = AIRLINES.find(a => a.code === airlineCode);
+      if (!airlineObj) {
+        if (airlineCode.startsWith('KL') || airlineCode === 'KLM') airlineObj = AIRLINES[0];
+        else if (airlineCode.startsWith('HV') || airlineCode === 'TRA') airlineObj = AIRLINES[2];
+        else if (airlineCode.startsWith('OR') || airlineCode === 'TFL') airlineObj = AIRLINES[5];
+        else if (airlineCode === 'EZY') airlineObj = AIRLINES[9];
+        else if (airlineCode === 'TGE' || airlineCode === 'VTE') airlineObj = AIRLINES[3];
+        else {
+          airlineObj = {
+            code: airlineCode,
+            name: `${airlineCode} Airlines`,
+            color: 0x38bdf8,
+            hex: '#38bdf8'
+          };
+        }
+      }
+
+      // Origin / Dest lookups
+      let origAp = AIRPORTS.find(a => a.code === originCode || a.icao === originCode);
+      if (!origAp) origAp = { code: originCode, flag: '🛫', name: originCode };
+      let destAp = AIRPORTS.find(a => a.code === destCode || a.icao === destCode);
+      if (!destAp) destAp = { code: destCode, flag: '🛬', name: destCode };
+
+      let flight = this.liveFlightsMap.get(key);
+
+      if (flight) {
+        // Bestaand live toestel updaten
+        flight.targetPos.copy(targetPos);
+        flight.directionVector.copy(dir);
+        flight.altitude = altMeters;
+        flight.speedKmh = speedKmh;
+        flight.heading = track;
+        flight.vspeed = vspeedFpm;
+        flight.status = onGround ? 'Aan de grond / Taxiën' : (vspeedFpm > 300 ? 'Klimmen' : (vspeedFpm < -300 ? 'Dalen' : 'Kruishoogte'));
+        flight.lastSeen = now;
+
+        if (flight.trailPts && flight.trailGeo) {
+          const lastPt = flight.trailPts[flight.trailPts.length - 1];
+          if (!lastPt || lastPt.distanceTo(targetPos) > 0.08) {
+            flight.trailPts.push(targetPos.clone());
+            if (flight.trailPts.length > 20) flight.trailPts.shift();
+            flight.trailGeo.setFromPoints(flight.trailPts);
+          }
+        }
+      } else {
+        // Nieuw live vliegtuig aan Three.js toevoegen
+        const planeMesh = createAirplaneMesh(airlineObj.color);
+        planeMesh.userData = { isFlight: true };
+        planeMesh.position.copy(targetPos);
+        S.flightsGroup.add(planeMesh);
+
+        const trailPts = [targetPos.clone()];
+        const trailGeo = new THREE.BufferGeometry().setFromPoints(trailPts);
+        const trailMat = new THREE.LineBasicMaterial({
+          color: airlineObj.color,
+          transparent: true,
+          opacity: 0.45,
+          linewidth: 1
+        });
+        const arcLine = new THREE.Line(trailGeo, trailMat);
+        S.trailsGroup.add(arcLine);
+
+        flight = {
+          id: `live_${key}`,
+          key,
+          isLive: true,
+          callsign,
+          flightNumber: flightNum,
+          registration: reg,
+          airline: airlineObj,
+          aircraft: aircraftType,
+          origin: origAp,
+          dest: destAp,
+          altitude: altMeters,
+          speedKmh,
+          heading: track,
+          vspeed: vspeedFpm,
+          targetPos: targetPos.clone(),
+          currentPos: targetPos.clone(),
+          directionVector: dir.clone(),
+          planeMesh,
+          arcLine,
+          trailPts,
+          trailGeo,
+          lastSeen: now,
+          hovered: false,
+          status: onGround ? 'Aan de grond / Taxiën' : (vspeedFpm > 300 ? 'Klimmen' : (vspeedFpm < -300 ? 'Dalen' : 'Kruishoogte'))
+        };
+
+        planeMesh.userData.flight = flight;
+        this.liveFlightsMap.set(key, flight);
+        S.flights.push(flight);
+      }
+    }
+
+    // Verlopen toestellen verwijderen (>25s geen transponder signaal meer boven NL)
+    for (const [key, flight] of this.liveFlightsMap.entries()) {
+      if (now - flight.lastSeen > 25000) {
+        if (S.followFlight === flight) continue;
+        if (flight.planeMesh) S.flightsGroup.remove(flight.planeMesh);
+        if (flight.arcLine) S.trailsGroup.remove(flight.arcLine);
+        this.liveFlightsMap.delete(key);
+        const idx = S.flights.indexOf(flight);
+        if (idx !== -1) S.flights.splice(idx, 1);
+      }
+    }
+
+    // Eerste keer live data succesvol ontvangen: ruim eventuele dummy simulatievluchten op
+    if (!this.hasReceivedLive && this.liveFlightsMap.size >= 8) {
+      this.hasReceivedLive = true;
+      const simFlights = S.flights.filter(f => !f.isLive);
+      for (const sf of simFlights) {
+        if (S.followFlight === sf) continue;
+        if (sf.planeMesh) S.flightsGroup.remove(sf.planeMesh);
+        if (sf.arcLine) S.trailsGroup.remove(sf.arcLine);
+        const idx = S.flights.indexOf(sf);
+        if (idx !== -1) S.flights.splice(idx, 1);
+      }
+      ATC.logMessage('RADAR', `📡 Live ADS-B radarfeed actief: ${this.liveFlightsMap.size} echte vliegtuigen live boven Nederland!`, false);
+    }
+
+    // UI Counters bijwerken
+    const count = this.liveFlightsMap.size || S.flights.length;
+    const hudFlights = document.getElementById('hud-flights');
+    if (hudFlights) hudFlights.textContent = `${count}`;
+
+    const pillLive = document.getElementById('pill-live');
+    if (pillLive) pillLive.innerHTML = `<span class="dot green"></span>LIVE ADS-B (${count})`;
+
+    const tabBtnAllFlights = document.getElementById('tab-btn-allflights');
+    if (tabBtnAllFlights) tabBtnAllFlights.textContent = `✈️ Live Vluchten (${count})`;
+
+    if (S.followFlight && S.followFlight.isLive) {
+      updateFlightCardUI(S.followFlight);
+    }
+  }
+}
+
+const LIVE_RADAR = new LiveRadarManager();
+
+// ═══════════════════════════════════════════════════════
 //  ECHTE BAAN BEELDEN (LIVE WEBCAMS & SATELLIET LUCHTFOTO'S)
 // ═══════════════════════════════════════════════════════
 const RUNWAY_CAMS = {
@@ -1821,8 +2060,8 @@ function selectFlight(flight, viewMode = 'chase30m') {
   S.cameraTargetPos = null;
   S.cameraTargetLook = null;
 
-  const p = flight.curve.getPointAt(flight.progress);
-  const dir = flight.curve.getTangentAt(flight.progress).normalize();
+  const p = flight.isLive ? flight.currentPos : flight.curve.getPointAt(flight.progress);
+  const dir = flight.isLive ? (flight.directionVector || new THREE.Vector3(0, 0, -1)) : flight.curve.getTangentAt(flight.progress).normalize();
   S.lastFlightPos = p.clone();
 
   // Stel minDistance in tot 5 meter (tot 30 meter haarscherp!)
@@ -1853,7 +2092,8 @@ function selectFlight(flight, viewMode = 'chase30m') {
 
   updateFlightCardUI(flight);
   // Geen automatische audio-oproep in loop: audio speelt alleen op klik van de radioknop
-  ATC.logMessage('RADAR', `Vliegtuig ${flight.callsign} (${flight.airline.name}) geselecteerd [${viewMode}].`, false);
+  const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
+  ATC.logMessage('RADAR', `Vliegtuig ${flight.callsign} (${airName}) geselecteerd [${viewMode}].`, false);
 }
 
 function updateFlightCardUI(flight) {
@@ -1870,12 +2110,20 @@ function updateFlightCardUI(flight) {
     const elHdg = document.getElementById('frc-hdg');
 
     if (elCall) elCall.textContent = flight.callsign;
-    if (elAir) elAir.textContent = `${flight.airline.name} · ${flight.aircraft}`;
-    if (elRoute) elRoute.textContent = `${flight.origin.flag} ${flight.origin.code} ➔ ${flight.dest.flag} ${flight.dest.code}`;
+    const regTxt = flight.registration ? ` (${flight.registration})` : '';
+    const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
+    if (elAir) elAir.textContent = `${airName} · ${flight.aircraft}${regTxt}`;
+    if (elRoute) {
+      const origCode = flight.origin ? (flight.origin.code || flight.origin.name || flight.origin) : '---';
+      const destCode = flight.dest ? (flight.dest.code || flight.dest.name || flight.dest) : '---';
+      const origFlag = flight.origin && flight.origin.flag ? flight.origin.flag : '🛫';
+      const destFlag = flight.dest && flight.dest.flag ? flight.dest.flag : '🛬';
+      elRoute.textContent = `${origFlag} ${origCode} ➔ ${destFlag} ${destCode}`;
+    }
     if (elAlt) elAlt.textContent = `${Number(flight.altitude).toLocaleString('nl-NL')} m (${Math.round(flight.altitude * 3.28084)} ft)`;
     if (elSpd) elSpd.textContent = `${flight.speedKmh} km/h (${Math.round(flight.speedKmh * 0.539957)} kts)`;
-    if (elStatus) elStatus.textContent = flight.status || 'In vlucht';
-    if (elHdg) elHdg.textContent = `${flight.heading || 264}°`;
+    if (elStatus) elStatus.textContent = flight.status || (flight.isLive ? 'Live ADS-B' : 'In vlucht');
+    if (elHdg) elHdg.textContent = `${flight.heading || 0}°`;
   }
 }
 
@@ -1957,57 +2205,73 @@ function animate(now) {
     S.radarSweepMesh.rotation.y -= 0.012;
   }
 
-  // Vluchten positie updaten (vloeiende retourvlucht ipv harde loop)
+  // Vluchten positie updaten (vloeiende live ADS-B tracking & fallback)
   const dtSim = dt * S.speed;
   for (const f of S.flights) {
-    if (!S.paused) {
-      f.progress += f.progressRate * dtSim;
-      if (f.progress >= 1.0) {
-        // Realistische omkeer naar retourvlucht (geen abrupte sprong)
-        const oldOrig = f.origin;
-        f.origin = f.dest;
-        f.dest = oldOrig;
-        f.progress = 0;
+    if (f.isLive) {
+      // 100% ECHTE LIVE RADAR BEWEGING
+      if (f.targetPos && f.currentPos) {
+        f.currentPos.lerp(f.targetPos, 0.05);
+        f.planeMesh.position.copy(f.currentPos);
+      }
+      if (f.directionVector) {
+        const tangent = f.directionVector;
+        const up = new THREE.Vector3(0, 1, 0);
+        const right = new THREE.Vector3().crossVectors(up, tangent).normalize();
+        const correctedUp = new THREE.Vector3().crossVectors(tangent, right).normalize();
+        const m = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
+        f.planeMesh.quaternion.slerp(new THREE.Quaternion().setFromRotationMatrix(m), 0.08);
+      }
+    } else {
+      if (!S.paused) {
+        f.progress += f.progressRate * dtSim;
+        if (f.progress >= 1.0) {
+          // Realistische omkeer naar retourvlucht (geen abrupte sprong)
+          const oldOrig = f.origin;
+          f.origin = f.dest;
+          f.dest = oldOrig;
+          f.progress = 0;
 
-        const oVec = latLonToVector3(f.origin.lat, f.origin.lon, 0.05);
-        const dVec = latLonToVector3(f.dest.lat, f.dest.lon, 0.05);
-        const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
-        const isGA = (f.airline.code === 'TGE' || f.airline.code === 'VTE');
-        const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
+          const oVec = latLonToVector3(f.origin.lat, f.origin.lon, 0.05);
+          const dVec = latLonToVector3(f.dest.lat, f.dest.lon, 0.05);
+          const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
+          const isGA = (f.airline.code === 'TGE' || f.airline.code === 'VTE');
+          const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
 
-        const p0 = oVec;
-        const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
-        const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
-        const p3 = dVec;
-        f.curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+          const p0 = oVec;
+          const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
+          const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
+          const p3 = dVec;
+          f.curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
 
-        const pts = f.curve.getPoints(36);
-        f.arcLine.geometry.setFromPoints(pts);
-        f.status = 'Klimmen na vertrek';
+          const pts = f.curve.getPoints(36);
+          f.arcLine.geometry.setFromPoints(pts);
+          f.status = 'Klimmen na vertrek';
 
-        if (S.followFlight === f) {
-          updateFlightCardUI(f);
+          if (S.followFlight === f) {
+            updateFlightCardUI(f);
+          }
         }
       }
+
+      const p = f.curve.getPointAt(f.progress);
+      f.planeMesh.position.copy(p);
+
+      const tangent = f.curve.getTangentAt(f.progress).normalize();
+      const up = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(up, tangent).normalize();
+      const correctedUp = new THREE.Vector3().crossVectors(tangent, right).normalize();
+
+      const m = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
+      f.planeMesh.quaternion.setFromRotationMatrix(m);
     }
-
-    const p = f.curve.getPointAt(f.progress);
-    f.planeMesh.position.copy(p);
-
-    const tangent = f.curve.getTangentAt(f.progress).normalize();
-    const up = new THREE.Vector3(0, 1, 0);
-    const right = new THREE.Vector3().crossVectors(up, tangent).normalize();
-    const correctedUp = new THREE.Vector3().crossVectors(tangent, right).normalize();
-
-    const m = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
-    f.planeMesh.quaternion.setFromRotationMatrix(m);
   }
 
   // Stabiele camera tracking: 30m zonder OrbitControls conflict
   if (S.followFlight) {
     const f = S.followFlight;
-    const p = f.curve.getPointAt(f.progress);
-    const dir = f.curve.getTangentAt(f.progress).normalize();
+    const p = f.isLive ? f.currentPos : f.curve.getPointAt(f.progress);
+    const dir = f.isLive ? (f.directionVector || new THREE.Vector3(0, 0, -1)) : f.curve.getTangentAt(f.progress).normalize();
 
     if (S.flightViewMode === 'cockpit') {
       // 1. Cockpit: 100% stabiel, direct vooruit kijkend
@@ -2092,15 +2356,21 @@ function setupInteraction(container) {
       const flight = topObj.userData.flight;
       if (flight) {
         flight.hovered = true;
-        const pct = (flight.progress * 100).toFixed(0);
+        const pct = flight.isLive ? 'LIVE' : (flight.progress * 100).toFixed(0) + '%';
+        const origCode = flight.origin ? (flight.origin.code || flight.origin.name || flight.origin) : '---';
+        const destCode = flight.dest ? (flight.dest.code || flight.dest.name || flight.dest) : '---';
+        const origFlag = flight.origin && flight.origin.flag ? flight.origin.flag : '🛫';
+        const destFlag = flight.dest && flight.dest.flag ? flight.dest.flag : '🛬';
+        const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
+
         document.getElementById('tt-route').textContent   = flight.callsign;
-        document.getElementById('tt-airline').textContent = `${flight.airline.name} · ${flight.aircraft}`;
-        document.getElementById('tt-from').textContent    = `${flight.origin.flag} ${flight.origin.code}`;
-        document.getElementById('tt-to').textContent      = `${flight.dest.flag} ${flight.dest.code}`;
+        document.getElementById('tt-airline').textContent = `${airName} · ${flight.aircraft}`;
+        document.getElementById('tt-from').textContent    = `${origFlag} ${origCode}`;
+        document.getElementById('tt-to').textContent      = `${destFlag} ${destCode}`;
         document.getElementById('tt-alt').textContent     = `${Number(flight.altitude).toLocaleString('nl-NL')} m`;
         document.getElementById('tt-spd').textContent     = `${flight.speedKmh} km/h`;
-        document.getElementById('tt-pct').textContent     = `${pct}% (${flight.status || 'In vlucht'})`;
-        document.getElementById('tt-bar').style.width     = `${pct}%`;
+        document.getElementById('tt-pct').textContent     = flight.isLive ? `🔴 LIVE ADS-B (${flight.status})` : `${pct} (${flight.status || 'In vlucht'})`;
+        document.getElementById('tt-bar').style.width     = flight.isLive ? '100%' : `${(flight.progress || 0) * 100}%`;
 
         const tx = Math.min(window.innerWidth - 220, e.clientX + 16);
         const ty = Math.min(window.innerHeight - 180, e.clientY - 10);
@@ -2746,39 +3016,37 @@ function updateGlobalFlightListUI() {
   const list = document.getElementById('flight-list');
   if (!list) return;
 
-  if (list.children.length === 0) {
-    for (const f of S.flights) {
-      const item = document.createElement('div');
-      item.className = 'flight-item';
-      item.dataset.id = f.id;
-
-      const pct = (f.progress * 100).toFixed(0);
-      item.innerHTML = `
-        <span class="fi-icon">✈</span>
-        <div class="fi-info">
-          <div class="fi-route" style="color:${f.airline.hex}">${f.callsign} · ${f.origin.code}→${f.dest.code}</div>
-          <div class="fi-label">${f.airline.name} · ${f.aircraft}</div>
-        </div>
-        <span class="fi-prog" id="fp-pct-${f.id}">${pct}%</span>
-      `;
-
-      item.addEventListener('click', () => {
-        ATC.ensureAudioCtx();
-        LIVEATC.ensureAudioCtx();
-        selectFlight(f, 'chase30m');
-        updateGlobalFlightListUI();
-      });
-
-      list.appendChild(item);
-      f._listItem = item;
-    }
-  }
-
+  list.innerHTML = '';
   for (const f of S.flights) {
-    if (!f._listItem) continue;
-    f._listItem.classList.toggle('active', f === S.followFlight);
-    const pctEl = document.getElementById(`fp-pct-${f.id}`);
-    if (pctEl) pctEl.textContent = `${(f.progress * 100).toFixed(0)}%`;
+    const item = document.createElement('div');
+    item.className = 'flight-item';
+    if (f === S.followFlight) item.classList.add('active');
+    item.dataset.id = f.id;
+
+    const origCode = f.origin ? (f.origin.code || f.origin.name || f.origin) : '---';
+    const destCode = f.dest ? (f.dest.code || f.dest.name || f.dest) : '---';
+    const tag = f.isLive ? '🔴 LIVE' : `${((f.progress || 0) * 100).toFixed(0)}%`;
+    const col = f.airline && f.airline.hex ? f.airline.hex : '#38bdf8';
+    const airName = f.airline ? (f.airline.name || f.airline.code || '') : '';
+
+    item.innerHTML = `
+      <span class="fi-icon">✈</span>
+      <div class="fi-info">
+        <div class="fi-route" style="color:${col}">${f.callsign} · ${origCode}➔${destCode}</div>
+        <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m</div>
+      </div>
+      <span class="fi-prog" style="${f.isLive ? 'color:#ef4444;font-weight:700;' : ''}">${tag}</span>
+    `;
+
+    item.addEventListener('click', () => {
+      ATC.ensureAudioCtx();
+      LIVEATC.ensureAudioCtx();
+      selectFlight(f, 'chase30m');
+      updateGlobalFlightListUI();
+    });
+
+    list.appendChild(item);
+    f._listItem = item;
   }
 }
 
@@ -3032,7 +3300,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.0.1';
+let currentVersion = '2.3.0';
 
 async function checkVersion(silent = true) {
   try {
@@ -3076,6 +3344,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupControls();
   ATC.init();
   RUNWAY_CAM.init();
+  LIVE_RADAR.init();
 
   await loadWasm();
   await checkVersion(true);
