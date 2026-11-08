@@ -386,7 +386,7 @@ class LiveAtcEngine {
       ehrd_all: 'https://www.broadcastify.com/listen/ctid/3199',
       ehbk_all: 'https://airports.stream/amsterdam-schiphol-airport',
     };
-    this.currentStation = 'eham_all';
+    this.currentStation = 'eham_twr';
     this.currentAirportCode = 'AMS';
     this.audioCtx = null;
     this.analyser = null;
@@ -468,35 +468,16 @@ class LiveAtcEngine {
       btnPlay.addEventListener('click', () => this.togglePlay());
     }
 
-    const btnOpenReal = document.getElementById('btn-open-real-liveatc');
-    if (btnOpenReal) {
-      btnOpenReal.addEventListener('click', (e) => {
-        // Zorg dat de URL 100% up-to-date is
-        const url = this.getDirectLiveAtcUrl();
-        btnOpenReal.href = url;
-        btnOpenReal.setAttribute('href', url);
-        this.openLiveAtcStream(this.currentStation);
-        e.preventDefault();
-      });
-    }
-
     const btnLiveLink = document.getElementById('btn-atc-live-link');
     if (btnLiveLink) {
       btnLiveLink.addEventListener('click', () => {
-        this.openLiveAtcStream(this.currentStation);
+        this.togglePlay();
       });
     }
 
     if (pill) {
       pill.addEventListener('click', () => {
-        this.openLiveAtcStream(this.currentStation);
-      });
-    }
-
-    const btnBcfy = document.getElementById('btn-open-broadcastify');
-    if (btnBcfy) {
-      btnBcfy.addEventListener('click', () => {
-        this.recordStreamStart('Schiphol Broadcastify Popout');
+        this.togglePlay();
       });
     }
 
@@ -568,54 +549,42 @@ class LiveAtcEngine {
   }
 
   getDirectLiveAtcUrl(stationKey) {
-    const key = stationKey || this.currentStation || 'eham_all';
+    const key = stationKey || this.currentStation || 'eham_twr';
     if (this.liveAtcUrls && this.liveAtcUrls[key]) {
       return this.liveAtcUrls[key];
     }
-    if (this.currentAirportCode === 'RTM') {
-      return 'https://www.broadcastify.com/listen/ctid/3199';
-    }
-    return 'https://airports.stream/amsterdam-schiphol-airport';
+    return '';
   }
 
   updateAtcUi() {
-    const url = this.getDirectLiveAtcUrl();
-    const isRtm = this.currentAirportCode === 'RTM' || url.includes('ehrd') || url.includes('3199');
-    const airportName = isRtm ? 'Rotterdam' : 'Schiphol';
-    const streamUrl = isRtm ? 'https://www.broadcastify.com/listen/ctid/3199' : 'https://airports.stream/amsterdam-schiphol-airport';
-
+    const label = this.stationLabels[this.currentStation] || 'Schiphol Toren 1 (118.100 MHz)';
     const badge = document.getElementById('atc-code-badge');
     if (badge) {
-      badge.textContent = `🟢 ${airportName} Toren (118.100 MHz)`;
+      badge.textContent = `🟢 ${label}`;
     }
 
-    const btnOpenReal = document.getElementById('btn-open-real-liveatc');
-    if (btnOpenReal) {
-      btnOpenReal.href = streamUrl;
-      btnOpenReal.setAttribute('href', streamUrl);
-      btnOpenReal.innerHTML = `🎧 Luister Live ${airportName} Toren (Airports.stream)`;
-    }
-
-    const btnBcfy = document.getElementById('btn-open-broadcastify');
-    if (btnBcfy) {
-      btnBcfy.href = 'https://www.broadcastify.com/listen/feed/popout.php?feedId=47443';
+    const btn = document.getElementById('btn-liveatc-toggle');
+    if (btn && !this.isPlaying) {
+      const shortName = label.split('(')[0].replace(/🇳🇱\s*/, '').trim();
+      btn.textContent = `▶ SPEEL ${shortName.toUpperCase()}`;
     }
 
     const statusTxt = document.getElementById('liveatc-status-txt');
     if (statusTxt && !this.streamStartedAt) {
-      statusTxt.innerHTML = `🟢 100% Directe streams &bull; <strong>Geen code invullen!</strong>`;
+      statusTxt.innerHTML = `🟢 100% In-app radio &bull; <strong>Direct in PetersWorld</strong>`;
     }
   }
 
   openLiveAtcStream(stationKey) {
-    const url = this.getDirectLiveAtcUrl(stationKey);
-    const win = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!win) {
-      window.location.href = url;
+    if (stationKey) this.currentStation = stationKey;
+    const select = document.getElementById('liveatc-station-select');
+    if (select && stationKey) {
+      select.value = stationKey;
     }
-    const stationName = (this.currentAirportCode === 'RTM') ? 'Rotterdam Toren' : 'Schiphol Toren 118.100 MHz';
-    this.recordStreamStart(stationName);
     this.updateAtcUi();
+    if (!this.isPlaying) {
+      this.playStream();
+    }
   }
 
   ensureAudioCtx() {
@@ -712,7 +681,7 @@ class LiveAtcEngine {
         }
         this.isPlaying = true;
         this.recordStreamStart(label);
-        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZE'; }
+        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZEER RADIO'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
         if (statusTxt) statusTxt.textContent = `🔴 ${label} actief`;
@@ -749,7 +718,12 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
-    if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ PLAY'; }
+    if (btn) {
+      btn.classList.remove('playing');
+      const label = this.stationLabels[this.currentStation] || 'Schiphol Toren 1 (118.100 MHz)';
+      const shortName = label.split('(')[0].replace(/🇳🇱\s*/, '').trim();
+      btn.textContent = `▶ SPEEL ${shortName.toUpperCase()}`;
+    }
     if (dot) dot.className = 'dot red';
     if (pill) pill.classList.remove('active');
     if (statusTxt) statusTxt.textContent = '📻 Live radio gestopt';
@@ -764,17 +738,19 @@ class LiveAtcEngine {
     this.currentAirportCode = airport.code;
 
     let targetStation = airport.liveAtcStation || 'eham_twr';
+    if (airport.icao === 'EHRD') targetStation = 'ehrd_twr';
+    else if (airport.icao === 'EHBK') targetStation = 'ehbk_twr';
+    else if (airport.icao === 'EHEH') targetStation = 'eheh_twr';
+    else if (airport.icao === 'EHTE') targetStation = 'ehte_twr';
+    else if (airport.icao === 'EHGG') targetStation = 'ehgg_twr';
+    else if (airport.icao === 'EHLE') targetStation = 'ehle_twr';
+    else if (airport.icao === 'EHTX') targetStation = 'ehtx_twr';
+
     this.currentStation = targetStation;
 
     const select = document.getElementById('liveatc-station-select');
     if (select) {
-      if (airport.icao === 'EHRD') {
-        select.value = 'ehrd_all';
-      } else if (airport.icao === 'EHBK') {
-        select.value = 'ehbk_all';
-      } else {
-        select.value = 'eham01_twr_main1';
-      }
+      select.value = targetStation;
     }
 
     const atcFreq = document.getElementById('atc-freq-disp');
@@ -3273,7 +3249,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.7';
+let currentVersion = '2.3.8';
 
 async function checkVersion(silent = true) {
   try {

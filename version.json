@@ -1,17 +1,16 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.3.7",
-  "build": 47,
-  "timestamp": "2026-11-08T12:01:50.986773+00:00",
-  "git_hash": "d4988fe",
+  "version": "2.3.8",
+  "build": 49,
+  "timestamp": "2026-11-08T12:10:49.365384+00:00",
+  "git_hash": "3420bfa",
   "features": [
-    "Vliegtuigkleuren volgens verzoek: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
+    "Popup webplayer en alle externe website-popups verwijderd: 100% directe in-app audio radio speler in PetersWorld",
+    "Vliegtuigkleuren: GROEN voor landende toestellen, GEEL voor opstijgende toestellen en PAARS voor vliegtuigen over Nederland",
     "Live HUD tellers & visuele radarlegenda voor landende (groen), opstijgende (geel) en overvliegende (paars) toestellen",
     "100% Echte Live ADS-B vliegbewegingen via Flightradar24 transponder feed",
-    "LiveATC audio stream met realtime datum en klok (uur, minuut, seconde exact synchroon) voor 100% live audio verificatie",
+    "Realtime datum en tikkende klok (uur, minuut, seconde exact synchroon) voor 100% live audio verificatie",
     "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
-    "100% Echte Live Schiphol Toren Radio direct afspelen met 1 klik",
-    "100% Echte satelliet achtergrond van heel Nederland (luchtfoto's van land, water, velden en banen)",
-    "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)"
+    "100% Echte satelliet achtergrond van heel Nederland (luchtfoto's van land, water, velden en banen)"
   ]
 }

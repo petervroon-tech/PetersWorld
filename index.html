@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.7</strong> beschikbaar &bull; <span id="upd-note">Vliegtuigkleuren: Groen (landend), Geel (opstijgend) & Paars (over Nederland)</span></span>
+      <span><strong id="upd-ver">v2.3.8</strong> beschikbaar &bull; <span id="upd-note">Externe popup webplayer verwijderd: 100% directe in-app radio speler</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -812,7 +812,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.7</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.8</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -834,7 +834,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.7</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.8</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -847,31 +847,38 @@
       </div>
       <div class="atc-actions">
         <button class="btn-icon-sm" id="btn-atc-mute" title="Geluid Aan/Uit">🔊</button>
-        <button class="btn-icon-sm" id="btn-atc-live-link" title="Open directe toren radio in nieuw venster">🎧</button>
         <button class="btn-icon-sm" id="btn-close-atc" title="Sluit radio venster">&times;</button>
       </div>
     </div>
 
-    <!-- Live Radio Stream Deck (100% Directe Spelers Zonder Invoervelden) -->
+    <!-- Live Radio Stream Deck (100% In-App Speler Zonder Externe Popups) -->
     <div class="liveatc-deck">
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="font-size:0.7rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:0.5px;">
-          📡 100% Echte Live Luchtvaartradio (Directe Spelers)
+          📡 100% In-App Luchtvaartradio (Geen Externe Websites)
         </div>
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies radiostation">
-          <optgroup label="🇳🇱 Schiphol Directe Audio Spelers (Geen Code Nodig)">
-            <option value="eham_all" selected>🇳🇱 Schiphol Toren 1, 2 & Banen (Airports.stream)</option>
-            <option value="broadcastify_eham">🇳🇱 Schiphol Airport Popout Speler (Broadcastify)</option>
+          <optgroup label="🇳🇱 Schiphol Toren & Verkeersleiding">
+            <option value="eham_twr" selected>🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)</option>
+            <option value="eham_twr2">🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)</option>
+            <option value="eham_app">🇳🇱 Schiphol Approach (119.050 MHz - Nadering & Radar)</option>
+            <option value="eham_dep">🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)</option>
+            <option value="eham_gnd">🇳🇱 Schiphol Grond (121.700 MHz - Taxiën & Platform)</option>
           </optgroup>
-          <optgroup label="🇳🇱 Regionale Velden">
-            <option value="ehrd_all">🇳🇱 Rotterdam The Hague Toren (EHRD)</option>
-            <option value="ehbk_all">🇳🇱 Maastricht Aachen Toren (EHBK)</option>
+          <optgroup label="🇳🇱 Regionale & Lokale Velden">
+            <option value="ehrd_twr">🇳🇱 Rotterdam The Hague Toren (118.200 MHz)</option>
+            <option value="eheh_twr">🇳🇱 Eindhoven Airport Toren (131.000 MHz)</option>
+            <option value="ehte_twr">🇳🇱 Vliegveld Teuge Radio (120.255 MHz)</option>
+            <option value="ehbk_twr">🇳🇱 Maastricht Aachen Toren (119.475 MHz)</option>
+            <option value="ehgg_twr">🇳🇱 Groningen Eelde Toren (118.700 MHz)</option>
+            <option value="ehle_twr">🇳🇱 Lelystad Airport Toren (125.675 MHz)</option>
+            <option value="ehtx_twr">🇳🇱 Texel Airport Haven (119.855 MHz)</option>
           </optgroup>
         </select>
         
         <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(2,6,23,0.7);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:0.73rem;">
           <span style="color:#10b981;font-weight:700;" id="atc-code-badge">🟢 Schiphol Toren (118.100 MHz)</span>
-          <span style="color:var(--cyan);font-size:0.65rem;">✓ Directe audio</span>
+          <span style="color:var(--cyan);font-size:0.65rem;">✓ Direct in PetersWorld</span>
         </div>
 
         <!-- Live Stream Realtime Verificatiebox (Datum, Uur, Minuut, Seconde) -->
@@ -897,22 +904,14 @@
           </div>
         </div>
 
-        <a id="btn-open-real-liveatc" href="https://airports.stream/amsterdam-schiphol-airport" target="_blank" rel="noopener noreferrer" style="width:100%;text-decoration:none;box-sizing:border-box;background:linear-gradient(135deg,#059669,#10b981);font-weight:700;font-size:0.84rem;padding:11px 12px;border-radius:6px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);">
-          🎧 Luister Live Schiphol Toren (Airports.stream)
-        </a>
-
-        <a id="btn-open-broadcastify" href="https://www.broadcastify.com/listen/feed/popout.php?feedId=47443" target="_blank" rel="noopener noreferrer" style="width:100%;text-decoration:none;box-sizing:border-box;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.35);font-weight:600;font-size:0.75rem;padding:8px 10px;border-radius:6px;color:#38bdf8;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-          📻 Schiphol Popout WebPlayer (Broadcastify)
-        </a>
+        <!-- 100% Directe In-App Audio Speler Knop (Geen popups of externe websites!) -->
+        <button id="btn-liveatc-toggle" style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,#0284c7,#38bdf8);font-weight:800;font-size:0.86rem;padding:12px 14px;border-radius:7px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(56,189,248,0.35);transition:all 0.2s;">
+          ▶ SPEEL LIVE SCHIPHOL RADIO
+        </button>
       </div>
 
       <div class="liveatc-status-row" style="margin-top:6px;">
-        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% Directe streams &bull; Geen code invullen!</span>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
-        <span style="font-size:0.68rem;color:#94a3b8;">Of luister fragment in PetersWorld:</span>
-        <button id="btn-liveatc-toggle" class="btn-icon-sm" style="font-size:0.72rem;padding:3px 8px;width:auto;border-radius:4px;background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">▶ In PetersWorld</button>
+        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% In-app radio &bull; Geen popups of externe websites</span>
       </div>
     </div>
 
@@ -1168,6 +1167,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.3.7"></script>
+  <script src="app.js?v=2.3.8"></script>
 </body>
 </html>
