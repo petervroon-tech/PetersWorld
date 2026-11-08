@@ -373,7 +373,16 @@ class LiveAtcEngine {
   constructor() {
     this.audioEl = null;
     this.isPlaying = false;
-    this.currentStation = 'eham_twr';
+    this.liveAtcUrls = {
+      eham01_twr_main1: 'https://www.liveatc.net/hlisten.php?mount=eham01_twr_main1&icao=eham',
+      eham01_twr_main2: 'https://www.liveatc.net/hlisten.php?mount=eham01_twr_main2&icao=eham',
+      eham01_arr_p: 'https://www.liveatc.net/hlisten.php?mount=eham01_arr_p&icao=eham',
+      eham_atis_dep: 'https://www.liveatc.net/hlisten.php?mount=eham_atis_dep&icao=eham',
+      eham_all: 'https://www.liveatc.net/search/?icao=eham',
+      ehrd_all: 'https://www.liveatc.net/search/?icao=ehrd',
+      ehbk_all: 'https://www.liveatc.net/search/?icao=ehbk',
+    };
+    this.currentStation = 'eham01_twr_main1';
     this.currentAirportCode = 'AMS';
     this.audioCtx = null;
     this.analyser = null;
@@ -454,11 +463,34 @@ class LiveAtcEngine {
       btnPlay.addEventListener('click', () => this.togglePlay());
     }
 
+    const btnOpenReal = document.getElementById('btn-open-real-liveatc');
+    if (btnOpenReal) {
+      btnOpenReal.addEventListener('click', () => {
+        this.openLiveAtcStream(this.currentStation);
+      });
+    }
+
+    const btnLiveLink = document.getElementById('btn-atc-live-link');
+    if (btnLiveLink) {
+      btnLiveLink.addEventListener('click', () => {
+        this.openLiveAtcStream(this.currentStation);
+      });
+    }
+
     if (pill) {
-      pill.addEventListener('click', () => this.togglePlay());
+      pill.addEventListener('click', () => {
+        this.openLiveAtcStream(this.currentStation);
+      });
     }
 
     this.initVisualizer();
+  }
+
+  openLiveAtcStream(stationKey) {
+    const key = stationKey || this.currentStation || 'eham01_twr_main1';
+    const url = this.liveAtcUrls[key] || `https://www.liveatc.net/search/?icao=${(this.currentAirportCode || 'eham').toLowerCase()}`;
+    window.open(url, '_blank');
+    ATC.logMessage('LIVE ATC', `Officiële LiveATC radio geopend in nieuw venster: ${this.stationLabels[key] || key}`, true);
   }
 
   ensureAudioCtx() {
@@ -1259,53 +1291,17 @@ class AtcRadioEngine {
   }
 
   speak(text, isTower, onDone) {
-    if (!this.enabled) {
-      if (onDone) setTimeout(onDone, 200);
-      return;
-    }
-
-    this.ensureAudioCtx();
-    this.playMicClick(true);
-    this.setTxIndicator(isTower ? 'tower' : 'pilot');
-
-    setTimeout(() => {
-      this.playMicClick(false);
-      this.setTxIndicator('idle');
-      if (onDone) setTimeout(onDone, 200);
-    }, 600);
+    if (onDone) setTimeout(onDone, 50);
   }
 
   exchangeDialogue(towerSpeaker, towerText, towerSpeech, pilotSpeaker, pilotText, pilotSpeech, onDone) {
-    this.ensureAudioCtx();
-    this.isTransmitting = true;
-
-    this.logMessage(towerSpeaker, towerText, true);
-    this.speak(towerSpeech, true, () => {
-      setTimeout(() => {
-        this.logMessage(pilotSpeaker, pilotText, false);
-        this.speak(pilotSpeech, false, () => {
-          this.isTransmitting = false;
-          if (onDone) onDone();
-        });
-      }, 350);
-    });
+    if (onDone) setTimeout(onDone, 50);
   }
 
   contactFlight(flight) {
-    if (this.isTransmitting || !flight) return;
-    this.ensureAudioCtx();
-
+    if (!flight) return;
     const sector = this.determineSector(flight);
     this.setFrequency(sector.freq, sector.name);
-
-    const rwy = (flight.origin && flight.origin.activeRunway) || (S.selectedAirport && S.selectedAirport.activeRunway) || '24';
-    const wind = (flight.origin && flight.origin.weather && flight.origin.weather.wind) || '220° 12kt';
-    const towerText = `${flight.callsign}, ${sector.name}, wind ${wind}, ${rwy}, cleared for takeoff.`;
-    const pilotText = `Cleared for takeoff ${rwy}, ${flight.callsign}.`;
-
-    this.exchangeDialogue(sector.code, towerText, towerText, flight.callsign, pilotText, pilotText);
-
-    // Zorg dat de radio display afgestemd staat op dit vliegveld
     const ap = flight.origin || flight.dest || S.selectedAirport;
     if (ap && LIVEATC) {
       LIVEATC.tuneToAirport(ap, false);
@@ -2678,8 +2674,6 @@ function renderAirportFlightBoard() {
 function regieActionTakeoff() {
   const ap = S.selectedAirport;
   if (!ap) return;
-  ATC.ensureAudioCtx();
-  LIVEATC.ensureAudioCtx();
 
   let dIdx = Math.floor(Math.random() * AIRPORTS.length);
   while (AIRPORTS[dIdx] === ap) dIdx = Math.floor(Math.random() * AIRPORTS.length);
@@ -2690,29 +2684,15 @@ function regieActionTakeoff() {
   flight.status = 'Opstijgen';
   S.followFlight = flight;
 
-  const numOnly = flight.callsign.replace(/\D/g, '');
-  const callsignSpoken = flight.airline.callsign + ' ' + numOnly;
-  const rwy = ap.activeRunway;
-
-  ATC.exchangeDialogue(
-    `${ap.code} TWR`,
-    `${flight.callsign}, ${ap.name} Tower. Wind ${ap.weather.wind}, ${rwy}, cleared for takeoff! Airborne contact Departure ${ap.freqs.app}.`,
-    `${callsignSpoken}, ${ap.name} Tower. Wind ${ap.weather.wind}, ${rwy}, cleared for takeoff, airborne Departure ${ap.freqs.app}.`,
-    flight.callsign,
-    `${rwy}, cleared for takeoff, rolling out now, ${flight.callsign}!`,
-    `${rwy}, cleared for takeoff, rolling out now, ${callsignSpoken}!`
-  );
-
+  ATC.logMessage('STATUS', `Toestel ${flight.callsign} vertrekt vanaf baan ${ap.activeRunway}.`, false);
   renderAirportFlightBoard();
 }
 
 function regieActionLand() {
   const ap = S.selectedAirport;
   if (!ap) return;
-  ATC.ensureAudioCtx();
-  LIVEATC.ensureAudioCtx();
 
-  let inbound = S.flights.find(f => f.dest.code === ap.code && f.progress > 0.70);
+  let inbound = S.flights.find(f => f.dest && f.dest.code === ap.code && f.progress > 0.70);
   if (!inbound) {
     let oIdx = Math.floor(Math.random() * AIRPORTS.length);
     while (AIRPORTS[oIdx] === ap) oIdx = Math.floor(Math.random() * AIRPORTS.length);
@@ -2724,43 +2704,20 @@ function regieActionLand() {
   inbound.status = 'Geland & Baan Vrij';
   S.followFlight = inbound;
 
-  const numOnly = inbound.callsign.replace(/\D/g, '');
-  const callsignSpoken = inbound.airline.callsign + ' ' + numOnly;
-  const rwy = ap.activeRunway;
-
-  ATC.exchangeDialogue(
-    `${ap.code} TWR`,
-    `${inbound.callsign}, ${ap.name} Tower. Wind ${ap.weather.wind}, ${rwy}, cleared to land. Welcome to ${ap.city}!`,
-    `${callsignSpoken}, ${ap.name} Tower. Wind ${ap.weather.wind}, ${rwy}, cleared to land. Welcome to ${ap.city}!`,
-    inbound.callsign,
-    `Cleared to land ${rwy}, touchdown imminent, ${inbound.callsign}.`,
-    `Cleared to land ${rwy}, touchdown imminent, ${callsignSpoken}.`
-  );
-
+  ATC.logMessage('STATUS', `Toestel ${inbound.callsign} geland op baan ${ap.activeRunway}.`, false);
   renderAirportFlightBoard();
 }
 
 function regieActionGoAround() {
   const ap = S.selectedAirport;
   if (!ap) return;
-  ATC.ensureAudioCtx();
-  LIVEATC.ensureAudioCtx();
 
-  let inbound = S.flights.find(f => f.dest.code === ap.code) || S.flights[0];
-  inbound.status = 'GO-AROUND!';
-  S.followFlight = inbound;
-
-  const numOnly = inbound.callsign.replace(/\D/g, '');
-  const callsignSpoken = inbound.airline.callsign + ' ' + numOnly;
-
-  ATC.exchangeDialogue(
-    `${ap.code} TWR`,
-    `🚨 ATTENTION ${inbound.callsign}! GO AROUND! Cancel landing clearance! Runway occupied! Climb and maintain 3000 feet on runway heading!`,
-    `Attention ${callsignSpoken}! Go around! Cancel landing clearance! Runway occupied! Climb and maintain 3000 feet on runway heading!`,
-    inbound.callsign,
-    `Going around immediately! Maximum thrust, climbing 3000 feet, ${inbound.callsign}!`,
-    `Going around immediately! Maximum thrust, climbing 3000 feet, ${callsignSpoken}!`
-  );
+  let inbound = S.flights.find(f => f.dest && f.dest.code === ap.code) || S.flights[0];
+  if (inbound) {
+    inbound.status = 'GO-AROUND!';
+    S.followFlight = inbound;
+    ATC.logMessage('STATUS', `Doorstart (Go-Around) geactiveerd voor ${inbound.callsign}.`, false);
+  }
 
   renderAirportFlightBoard();
 }
@@ -2768,24 +2725,13 @@ function regieActionGoAround() {
 function regieActionEmergency() {
   const ap = S.selectedAirport;
   if (!ap) return;
-  ATC.ensureAudioCtx();
-  LIVEATC.ensureAudioCtx();
 
-  const inbound = S.flights.find(f => f.dest.code === ap.code) || S.flights[1];
-  inbound.status = 'SQUAWK 7700';
-  S.followFlight = inbound;
-
-  const numOnly = inbound.callsign.replace(/\D/g, '');
-  const callsignSpoken = inbound.airline.callsign + ' ' + numOnly;
-
-  ATC.exchangeDialogue(
-    inbound.callsign,
-    `🚨 MAYDAY MAYDAY MAYDAY! ${inbound.callsign}, cockpit warning, hydraulic pressure drop! Requesting priority emergency landing!`,
-    `Mayday Mayday Mayday! ${callsignSpoken}, cockpit warning, hydraulic pressure drop! Requesting priority emergency landing!`,
-    `${ap.code} TWR`,
-    `${inbound.callsign}, ${ap.name} Tower. Squawk 7700. All departures stopped. Runway ${ap.activeRunway} is cleared and emergency equipment is rolling!`,
-    `${callsignSpoken}, ${ap.name} Tower. Squawk 7700. All departures stopped. Runway ${ap.activeRunway} is cleared and emergency equipment is rolling!`
-  );
+  const inbound = S.flights.find(f => f.dest && f.dest.code === ap.code) || S.flights[1];
+  if (inbound) {
+    inbound.status = 'SQUAWK 7700';
+    S.followFlight = inbound;
+    ATC.logMessage('ALARM', `Squawk 7700 ingesteld voor ${inbound.callsign} op baan ${ap.activeRunway}.`, true);
+  }
 
   renderAirportFlightBoard();
 }
@@ -3300,7 +3246,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.0';
+let currentVersion = '2.3.1';
 
 async function checkVersion(silent = true) {
   try {

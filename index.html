@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.3.0</strong> beschikbaar &bull; <span id="upd-note">100% Echte live vliegbewegingen boven Nederland (Flightradar24 / ADS-B transponders)</span></span>
+      <span><strong id="upd-ver">v2.3.1</strong> beschikbaar &bull; <span id="upd-note">100% Echte Live Luchtvaartradio via LiveATC.net (alle gesimuleerde dialogen verwijderd)</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -811,12 +811,12 @@
       <div class="pill daylight-pill active" id="btn-toggle-daylight" title="Schakel tussen Realistische Nacht/Zon en Dagzicht">
         <span id="txt-daylight">☀️ Dagzicht: AAN</span>
       </div>
-      <div class="pill liveatc-pill" id="pill-liveatc" title="LiveATC radio streaming aan/uitzetten">
-        <span class="dot red" id="liveatc-dot"></span>
-        <span id="liveatc-txt">🔴 Live Radio</span>
+      <div class="pill liveatc-pill active" id="pill-liveatc" title="Open officiële LiveATC Schiphol audio stream">
+        <span class="dot green" id="liveatc-dot"></span>
+        <span id="liveatc-txt">🎧 Live Radio (LiveATC)</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.0</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.3.1</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -835,7 +835,7 @@
     <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.0</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.3.1</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -848,52 +848,49 @@
       </div>
       <div class="atc-actions">
         <button class="btn-icon-sm" id="btn-atc-mute" title="Geluid Aan/Uit">🔊</button>
-        <button class="btn-icon-sm" id="btn-atc-call" title="Zend Oproep (Tower ↔ Piloot)">🎙️</button>
+        <button class="btn-icon-sm" id="btn-atc-live-link" title="Open LiveATC.net speler in nieuw venster">🎧</button>
         <button class="btn-icon-sm" id="btn-close-atc" title="Sluit LiveATC venster">&times;</button>
       </div>
     </div>
 
-    <!-- LiveATC Stream Deck (Net zoals de LiveATC App) -->
+    <!-- LiveATC Stream Deck (100% Echte Live ATC Radio) -->
     <div class="liveatc-deck">
-      <div class="liveatc-row-top">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:0.5px;">
+          📡 100% Echte Live Luchtvaartradio (LiveATC.net)
+        </div>
         <select id="liveatc-station-select" class="liveatc-station-select" title="Kies radiostation">
-          <optgroup label="🇳🇱 Schiphol Luchtverkeersleiding (EHAM)">
-            <option value="eham_twr" selected>🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)</option>
-            <option value="eham_twr2">🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)</option>
-            <option value="eham_gnd">🇳🇱 Schiphol Grond (121.700 MHz - Taxiën & Platform)</option>
-            <option value="eham_del">🇳🇱 Schiphol Delivery (121.980 MHz - Vluchtklaringen)</option>
-            <option value="eham_app">🇳🇱 Schiphol Approach (119.050 MHz - Nadering & Radar)</option>
-            <option value="eham_dep">🇳🇱 Schiphol Departure (121.200 MHz - Vertrek)</option>
+          <optgroup label="🇳🇱 Schiphol Officiële LiveATC Feeds">
+            <option value="eham01_twr_main1" selected>🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)</option>
+            <option value="eham01_twr_main2">🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)</option>
+            <option value="eham01_arr_p">🇳🇱 Schiphol Nadering / Approach (119.050 MHz)</option>
+            <option value="eham_atis_dep">🇳🇱 Schiphol ATIS (122.200 MHz - Weer & Baan)</option>
+            <option value="eham_all">🇳🇱 Alle Schiphol Feeds Overzicht (LiveATC)</option>
           </optgroup>
-          <optgroup label="🇳🇱 Nederlandse Regionale & Militaire Velden">
-            <option value="ehte_twr">🇳🇱 Teuge Radio / Toren (120.255 MHz - Skydive & GA)</option>
-            <option value="ehrd_twr">🇳🇱 Rotterdam The Hague Toren (118.200 MHz)</option>
-            <option value="eheh_twr">🇳🇱 Eindhoven Airport Toren (131.000 MHz)</option>
-            <option value="ehgg_twr">🇳🇱 Groningen Airport Eelde Toren (118.700 MHz)</option>
-            <option value="ehbk_twr">🇳🇱 Maastricht Aachen Toren (119.475 MHz)</option>
-            <option value="ehle_twr">🇳🇱 Lelystad Airport Toren (125.675 MHz)</option>
-            <option value="ehlw_twr">🇳🇱 Vliegbasis Leeuwarden (120.700 MHz - F-35)</option>
-            <option value="ehvk_twr">🇳🇱 Vliegbasis Volkel (124.625 MHz - F-35)</option>
-            <option value="ehgr_twr">🇳🇱 Vliegbasis Gilze-Rijen (125.075 MHz - DHC)</option>
-            <option value="ehwo_twr">🇳🇱 Vliegbasis Woensdrecht (122.100 MHz)</option>
-            <option value="ehkd_twr">🇳🇱 Den Helder De Kooy (118.850 MHz)</option>
-            <option value="ehse_twr">🇳🇱 Breda Seppe (120.655 MHz)</option>
-            <option value="ehtx_twr">🇳🇱 Texel Airport (119.855 MHz)</option>
-            <option value="ehhv_twr">🇳🇱 Hilversum Radio (121.205 MHz)</option>
+          <optgroup label="🇳🇱 Nederlandse Regionale Velden">
+            <option value="ehrd_all">🇳🇱 Rotterdam The Hague Toren & Radar (EHRD)</option>
+            <option value="ehbk_all">🇳🇱 Maastricht Aachen Toren & Radar (EHBK)</option>
           </optgroup>
         </select>
-        <button id="btn-liveatc-toggle" class="liveatc-play-btn">▶ PLAY</button>
+        
+        <button id="btn-open-real-liveatc" style="width:100%;background:linear-gradient(135deg,#059669,#10b981);font-weight:700;font-size:0.82rem;padding:9px 12px;border-radius:6px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+          🎧 Open Echte Live Radio (LiveATC.net)
+        </button>
       </div>
-      <canvas id="atc-audio-visualizer" class="canvas-viz" width="320" height="24"></canvas>
-      <div class="liveatc-status-row">
-        <span id="liveatc-status-txt">📻 LiveATC stream gereed</span>
-        <span id="liveatc-smeter">S-METER: S9+10dB</span>
+
+      <div class="liveatc-status-row" style="margin-top:6px;">
+        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 Directe koppeling naar LiveATC radio streams</span>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+        <span style="font-size:0.68rem;color:#94a3b8;">Of luister opgeslagen fragment:</span>
+        <button id="btn-liveatc-toggle" class="btn-icon-sm" style="font-size:0.72rem;padding:3px 8px;width:auto;border-radius:4px;background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);">▶ Test Opname</button>
       </div>
     </div>
 
     <div id="atc-log" class="atc-log-box">
       <div class="atc-msg-line">
-        <span class="atc-speaker">📻 RADIO:</span> Schiphol Toren 118.100 MHz actief. Schakel tussen Schiphol kanalen of klik ▶ PLAY voor directe audio!
+        <span class="atc-speaker">📻 RADIO:</span> 100% Echte live vliegbewegingen en directe koppeling naar officiële LiveATC Schiphol audio streams. Geen gesimuleerde dialogen.
       </div>
     </div>
 

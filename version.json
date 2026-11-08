@@ -1,15 +1,15 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.3.0",
-  "build": 36,
-  "timestamp": "2026-11-08T08:02:03.765065+00:00",
-  "git_hash": "4b2f010",
+  "version": "2.3.1",
+  "build": 37,
+  "timestamp": "2026-11-08T08:13:50.659010+00:00",
+  "git_hash": "d30d709",
   "features": [
+    "100% Echte Live Luchtvaartradio direct gekoppeld met officiële LiveATC.net Schiphol audio streams",
+    "Alle gesimuleerde radiogesprekken en verzonnen teksten volledig verwijderd",
     "100% Echte Live Vliegbewegingen (ADS-B Transponder Data van Flightradar24)",
     "Tot 30 meter boven de grond kunnen zien bij het selecteren van een vliegtuig (Chase 30m cam, Cockpit view en 30m spotter view)",
     "100% Echte satelliet achtergrond van heel Nederland (geen nepgrafische vectoren meer, echte luchtfoto's van land, water, velden en banen)",
-    "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)",
-    "Vliegveld Teuge (EHTE / TGE) en Schiphol met 30m baanzicht en Teuge Radio 120.255 MHz",
-    "100% Nederlandse radiocommunicatie Schiphol & Teuge zonder loopings"
+    "Realtime actuele hoogtes, grondsnelheid, koersvectoren en live vluchtsporen (trails)"
   ]
 }
