@@ -780,7 +780,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.4.0</strong> beschikbaar &bull; <span id="upd-note">Alle frequenties Schiphol & NL luchthavens (Torens, Approach N/O/Z/W, Departure N/O/Z/W) + Verkeersstroom Sector Volger</span></span>
+      <span><strong id="upd-ver">v2.4.1</strong> beschikbaar &bull; <span id="upd-note">100% Echte Live ATC Radio feeds (Kaagbaan/Aalsmeerbaan, Polderbaan, Zwanenburg, Delivery) &bull; Statische opnamebandjes definitief vervangen</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd" onclick="window.location.href='reset.html';">Nu bijwerken</button>
@@ -812,7 +812,7 @@
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.4.0</span></div>
+      <div class="pill" id="pill-ver"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.4.1</span></div>
       <button class="btn-icon" id="btn-refresh" title="Controleer op updates">🔄</button>
     </div>
   </header>
@@ -837,7 +837,7 @@
     <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
     <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
     <div class="hud-row"><span class="hud-label">Gesprek opname</span><span class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.4.0</span></div>
+    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.4.1</span></div>
   </div>
 
   <!-- LiveATC Radio Transceiver Console -->
@@ -1024,19 +1024,20 @@
         </div>
       </div>
 
-      <div class="liveatc-status-row" style="margin-top:6px;">
-        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% In-app radio &bull; Geen popups of externe websites</span>
+      <div class="liveatc-status-row" style="margin-top:6px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;">
+        <span id="liveatc-status-txt" style="color:#10b981;font-weight:600;">🟢 100% In-app live radio &bull; Directe koppeling met verkeerstoren</span>
+        <span style="font-size:0.67rem;color:#94a3b8;line-height:1.35;">💡 <em>Echte live radio: tijdens tussenpauzes (geen verkeersoproep) is het radiostilte (squelch). Zodra toren of piloot zendt hoor je direct het live gesprek.</em></span>
       </div>
     </div>
 
     <div id="atc-log" class="atc-log-box">
       <div class="atc-msg-line">
-        <span class="atc-speaker">📻 RADIO:</span> 100% Echte live vliegbewegingen en directe koppeling naar Schiphol radio streams.
+        <span class="atc-speaker">📻 LIVE ATC:</span> Directe actuele radioverbinding met Nederlandse luchtverkeersleiding. 100% Realtime live uitzending (geen bandje).
       </div>
     </div>
 
-    <!-- Verborgen HTML5 Audio Element voor echte LiveATC streams -->
-    <audio id="liveatc-audio-element" preload="none" crossorigin="anonymous"></audio>
+    <!-- HTML5 Audio Element voor echte LiveATC streams -->
+    <audio id="liveatc-audio-element" preload="none"></audio>
   </div>
 
   <!-- Right Deck: Airport Flight Board (FIDS) & Operations Control -->

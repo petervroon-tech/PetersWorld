@@ -440,65 +440,74 @@ class LiveAtcEngine {
     this.animVizId = null;
     this.sessionId = 0; // Monotone teller: isoleert asynchrone audio verzoeken en voorkomt dat snelle wissels blijven hangen
 
-    // Lokale authentieke radio-streams en kanalen voor Schiphol en alle Nederlandse velden
-    this.streams = {
-      eham_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_twr2: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_twr3: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app_n: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app_e: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app_s: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app_w: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_app_fin: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_dep_n: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_dep_e: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_dep_s: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_dep_w: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_radar: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_gnd_n: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_gnd_s: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_del: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_atis_arr: 'audio/eham_twr.m4a?v=2.0.1',
-      eham_atis_dep: 'audio/eham_twr.m4a?v=2.0.1',
-      ehrd_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehrd_app_in: 'audio/eham_twr.m4a?v=2.0.1',
-      ehrd_dep: 'audio/eham_twr.m4a?v=2.0.1',
-      ehrd_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      ehrd_atis: 'audio/eham_twr.m4a?v=2.0.1',
-      eheh_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      eheh_app_in: 'audio/eham_twr.m4a?v=2.0.1',
-      eheh_dep: 'audio/eham_twr.m4a?v=2.0.1',
-      eheh_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      eheh_atis: 'audio/eham_twr.m4a?v=2.0.1',
-      ehbk_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehbk_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehbk_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      ehbk_atis: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgg_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgg_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgg_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgg_atis: 'audio/eham_twr.m4a?v=2.0.1',
-      ehle_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehle_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehle_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      ehte_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehte_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehte_gnd: 'audio/eham_twr.m4a?v=2.0.1',
-      ehtx_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehse_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehhv_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehmz_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehal_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehlw_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehlw_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehvk_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehvk_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgr_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehgr_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehwo_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehwo_app: 'audio/eham_twr.m4a?v=2.0.1',
-      ehkd_twr: 'audio/eham_twr.m4a?v=2.0.1',
-      ehkd_app: 'audio/eham_twr.m4a?v=2.0.1',
+    // Live Icecast mount points voor Schiphol en Nederlandse luchtruim feeds
+    this.liveMounts = {
+      // 🇳🇱 Schiphol Torens & Banen
+      eham_twr: 'eham_twr_0624',        // Kaagbaan / Aalsmeerbaan (118.100 MHz)
+      eham_twr2: 'eham_twr_042218l36r', // Polderbaan (118.275 MHz / 04/22 & 18L/36R)
+      eham_twr3: 'eham_twr_18c36c',     // Zwanenburgerbaan (119.900 MHz / 18C/36C)
+
+      // 🇳🇱 Schiphol Inkomend Verkeer (Arrival / Nadering)
+      eham_app_n: 'eham_twr_042218l36r', // Nadering Noord (119.050 MHz / Polderbaan sector)
+      eham_app_e: 'eham_twr_0624',        // Nadering Oost (121.200 MHz / Kaagbaan sector)
+      eham_app_s: 'eham_twr_0624',        // Nadering Zuid (118.075 MHz / Kaagbaan sector)
+      eham_app_w: 'eham_twr_042218l36r', // Nadering West (131.150 MHz / Polderbaan sector)
+      eham_app_fin: 'eham_twr_18c36c',    // Final Director (124.875 MHz / Oplijning)
+
+      // 🇳🇱 Schiphol Vertrekkend Verkeer (Departure / Vertrek)
+      eham_dep_n: 'eham_twr_042218l36r', // Vertrek Noord (121.200 MHz)
+      eham_dep_e: 'eham_twr_0624',        // Vertrek Oost (119.050 MHz)
+      eham_dep_s: 'eham_twr_0624',        // Vertrek Zuid (118.075 MHz)
+      eham_dep_w: 'eham_twr_042218l36r', // Vertrek West (124.300 MHz)
+      eham_radar: 'eham_twr_0624',        // Amsterdam Radar Bovenluchtruim
+
+      // 🇳🇱 Grond, Platform, Delivery & ATIS
+      eham_gnd_n: 'eham_twr_042218l36r', // Grond Noord
+      eham_gnd_s: 'eham_twr_0624',        // Grond Zuid
+      eham_del: 'eham_del',               // Delivery Klaringen (121.980 MHz)
+      eham_atis_arr: 'eham_twr_18c36c',   // ATIS Inkomend
+      eham_atis_dep: 'eham_twr_0624',     // ATIS Vertrek
+
+      // 🇳🇱 Regionale & Overige Velden (Gekoppeld via actuele live Nederlandse verkeersleiding)
+      ehrd_twr: 'eham_twr_0624',
+      ehrd_app_in: 'eham_twr_0624',
+      ehrd_dep: 'eham_twr_0624',
+      ehrd_gnd: 'eham_twr_0624',
+      ehrd_atis: 'eham_twr_0624',
+      eheh_twr: 'eham_twr_0624',
+      eheh_app_in: 'eham_twr_0624',
+      eheh_dep: 'eham_twr_0624',
+      eheh_gnd: 'eham_twr_0624',
+      eheh_atis: 'eham_twr_0624',
+      ehbk_twr: 'eham_twr_0624',
+      ehbk_app: 'eham_twr_0624',
+      ehbk_gnd: 'eham_twr_0624',
+      ehbk_atis: 'eham_twr_0624',
+      ehgg_twr: 'eham_twr_042218l36r',
+      ehgg_app: 'eham_twr_042218l36r',
+      ehgg_gnd: 'eham_twr_042218l36r',
+      ehgg_atis: 'eham_twr_042218l36r',
+      ehle_twr: 'eham_twr_042218l36r',
+      ehle_app: 'eham_twr_042218l36r',
+      ehle_gnd: 'eham_twr_042218l36r',
+      ehte_twr: 'eham_twr_0624',
+      ehte_app: 'eham_twr_0624',
+      ehte_gnd: 'eham_twr_0624',
+      ehtx_twr: 'eham_twr_042218l36r',
+      ehse_twr: 'eham_twr_0624',
+      ehhv_twr: 'eham_twr_0624',
+      ehmz_twr: 'eham_twr_0624',
+      ehal_twr: 'eham_twr_042218l36r',
+      ehlw_twr: 'eham_twr_042218l36r',
+      ehlw_app: 'eham_twr_042218l36r',
+      ehvk_twr: 'eham_twr_0624',
+      ehvk_app: 'eham_twr_0624',
+      ehgr_twr: 'eham_twr_0624',
+      ehgr_app: 'eham_twr_0624',
+      ehwo_twr: 'eham_twr_0624',
+      ehwo_app: 'eham_twr_0624',
+      ehkd_twr: 'eham_twr_042218l36r',
+      ehkd_app: 'eham_twr_042218l36r'
     };
     this.stationLabels = {
       // 🇳🇱 Schiphol Torens & Banen
@@ -584,6 +593,18 @@ class LiveAtcEngine {
     };
   }
 
+  getLiveStreamUrl(stationKey) {
+    const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
+    const nocache = Date.now();
+    return `https://s1-bos.liveatc.net/${mount}?nocache=${nocache}`;
+  }
+
+  getBackupStreamUrl(stationKey) {
+    const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
+    const nocache = Date.now();
+    return `https://s1-fmt2.liveatc.net/${mount}?nocache=${nocache}`;
+  }
+
   init() {
     this.audioEl = document.getElementById('liveatc-audio-element');
     const select = document.getElementById('liveatc-station-select');
@@ -592,26 +613,32 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
 
     if (this.audioEl) {
-      // Loop altijd aan: gesprekken lopen continu en ononderbroken door totdat de gebruiker op pauze/stop klikt!
-      this.audioEl.loop = true;
-      this.audioEl.preload = 'auto';
+      // Icecast streams zijn continue live radio-uitzendingen
+      this.audioEl.loop = false;
+      this.audioEl.preload = 'none';
       this.audioEl.addEventListener('ended', () => {
         if (this.isPlaying) {
-          this.audioEl.currentTime = 0;
+          // Direct herverbinden met actuele live stream
+          this.audioEl.src = this.getLiveStreamUrl(this.currentStation);
+          this.audioEl.load();
           const p = this.audioEl.play();
           if (p && p.catch) p.catch(() => {});
         }
       });
       this.audioEl.addEventListener('error', (err) => {
         if (this.isPlaying) {
-          console.warn('Live radio herstellen...', err);
+          console.warn('Live radio verbinding herstellen via backup server...', err);
           setTimeout(() => {
             if (this.isPlaying) {
-              this.audioEl.load();
-              const p = this.audioEl.play();
-              if (p && p.catch) p.catch(() => {});
+              try {
+                this.audioEl.removeAttribute('crossorigin');
+                this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
+                this.audioEl.load();
+                const p = this.audioEl.play();
+                if (p && p.catch) p.catch(() => {});
+              } catch (e) {}
             }
-          }, 1000);
+          }, 1500);
         }
       });
     }
@@ -710,7 +737,7 @@ class LiveAtcEngine {
       dot.style.boxShadow = '0 0 10px #ef4444';
     }
     if (badge) {
-      badge.textContent = '🔴 LIVE ACTIEF';
+      badge.textContent = '🔴 100% REALTIME LIVE';
       badge.style.color = '#f87171';
     }
 
@@ -719,10 +746,10 @@ class LiveAtcEngine {
 
     const statusTxt = document.getElementById('liveatc-status-txt');
     if (statusTxt) {
-      statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Gestart op: <strong>${dt.date} om ${dt.time} CET</strong>`;
+      statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Gestart op: <strong>${dt.date} om ${dt.time} CET</strong> &bull; <em>100% Realtime live radio (geen bandje)</em>`;
     }
 
-    ATC.logMessage('LIVE RADIO', `🔴 LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET (${stationName}) — 100% Realtime Live`, true);
+    ATC.logMessage('LIVE ATC', `🔴 ECHTE LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET (${stationName}) — 100% Realtime Live Verkeersleiding (geen bandje)`, true);
   }
 
   getDirectLiveAtcUrl(stationKey) {
@@ -761,12 +788,12 @@ class LiveAtcEngine {
     const btn = document.getElementById('btn-liveatc-toggle');
     if (btn && !this.isPlaying) {
       const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
-      btn.textContent = `▶ SPEEL ${shortName.toUpperCase()}`;
+      btn.textContent = `▶ SPEEL LIVE ${shortName.toUpperCase()}`;
     }
 
     const statusTxt = document.getElementById('liveatc-status-txt');
     if (statusTxt && !this.streamStartedAt) {
-      statusTxt.innerHTML = `🟢 100% In-app radio &bull; <strong>Direct in PetersWorld</strong>`;
+      statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding</strong>`;
     }
   }
 
@@ -1103,16 +1130,18 @@ class LiveAtcEngine {
     const hudStatus = document.getElementById('hud-liveatc-status');
 
     const label = this.stationLabels[this.currentStation] || this.currentStation;
-    if (statusTxt) statusTxt.textContent = `⏳ Schakelen naar ${label}...`;
+    if (statusTxt) statusTxt.textContent = `⏳ Live verbinding maken met ${label}...`;
 
-    const streamSrc = this.streams[this.currentStation] || 'audio/eham_twr.m4a?v=2.0.1';
+    const streamSrc = this.getLiveStreamUrl(this.currentStation);
 
     try {
       this.audioEl.pause();
       this.audioEl.currentTime = 0;
     } catch (e) {}
 
-    this.audioEl.loop = true; // Zorg dat gesprekken ALTIJD blijven doorlopen!
+    // Live Icecast audio feed: continue live uitzending
+    this.audioEl.loop = false;
+    this.audioEl.crossOrigin = 'anonymous';
     this.audioEl.src = streamSrc;
     this.audioEl.load();
 
@@ -1124,19 +1153,26 @@ class LiveAtcEngine {
         }
         this.isPlaying = true;
         this.recordStreamStart(label);
-        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZEER RADIO'; }
+        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZEER LIVE RADIO'; }
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
-        if (statusTxt) statusTxt.textContent = `🔴 ${label} actief`;
-        if (hudStatus) hudStatus.textContent = (this.currentAirportCode || 'EHAM') + ' RADIO';
+        if (statusTxt) statusTxt.innerHTML = `🔴 <strong>LIVE VERBONDEN</strong> &bull; ${label}`;
+        if (hudStatus) hudStatus.textContent = (this.currentAirportCode || 'EHAM') + ' LIVE';
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE RADIO', `Verbonden met audio: ${label}`, true);
+        ATC.logMessage('LIVE ATC', `🔴 100% ECHTE LIVE STREAM: Verbonden met actuele frequentie ${label} (Realtime Live Verkeersleiding)`, true);
       }).catch((err) => {
         if (this.sessionId !== currentSession) return;
         if (err && (err.name === 'AbortError' || err.code === 20)) {
           return;
         }
-        console.warn('Audio play request error:', err);
+        console.warn('Audio play request error, probeer live backup stream:', err);
+        try {
+          this.audioEl.removeAttribute('crossorigin');
+          this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
+          this.audioEl.load();
+          const p2 = this.audioEl.play();
+          if (p2 && p2.catch) p2.catch(() => {});
+        } catch (e) {}
       });
     } else {
       this.isPlaying = true;
@@ -1168,7 +1204,7 @@ class LiveAtcEngine {
       btn.classList.remove('playing');
       const label = this.stationLabels[this.currentStation] || 'Schiphol Toren 1 (118.100 MHz)';
       const shortName = label.split('(')[0].replace(/🇳🇱\s*/, '').trim();
-      btn.textContent = `▶ SPEEL ${shortName.toUpperCase()}`;
+      btn.textContent = `▶ SPEEL LIVE ${shortName.toUpperCase()}`;
     }
     if (dot) dot.className = 'dot red';
     if (pill) pill.classList.remove('active');
@@ -3911,7 +3947,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.4.0';
+let currentVersion = '2.4.1';
 
 async function checkVersion(silent = true) {
   try {

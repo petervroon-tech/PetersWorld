@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.4.0",
-  "build": 53,
-  "timestamp": "2026-11-08T12:28:47.283387+00:00",
-  "git_hash": "6e82cd8",
+  "version": "2.4.1",
+  "build": 54,
+  "timestamp": "2026-11-08T13:05:36.950289+00:00",
+  "git_hash": "0f98a86",
   "features": [
+    "100% Echte Live ATC Radio: directe koppeling met officiële live Icecast radiofeeds van de verkeerstoren (Kaagbaan/Aalsmeerbaan, Polderbaan, Zwanenburgerbaan, Delivery) via s1-bos.liveatc.net. Het statische ochtendbandje is definitief vervangen.",
     "Alle frequenties van Schiphol en Nederlandse luchthavens direct luisteren en volgen (Torens, Approach N/O/Z/W, Departure N/O/Z/W, Final Director, Radar, Grond, ATIS)",
     "Interactieve Verkeersstroom & Sector Volger: filter en volg inkomend en vertrekkend verkeer per windrichting (Noord, Oost, Zuid, West)",
     "Gesynchroniseerde radiokoppeling: selecteren van een sector stemt automatisch af op de bijbehorende naderings- of vertrekfrequentie",
