@@ -373,11 +373,13 @@ class LiveAtcEngine {
   constructor() {
     this.audioEl = null;
     this.isPlaying = false;
+    // Alle LiveATC links gebruiken DIRECT de ICAO zoekparameter (/search/?icao=...)
+    // Hierdoor wordt de luchthaven (EHAM, EHRD, EHBK) altijd direct geopend en hoeft de gebruiker NOOIT handmatig een code in te voeren.
     this.liveAtcUrls = {
-      eham01_twr_main1: 'https://www.liveatc.net/hlisten.php?mount=eham01_twr_main1&icao=eham',
-      eham01_twr_main2: 'https://www.liveatc.net/hlisten.php?mount=eham01_twr_main2&icao=eham',
-      eham01_arr_p: 'https://www.liveatc.net/hlisten.php?mount=eham01_arr_p&icao=eham',
-      eham_atis_dep: 'https://www.liveatc.net/hlisten.php?mount=eham_atis_dep&icao=eham',
+      eham01_twr_main1: 'https://www.liveatc.net/search/?icao=eham',
+      eham01_twr_main2: 'https://www.liveatc.net/search/?icao=eham',
+      eham01_arr_p: 'https://www.liveatc.net/search/?icao=eham',
+      eham_atis_dep: 'https://www.liveatc.net/search/?icao=eham',
       eham_all: 'https://www.liveatc.net/search/?icao=eham',
       ehrd_all: 'https://www.liveatc.net/search/?icao=ehrd',
       ehbk_all: 'https://www.liveatc.net/search/?icao=ehbk',
@@ -455,6 +457,7 @@ class LiveAtcEngine {
       select.value = this.currentStation;
       select.addEventListener('change', (e) => {
         this.currentStation = e.target.value;
+        this.updateAtcUi();
         this.playStream();
       });
     }
@@ -465,8 +468,13 @@ class LiveAtcEngine {
 
     const btnOpenReal = document.getElementById('btn-open-real-liveatc');
     if (btnOpenReal) {
-      btnOpenReal.addEventListener('click', () => {
+      btnOpenReal.addEventListener('click', (e) => {
+        // Zorg dat de URL 100% up-to-date is
+        const url = this.getDirectLiveAtcUrl();
+        btnOpenReal.href = url;
+        btnOpenReal.setAttribute('href', url);
         this.openLiveAtcStream(this.currentStation);
+        e.preventDefault();
       });
     }
 
@@ -483,29 +491,95 @@ class LiveAtcEngine {
       });
     }
 
+    this.updateAtcUi();
     this.initVisualizer();
   }
 
-  openLiveAtcStream(stationKey) {
+  getDirectLiveAtcUrl(stationKey) {
     const key = stationKey || this.currentStation || 'eham01_twr_main1';
-    const icaoCode = (this.currentAirportCode === 'AMS' || !this.currentAirportCode) ? 'EHAM' : (this.currentAirportCode === 'RTM' ? 'EHRD' : 'EHAM');
-
-    // Automatisch airport code (EHAM) kopiëren naar klembord voor het geval LiveATC erom vraagt
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(icaoCode);
+    if (this.liveAtcUrls && this.liveAtcUrls[key]) {
+      return this.liveAtcUrls[key];
+    }
+    let icaoCode = 'eham';
+    if (key && (key.startsWith('ehrd') || key === 'ehrd_all')) {
+      icaoCode = 'ehrd';
+    } else if (key && (key.startsWith('ehbk') || key === 'ehbk_all')) {
+      icaoCode = 'ehbk';
+    } else if (this.currentAirportCode) {
+      const match = AIRPORTS.find(a => a.code === this.currentAirportCode || a.icao === this.currentAirportCode);
+      if (match && match.icao) {
+        const mi = match.icao.toLowerCase();
+        if (['ehrd', 'ehbk'].includes(mi)) {
+          icaoCode = mi;
+        } else {
+          icaoCode = 'eham';
+        }
       }
-    } catch (e) {}
+    }
+    return `https://www.liveatc.net/search/?icao=${icaoCode}`;
+  }
 
-    // Altijd direct met ICAO-parameter openen zodat het invoerveld NOOIT leeg is
-    const url = this.liveAtcUrls[key] || `https://www.liveatc.net/search/?icao=${icaoCode}`;
-    window.open(url, '_blank');
+  updateAtcUi() {
+    const url = this.getDirectLiveAtcUrl();
+    const isRtm = url.includes('ehrd');
+    const isMst = url.includes('ehbk');
+    const icaoUpper = isRtm ? 'EHRD' : (isMst ? 'EHBK' : 'EHAM');
+    const airportName = isRtm ? 'Rotterdam' : (isMst ? 'Maastricht' : 'Schiphol');
+
+    const badge = document.getElementById('atc-code-badge');
+    if (badge) {
+      badge.textContent = `${icaoUpper} (${airportName})`;
+    }
+
+    const btnOpenReal = document.getElementById('btn-open-real-liveatc');
+    if (btnOpenReal) {
+      btnOpenReal.href = url;
+      btnOpenReal.setAttribute('href', url);
+      btnOpenReal.innerHTML = `🎧 Luister Live ${airportName} Radio (Code ${icaoUpper} Automatisch)`;
+    }
 
     const statusTxt = document.getElementById('liveatc-status-txt');
     if (statusTxt) {
-      statusTxt.innerHTML = `🟢 Code <strong>${icaoCode}</strong> automatisch ingevuld! Stream geopend.`;
+      statusTxt.innerHTML = `🟢 Code <strong>${icaoUpper}</strong> 100% automatisch geopend &bull; Geen code nodig!`;
     }
-    ATC.logMessage('LIVE ATC', `Officiële LiveATC radio geopend (Code ${icaoCode} automatisch ingevuld): ${this.stationLabels[key] || key}`, true);
+  }
+
+  openLiveAtcStream(stationKey) {
+    const url = this.getDirectLiveAtcUrl(stationKey);
+    const icaoUpper = url.includes('ehrd') ? 'EHRD' : (url.includes('ehbk') ? 'EHBK' : 'EHAM');
+
+    // Automatisch airport code kopiëren naar klembord voor het geval de browser daarom vraagt
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(icaoUpper);
+      }
+    } catch (e) {}
+
+    // Open direct de pagina waar de ICAO-code al in de URL is ingevuld
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      // Fallback als popups geblokkeerd zijn: automatische form submission
+      try {
+        const form = document.createElement('form');
+        form.method = 'GET';
+        form.action = 'https://www.liveatc.net/search/';
+        form.target = '_blank';
+        form.rel = 'noopener noreferrer';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'icao';
+        input.value = icaoUpper.toLowerCase();
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => form.remove(), 1000);
+      } catch (e) {
+        window.location.href = url;
+      }
+    }
+
+    this.updateAtcUi();
+    ATC.logMessage('LIVE ATC', `Officiële LiveATC radio geopend (Code ${icaoUpper} automatisch ingevuld zonder popup): ${url}`, true);
   }
 
   ensureAudioCtx() {
@@ -657,7 +731,13 @@ class LiveAtcEngine {
 
     const select = document.getElementById('liveatc-station-select');
     if (select) {
-      select.value = targetStation;
+      if (airport.icao === 'EHRD') {
+        select.value = 'ehrd_all';
+      } else if (airport.icao === 'EHBK') {
+        select.value = 'ehbk_all';
+      } else {
+        select.value = 'eham01_twr_main1';
+      }
     }
 
     const atcFreq = document.getElementById('atc-freq-disp');
@@ -665,15 +745,13 @@ class LiveAtcEngine {
     if (atcFreq) atcFreq.textContent = `${airport.freqs ? airport.freqs.twr : '118.100'} MHz`;
     if (atcChan) atcChan.textContent = `${airport.name.toUpperCase()} TOWER`;
 
-    const label = this.stationLabels[targetStation] || `${airport.name} Toren`;
-    const statusTxt = document.getElementById('liveatc-status-txt');
     const hudStatus = document.getElementById('hud-liveatc-status');
+    if (hudStatus) hudStatus.textContent = `${airport.code} TWR`;
+
+    this.updateAtcUi();
 
     if (autoPlay || this.isPlaying) {
       this.playStream();
-    } else {
-      if (statusTxt) statusTxt.textContent = `🔴 ${airport.flag} ${airport.name} gekoppeld (${airport.freqs.twr} MHz)`;
-      if (hudStatus) hudStatus.textContent = `${airport.code} TWR`;
     }
   }
 }
@@ -3258,7 +3336,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE (GitHub Pages Auto-Detect)
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.3.2';
+let currentVersion = '2.3.3';
 
 async function checkVersion(silent = true) {
   try {
