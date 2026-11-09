@@ -822,6 +822,7 @@ class LiveAtcEngine {
     const targetReg = document.getElementById('atc-target-reg');
     const targetAir = document.getElementById('atc-target-airline');
     const targetFreq = document.getElementById('atc-target-freq');
+    const targetRunway = document.getElementById('atc-target-runway');
     const streamFlightRow = document.getElementById('live-stream-flight-row');
     const streamFlightVal = document.getElementById('live-stream-flight-val');
 
@@ -829,12 +830,14 @@ class LiveAtcEngine {
       const regTxt = flight.registration ? ` (${flight.registration})` : '';
       const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
       const planeType = flight.aircraft ? `${airName ? airName + ' · ' : ''}${flight.aircraft}` : (airName || 'Verkeersvliegtuig');
+      const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
 
       if (targetBox) targetBox.style.display = 'block';
       if (targetCall) targetCall.textContent = flight.callsign;
       if (targetReg) targetReg.textContent = regTxt;
       if (targetAir) targetAir.textContent = planeType;
       if (targetFreq) targetFreq.textContent = atcInfo ? `${atcInfo.channel} (${atcInfo.freq} MHz)` : freq;
+      if (targetRunway && rwyInfo) targetRunway.innerHTML = rwyInfo.shortLabel || rwyInfo.runway;
 
       if (streamFlightRow) streamFlightRow.style.display = 'flex';
       if (streamFlightVal) streamFlightVal.textContent = `${flight.callsign}${regTxt}`;
@@ -848,10 +851,12 @@ class LiveAtcEngine {
     if (btn) {
       if (flight) {
         const regTxt = flight.registration ? ` (${flight.registration})` : '';
+        const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
+        const rwyTag = rwyInfo ? ` · ${rwyInfo.shortLabel}` : '';
         if (this.isPlaying) {
-          btn.innerHTML = `⏸ PAUZEER LIVE · <strong>${flight.callsign}</strong>${regTxt}`;
+          btn.innerHTML = `⏸ PAUZEER LIVE · <strong>${flight.callsign}</strong>${regTxt}${rwyTag}`;
         } else {
-          btn.innerHTML = `▶ SPEEL LIVE · <strong>${flight.callsign}</strong>${regTxt} (${atcInfo ? atcInfo.freq : freq} MHz)`;
+          btn.innerHTML = `▶ SPEEL LIVE · <strong>${flight.callsign}</strong>${regTxt}${rwyTag} (${atcInfo ? atcInfo.freq : freq} MHz)`;
         }
       } else {
         const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
@@ -2952,6 +2957,290 @@ function getFlightAtcStation(flight) {
   return { stationKey: 'eham_radar', freq: '124.300', channel: 'Amsterdam Radar' };
 }
 
+// ═══════════════════════════════════════════════════════
+//  STARTBAAN & LANDINGSBAAN DETECTIE PER VLIEGTUIG
+// ═══════════════════════════════════════════════════════
+function getFlightRunwayInfo(flight) {
+  if (!flight) {
+    return {
+      type: 'unknown',
+      runway: 'Onbekend',
+      airport: '---',
+      label: 'Geen baangegevens',
+      shortLabel: 'Baan Onbekend',
+      badgeHtml: '<span style="color:#94a3b8;">Geen baangegevens</span>'
+    };
+  }
+
+  // Als het toestel expliciet al een toegekende baan heeft
+  if (flight.runwayName && flight.runwayShort) {
+    return {
+      type: flight.category ? flight.category.type : 'flight',
+      runway: flight.runwayName,
+      airport: flight.runwayAirport || '',
+      label: flight.runwayLabel || flight.runwayName,
+      shortLabel: flight.runwayShort,
+      badgeHtml: flight.runwayBadge || `<span style="color:#facc15;">${flight.runwayShort}</span>`
+    };
+  }
+
+  const cat = flight.category || getFlightCategory(flight);
+  const origCode = ((flight.origin && (flight.origin.code || flight.origin.icao || flight.origin.name || flight.origin)) || '').toUpperCase();
+  const destCode = ((flight.dest && (flight.dest.code || flight.dest.icao || flight.dest.name || flight.dest)) || '').toUpperCase();
+  const hdg = typeof flight.heading === 'number' ? flight.heading : 0;
+  const alt = typeof flight.altitude === 'number' ? flight.altitude : 0;
+
+  // 1. Overvlucht op kruishoogte (doorgaand transitverkeer boven Nederland)
+  if (cat.type === 'overflight' || alt > 5500) {
+    return {
+      type: 'overflight',
+      runway: 'Geen baan (Kruishoogte)',
+      airport: 'En-route',
+      label: '✈️ Overvlucht (Kruishoogte · Geen baan)',
+      shortLabel: '✈️ Kruishoogte',
+      badgeHtml: '<span style="background:rgba(107,33,168,0.22);color:#c084fc;border:1px solid rgba(168,85,247,0.4);padding:2px 7px;border-radius:4px;font-weight:700;">✈️ Overvlucht (Kruishoogte · Geen baan)</span>'
+    };
+  }
+
+  // 2. Landende vlucht (Aankomst op landingsbaan)
+  if (cat.type === 'landing') {
+    // Rotterdam The Hague Airport
+    if (destCode.includes('EHRD') || destCode.includes('RTM') || destCode.includes('ROTTERDAM')) {
+      const rwy = (hdg >= 140 && hdg <= 320) ? 'Baan 24 (2200m)' : 'Baan 06 (2200m)';
+      const short = (hdg >= 140 && hdg <= 320) ? '🛬 Baan 24' : '🛬 Baan 06';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Rotterdam The Hague Airport (RTM)',
+        label: `🛬 Landt op Rotterdam ${rwy}`,
+        shortLabel: `${short} · RTM`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Rotterdam ${rwy}</span>`
+      };
+    }
+    // Eindhoven Airport
+    if (destCode.includes('EHEH') || destCode.includes('EIN') || destCode.includes('EINDHOVEN')) {
+      const rwy = (hdg >= 110 && hdg <= 290) ? 'Baan 21 (3000m)' : 'Baan 03 (3000m)';
+      const short = (hdg >= 110 && hdg <= 290) ? '🛬 Baan 21' : '🛬 Baan 03';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Eindhoven Airport (EIN)',
+        label: `🛬 Landt op Eindhoven ${rwy}`,
+        shortLabel: `${short} · EIN`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Eindhoven ${rwy}</span>`
+      };
+    }
+    // Groningen Eelde
+    if (destCode.includes('EHGG') || destCode.includes('GRQ') || destCode.includes('EELDE')) {
+      const rwy = (hdg >= 130 && hdg <= 310) ? 'Baan 23 (2500m)' : 'Baan 05 (2500m)';
+      const short = (hdg >= 130 && hdg <= 310) ? '🛬 Baan 23' : '🛬 Baan 05';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Groningen Airport Eelde (GRQ)',
+        label: `🛬 Landt op Eelde ${rwy}`,
+        shortLabel: `${short} · GRQ`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Eelde ${rwy}</span>`
+      };
+    }
+    // Maastricht Aachen
+    if (destCode.includes('EHBK') || destCode.includes('MST') || destCode.includes('MAASTRICHT')) {
+      const rwy = (hdg >= 110 && hdg <= 290) ? 'Baan 21 (2750m)' : 'Baan 03 (2750m)';
+      const short = (hdg >= 110 && hdg <= 290) ? '🛬 Baan 21' : '🛬 Baan 03';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Maastricht Aachen Airport (MST)',
+        label: `🛬 Landt op Maastricht ${rwy}`,
+        shortLabel: `${short} · MST`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Maastricht ${rwy}</span>`
+      };
+    }
+    // Teuge / Lelystad
+    if (destCode.includes('EHTE') || destCode.includes('TEUGE')) {
+      const rwy = (hdg >= 160 && hdg <= 340) ? 'Baan 26 (1199m)' : 'Baan 08 (1199m)';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Luchthaven Teuge (TGE)',
+        label: `🛬 Landt op Teuge ${rwy}`,
+        shortLabel: `🛬 Teuge ${rwy.split(' ')[1]}`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Teuge ${rwy}</span>`
+      };
+    }
+    if (destCode.includes('EHLE') || destCode.includes('LEY') || destCode.includes('LELYSTAD')) {
+      const rwy = (hdg >= 130 && hdg <= 310) ? 'Baan 23 (2700m)' : 'Baan 05 (2700m)';
+      return {
+        type: 'landing',
+        runway: rwy,
+        airport: 'Lelystad Airport (LEY)',
+        label: `🛬 Landt op Lelystad ${rwy}`,
+        shortLabel: `🛬 Lelystad ${rwy.split(' ')[1]}`,
+        badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op Lelystad ${rwy}</span>`
+      };
+    }
+
+    // Amsterdam Airport Schiphol (AMS) - Realistische landingsbanen
+    let rwyName = 'Polderbaan 18R (3800m)';
+    let shortCode = '🛬 Polderbaan 18R';
+
+    if (hdg >= 140 && hdg <= 220) {
+      if (hdg <= 180) {
+        rwyName = 'Polderbaan 18R (3800m)';
+        shortCode = '🛬 Polderbaan 18R';
+      } else {
+        rwyName = 'Zwanenburgerbaan 18C (3300m)';
+        shortCode = '🛬 Zwanenburgerbaan 18C';
+      }
+    } else if (hdg > 220 && hdg <= 310) {
+      rwyName = 'Buitenveldertbaan 27 (3450m)';
+      shortCode = '🛬 Buitenveldertbaan 27';
+    } else if (hdg >= 10 && hdg < 110) {
+      rwyName = 'Kaagbaan 06 (3500m)';
+      shortCode = '🛬 Kaagbaan 06';
+    } else if (hdg > 310 || hdg < 10) {
+      if (hdg >= 345 || hdg <= 5) {
+        rwyName = 'Polderbaan 36L (3800m)';
+        shortCode = '🛬 Polderbaan 36L';
+      } else {
+        rwyName = 'Aalsmeerbaan 36R (3400m)';
+        shortCode = '🛬 Aalsmeerbaan 36R';
+      }
+    } else {
+      rwyName = 'Polderbaan 18R (3800m)';
+      shortCode = '🛬 Polderbaan 18R';
+    }
+
+    return {
+      type: 'landing',
+      runway: rwyName,
+      airport: 'Amsterdam Schiphol (AMS)',
+      label: `🛬 Landt op ${rwyName}`,
+      shortLabel: shortCode,
+      badgeHtml: `<span style="background:rgba(21,128,61,0.25);color:#4ade80;border:1px solid rgba(34,197,94,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛬 Landt op ${rwyName}</span>`
+    };
+  }
+
+  // 3. Opstijgende vlucht (Vertrek vanaf startbaan)
+  if (cat.type === 'takeoff') {
+    // Rotterdam The Hague Airport
+    if (origCode.includes('EHRD') || origCode.includes('RTM') || origCode.includes('ROTTERDAM')) {
+      const rwy = (hdg >= 140 && hdg <= 320) ? 'Baan 24 (2200m)' : 'Baan 06 (2200m)';
+      const short = (hdg >= 140 && hdg <= 320) ? '🛫 Baan 24' : '🛫 Baan 06';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Rotterdam The Hague Airport (RTM)',
+        label: `🛫 Stijgt op van Rotterdam ${rwy}`,
+        shortLabel: `${short} · RTM`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Rotterdam ${rwy}</span>`
+      };
+    }
+    // Eindhoven Airport
+    if (origCode.includes('EHEH') || origCode.includes('EIN') || origCode.includes('EINDHOVEN')) {
+      const rwy = (hdg >= 110 && hdg <= 290) ? 'Baan 21 (3000m)' : 'Baan 03 (3000m)';
+      const short = (hdg >= 110 && hdg <= 290) ? '🛫 Baan 21' : '🛫 Baan 03';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Eindhoven Airport (EIN)',
+        label: `🛫 Stijgt op van Eindhoven ${rwy}`,
+        shortLabel: `${short} · EIN`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Eindhoven ${rwy}</span>`
+      };
+    }
+    // Groningen Eelde
+    if (origCode.includes('EHGG') || origCode.includes('GRQ') || origCode.includes('EELDE')) {
+      const rwy = (hdg >= 130 && hdg <= 310) ? 'Baan 23 (2500m)' : 'Baan 05 (2500m)';
+      const short = (hdg >= 130 && hdg <= 310) ? '🛫 Baan 23' : '🛫 Baan 05';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Groningen Airport Eelde (GRQ)',
+        label: `🛫 Stijgt op van Eelde ${rwy}`,
+        shortLabel: `${short} · GRQ`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Eelde ${rwy}</span>`
+      };
+    }
+    // Maastricht Aachen
+    if (origCode.includes('EHBK') || origCode.includes('MST') || origCode.includes('MAASTRICHT')) {
+      const rwy = (hdg >= 110 && hdg <= 290) ? 'Baan 21 (2750m)' : 'Baan 03 (2750m)';
+      const short = (hdg >= 110 && hdg <= 290) ? '🛫 Baan 21' : '🛫 Baan 03';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Maastricht Aachen Airport (MST)',
+        label: `🛫 Stijgt op van Maastricht ${rwy}`,
+        shortLabel: `${short} · MST`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Maastricht ${rwy}</span>`
+      };
+    }
+    // Teuge / Lelystad
+    if (origCode.includes('EHTE') || origCode.includes('TEUGE')) {
+      const rwy = (hdg >= 160 && hdg <= 340) ? 'Baan 26 (1199m)' : 'Baan 08 (1199m)';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Luchthaven Teuge (TGE)',
+        label: `🛫 Stijgt op van Teuge ${rwy}`,
+        shortLabel: `🛫 Teuge ${rwy.split(' ')[1]}`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Teuge ${rwy}</span>`
+      };
+    }
+    if (origCode.includes('EHLE') || origCode.includes('LEY') || origCode.includes('LELYSTAD')) {
+      const rwy = (hdg >= 130 && hdg <= 310) ? 'Baan 23 (2700m)' : 'Baan 05 (2700m)';
+      return {
+        type: 'takeoff',
+        runway: rwy,
+        airport: 'Lelystad Airport (LEY)',
+        label: `🛫 Stijgt op van Lelystad ${rwy}`,
+        shortLabel: `🛫 Lelystad ${rwy.split(' ')[1]}`,
+        badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van Lelystad ${rwy}</span>`
+      };
+    }
+
+    // Amsterdam Airport Schiphol (AMS) - Realistische startbanen
+    let rwyName = 'Kaagbaan 24 (3500m)';
+    let shortCode = '🛫 Kaagbaan 24';
+
+    if (hdg >= 190 && hdg <= 285) {
+      rwyName = 'Kaagbaan 24 (3500m)';
+      shortCode = '🛫 Kaagbaan 24';
+    } else if (hdg > 285 || hdg < 35) {
+      rwyName = 'Polderbaan 36L (3800m)';
+      shortCode = '🛫 Polderbaan 36L';
+    } else if (hdg >= 35 && hdg <= 130) {
+      rwyName = 'Buitenveldertbaan 09 (3450m)';
+      shortCode = '🛫 Buitenveldertbaan 09';
+    } else if (hdg > 130 && hdg < 190) {
+      rwyName = 'Aalsmeerbaan 18L (3400m)';
+      shortCode = '🛫 Aalsmeerbaan 18L';
+    } else {
+      rwyName = 'Kaagbaan 24 (3500m)';
+      shortCode = '🛫 Kaagbaan 24';
+    }
+
+    return {
+      type: 'takeoff',
+      runway: rwyName,
+      airport: 'Amsterdam Schiphol (AMS)',
+      label: `🛫 Stijgt op van ${rwyName}`,
+      shortLabel: shortCode,
+      badgeHtml: `<span style="background:rgba(202,138,4,0.25);color:#facc15;border:1px solid rgba(234,179,8,0.45);padding:2px 7px;border-radius:4px;font-weight:700;">🛫 Stijgt op van ${rwyName}</span>`
+    };
+  }
+
+  // Fallback voor en-route
+  return {
+    type: 'overflight',
+    runway: 'Geen baan (Kruishoogte)',
+    airport: 'En-route',
+    label: '✈️ Overvlucht (Kruishoogte · Geen baan)',
+    shortLabel: '✈️ Kruishoogte',
+    badgeHtml: '<span style="background:rgba(107,33,168,0.22);color:#c084fc;border:1px solid rgba(168,85,247,0.4);padding:2px 7px;border-radius:4px;font-weight:700;">✈️ Overvlucht (Kruishoogte · Geen baan)</span>'
+  };
+}
+
 function selectFlight(flight, viewMode = 'chase30m') {
   if (!flight) return;
   S.followFlight = flight;
@@ -2990,9 +3279,12 @@ function selectFlight(flight, viewMode = 'chase30m') {
     S.controls.update();
   }
 
-  // Bepaal de actieve ATC radio frequentie voor dit toestel
+  // Bepaal de actieve ATC radio frequentie en startbaan/landingsbaan voor dit toestel
   const atcInfo = getFlightAtcStation(flight);
   flight.atcInfo = atcInfo;
+
+  const rwyInfo = getFlightRunwayInfo(flight);
+  flight.runwayInfo = rwyInfo;
 
   // Start direct de live communicatie en stem direct af op dit individuele vliegtuig
   if (typeof LIVEATC !== 'undefined' && LIVEATC) {
@@ -3010,10 +3302,10 @@ function selectFlight(flight, viewMode = 'chase30m') {
 
   updateFlightCardUI(flight);
 
-  // Eén duidelijke, enkele statusmelding in het ATC venster (voorkomt dubbele communicatieteksten)
+  // Eén duidelijke, enkele statusmelding in het ATC venster inclusief baan en frequentie
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
   const regTxt = flight.registration ? ` (${flight.registration})` : '';
-  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz) — Live radio actief!`, true);
+  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz) &bull; ${rwyInfo.label} — Live radio actief!`, true);
 }
 
 function updateFlightCardUI(flight) {
@@ -3028,9 +3320,12 @@ function updateFlightCardUI(flight) {
     const elSpd = document.getElementById('frc-spd');
     const elStatus = document.getElementById('frc-status');
     const elHdg = document.getElementById('frc-hdg');
+    const elRwy = document.getElementById('frc-runway');
 
     const cat = flight.category || getFlightCategory(flight);
     const sec = flight.sector || getFlightDirectionSector(flight, S.selectedAirport);
+    const rwyInfo = flight.runwayInfo || getFlightRunwayInfo(flight);
+    flight.runwayInfo = rwyInfo;
 
     if (elCall) {
       elCall.textContent = flight.callsign;
@@ -3052,6 +3347,7 @@ function updateFlightCardUI(flight) {
       elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="background:rgba(56,189,248,0.18);color:var(--cyan);border:1px solid rgba(56,189,248,0.35);padding:2px 6px;border-radius:4px;font-weight:700;font-size:0.72rem;margin-left:4px;">${sec.icon}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${flight.status || 'In vlucht'})</span>`;
     }
     if (elHdg) elHdg.textContent = `${flight.heading || 0}°`;
+    if (elRwy) elRwy.innerHTML = rwyInfo.badgeHtml;
 
     const atcInfo = flight.atcInfo || getFlightAtcStation(flight);
     const btnListen = document.getElementById('btn-frc-listen');
@@ -3956,6 +4252,8 @@ function updateGlobalFlightListUI() {
 
     const cat = f.category || getFlightCategory(f);
     const sec = f.sector || getFlightDirectionSector(f, ap);
+    const rwy = f.runwayInfo || getFlightRunwayInfo(f);
+    f.runwayInfo = rwy;
     const origCode = f.origin ? (f.origin.code || f.origin.name || f.origin) : '---';
     const destCode = f.dest ? (f.dest.code || f.dest.name || f.dest) : '---';
     const tag = f.isLive ? '🔴 LIVE' : `${((f.progress || 0) * 100).toFixed(0)}%`;
@@ -3967,9 +4265,10 @@ function updateGlobalFlightListUI() {
         <div class="fi-route" style="color:${cat.hex};font-weight:700;">
           <span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:1px 5px;border-radius:4px;font-size:0.64rem;margin-right:4px;">${cat.name}</span>
           <span style="background:rgba(56,189,248,0.15);color:var(--cyan);border:1px solid rgba(56,189,248,0.3);padding:1px 5px;border-radius:4px;font-size:0.62rem;margin-right:4px;">${sec.icon}</span>
+          <span style="background:rgba(250,204,21,0.14);color:#facc15;border:1px solid rgba(250,204,21,0.35);padding:1px 5px;border-radius:4px;font-size:0.62rem;margin-right:4px;">${rwy.shortLabel}</span>
           ${f.callsign} · ${origCode}➔${destCode}
         </div>
-        <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m · Koers ${f.heading || 0}°</div>
+        <div class="fi-label">${airName} · ${f.aircraft} · ${f.altitude}m · Koers ${f.heading || 0}° · ${rwy.runway}</div>
       </div>
       <span class="fi-prog" style="color:${cat.hex};font-weight:700;">${tag}</span>
     `;
@@ -5057,7 +5356,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.6.1';
+let currentVersion = '2.7.0';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
