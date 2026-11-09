@@ -435,6 +435,7 @@ class LiveAtcEngine {
     };
     this.currentStation = 'eham_twr';
     this.currentAirportCode = 'AMS';
+    this.targetFlight = null;
     this.audioCtx = null;
     this.analyser = null;
     this.animVizId = null;
@@ -741,15 +742,23 @@ class LiveAtcEngine {
       badge.style.color = '#f87171';
     }
 
+    const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+    const regTxt = (flight && flight.registration) ? ` (${flight.registration})` : '';
+    const flightTarget = flight ? `voor ${flight.callsign}${regTxt}` : '';
+
     const hudStatus = document.getElementById('hud-liveatc-status');
-    if (hudStatus) hudStatus.innerHTML = `🔴 LIVE (${dt.time})`;
+    if (hudStatus) hudStatus.innerHTML = flight ? `🔴 ${flight.callsign} LIVE` : `🔴 LIVE (${dt.time})`;
 
     const statusTxt = document.getElementById('liveatc-status-txt');
     if (statusTxt) {
-      statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Gestart op: <strong>${dt.date} om ${dt.time} CET</strong> &bull; <em>100% Realtime live radio (geen bandje)</em>`;
+      if (flight) {
+        statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Individueel gesprek: <strong>${flight.callsign}</strong>${regTxt} ⇄ <strong>${stationName}</strong> &bull; <em>100% Realtime</em>`;
+      } else {
+        statusTxt.innerHTML = `🔴 <strong>LIVE STREAM ACTIEF</strong> &bull; Gestart op: <strong>${dt.date} om ${dt.time} CET</strong> &bull; <em>100% Realtime live radio (geen bandje)</em>`;
+      }
     }
 
-    ATC.logMessage('LIVE ATC', `🔴 ECHTE LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET (${stationName}) — 100% Realtime Live Verkeersleiding (geen bandje)`, true);
+    ATC.logMessage('LIVE ATC', `🔴 ECHTE LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET ${flightTarget ? flightTarget + ' ' : ''}(${stationName}) — 100% Realtime Live Verkeersleiding`, true);
   }
 
   getDirectLiveAtcUrl(stationKey) {
@@ -761,14 +770,28 @@ class LiveAtcEngine {
   }
 
   updateAtcUi() {
-    const label = this.stationLabels[this.currentStation] || 'Schiphol Toren 1 (118.100 MHz)';
+    const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+    const atcInfo = flight ? (flight.atcInfo || getFlightAtcStation(flight)) : null;
+
+    if (flight && atcInfo && atcInfo.stationKey) {
+      this.currentStation = atcInfo.stationKey;
+      const select = document.getElementById('liveatc-station-select');
+      if (select) select.value = atcInfo.stationKey;
+    }
+
+    const currentKey = this.currentStation || 'eham_twr';
+    const label = this.stationLabels[currentKey] || 'Schiphol Toren 1 (118.100 MHz)';
     const badge = document.getElementById('atc-code-badge');
     if (badge) {
-      badge.textContent = `🟢 ${label}`;
+      if (flight) {
+        badge.innerHTML = `🎯 <strong>${flight.callsign}</strong> &bull; ${label}`;
+      } else {
+        badge.textContent = `🟢 ${label}`;
+      }
     }
 
     const m = label.match(/\(([\d\.]+)\s*MHz(?:\s*-\s*([^)]+))?\)/i);
-    const freq = m ? `${m[1]} MHz` : '118.100 MHz';
+    const freq = atcInfo ? `${atcInfo.freq} MHz` : (m ? `${m[1]} MHz` : '118.100 MHz');
     const subDesc = m && m[2] ? m[2].trim() : '';
 
     const atcFreq = document.getElementById('atc-freq-disp');
@@ -777,23 +800,91 @@ class LiveAtcEngine {
 
     if (atcFreq) atcFreq.textContent = freq;
     if (atcChan) {
-      const cleanName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
-      atcChan.textContent = `${cleanName.toUpperCase()} ${subDesc ? '· ' + subDesc.toUpperCase() : ''}`;
+      if (flight) {
+        atcChan.textContent = `${flight.callsign} ⇄ ${(atcInfo ? atcInfo.channel : label).toUpperCase()}`;
+      } else {
+        const cleanName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
+        atcChan.textContent = `${cleanName.toUpperCase()} ${subDesc ? '· ' + subDesc.toUpperCase() : ''}`;
+      }
     }
     if (hudStatus) {
-      const shortCode = this.currentStation.replace(/_/g, ' ').toUpperCase();
-      hudStatus.textContent = shortCode;
+      if (flight) {
+        hudStatus.textContent = `${flight.callsign} LIVE`;
+      } else {
+        const shortCode = this.currentStation.replace(/_/g, ' ').toUpperCase();
+        hudStatus.textContent = shortCode;
+      }
     }
 
+    // Specifiek Gevolgd Vliegtuig paneel in het Speel Live gedeelte
+    const targetBox = document.getElementById('liveatc-target-flight-box');
+    const targetCall = document.getElementById('atc-target-callsign');
+    const targetReg = document.getElementById('atc-target-reg');
+    const targetAir = document.getElementById('atc-target-airline');
+    const targetFreq = document.getElementById('atc-target-freq');
+    const streamFlightRow = document.getElementById('live-stream-flight-row');
+    const streamFlightVal = document.getElementById('live-stream-flight-val');
+
+    if (flight) {
+      const regTxt = flight.registration ? ` (${flight.registration})` : '';
+      const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
+      const planeType = flight.aircraft ? `${airName ? airName + ' · ' : ''}${flight.aircraft}` : (airName || 'Verkeersvliegtuig');
+
+      if (targetBox) targetBox.style.display = 'block';
+      if (targetCall) targetCall.textContent = flight.callsign;
+      if (targetReg) targetReg.textContent = regTxt;
+      if (targetAir) targetAir.textContent = planeType;
+      if (targetFreq) targetFreq.textContent = atcInfo ? `${atcInfo.channel} (${atcInfo.freq} MHz)` : freq;
+
+      if (streamFlightRow) streamFlightRow.style.display = 'flex';
+      if (streamFlightVal) streamFlightVal.textContent = `${flight.callsign}${regTxt}`;
+    } else {
+      if (targetBox) targetBox.style.display = 'none';
+      if (streamFlightRow) streamFlightRow.style.display = 'none';
+    }
+
+    // Speel Live knop met vliegtuigidentificatie
     const btn = document.getElementById('btn-liveatc-toggle');
-    if (btn && !this.isPlaying) {
-      const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
-      btn.textContent = `▶ SPEEL LIVE ${shortName.toUpperCase()}`;
+    if (btn) {
+      if (flight) {
+        const regTxt = flight.registration ? ` (${flight.registration})` : '';
+        if (this.isPlaying) {
+          btn.innerHTML = `⏸ PAUZEER LIVE · <strong>${flight.callsign}</strong>${regTxt}`;
+        } else {
+          btn.innerHTML = `▶ SPEEL LIVE · <strong>${flight.callsign}</strong>${regTxt} (${atcInfo ? atcInfo.freq : freq} MHz)`;
+        }
+      } else {
+        const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
+        if (this.isPlaying) {
+          btn.textContent = '⏸ PAUZEER LIVE RADIO';
+        } else {
+          btn.textContent = `▶ SPEEL LIVE ${shortName.toUpperCase()}`;
+        }
+      }
     }
 
     const statusTxt = document.getElementById('liveatc-status-txt');
-    if (statusTxt && !this.streamStartedAt) {
-      statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding</strong>`;
+    if (statusTxt) {
+      if (flight) {
+        const regTxt = flight.registration ? ` (${flight.registration})` : '';
+        const chanName = atcInfo ? `${atcInfo.channel} (${atcInfo.freq} MHz)` : label;
+        if (this.isPlaying) {
+          statusTxt.innerHTML = `🔴 <strong>LIVE VERBONDEN MET TOREN</strong> &bull; Individueel gesprek tussen toren en <strong>${flight.callsign}</strong>${regTxt} &bull; ${chanName}`;
+        } else {
+          statusTxt.innerHTML = `🟢 <strong>AFGESTEMD VOOR ${flight.callsign}</strong>${regTxt} &bull; Klaar voor 1-op-1 communicatie met ${chanName}`;
+        }
+      } else if (!this.streamStartedAt && !this.isPlaying) {
+        statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding</strong>`;
+      }
+    }
+
+    const pillTxt = document.getElementById('liveatc-txt');
+    if (pillTxt) {
+      if (flight) {
+        pillTxt.textContent = `🎧 Live Radio · ${flight.callsign}`;
+      } else {
+        pillTxt.textContent = `🎧 Live Schiphol Radio`;
+      }
     }
   }
 
@@ -1165,7 +1256,9 @@ class LiveAtcEngine {
     const pad = (n) => String(n).padStart(2, '0');
     const timeStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
     const stationCode = (this.currentAirportCode || 'EHAM').toUpperCase();
-    const fileName = `PetersWorld_ATC_${stationCode}_${timeStr}.${safeExt}`;
+    const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+    const flightPart = flight ? `_${flight.callsign}` : '';
+    const fileName = `PetersWorld_ATC_${stationCode}${flightPart}_${timeStr}.${safeExt}`;
 
     const url = URL.createObjectURL(finalBlob);
     this.lastRecordingUrl = url;
@@ -1202,6 +1295,15 @@ class LiveAtcEngine {
     if (this.isPlaying) {
       this.stop();
     } else {
+      const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+      if (flight) {
+        const atcInfo = flight.atcInfo || getFlightAtcStation(flight);
+        if (atcInfo && atcInfo.stationKey) {
+          this.currentStation = atcInfo.stationKey;
+          const select = document.getElementById('liveatc-station-select');
+          if (select) select.value = atcInfo.stationKey;
+        }
+      }
       this.playStream();
     }
   }
@@ -1243,11 +1345,9 @@ class LiveAtcEngine {
         }
         this.isPlaying = true;
         this.recordStreamStart(label);
-        if (btn) { btn.classList.add('playing'); btn.textContent = '⏸ PAUZEER LIVE RADIO'; }
+        this.updateAtcUi();
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
-        if (statusTxt) statusTxt.innerHTML = `🔴 <strong>LIVE VERBONDEN</strong> &bull; ${label}`;
-        if (hudStatus) hudStatus.textContent = (this.currentAirportCode || 'EHAM') + ' LIVE';
         ATC.playMicClick(true);
         ATC.logMessage('LIVE ATC', `🔴 100% ECHTE LIVE STREAM: Verbonden met actuele frequentie ${label} (Realtime Live Verkeersleiding)`, true);
       }).catch((err) => {
@@ -1266,6 +1366,7 @@ class LiveAtcEngine {
       });
     } else {
       this.isPlaying = true;
+      this.updateAtcUi();
     }
   }
 
@@ -1284,22 +1385,13 @@ class LiveAtcEngine {
       } catch (e) {}
     }
 
-    const btn = document.getElementById('btn-liveatc-toggle');
-    const statusTxt = document.getElementById('liveatc-status-txt');
+    this.updateAtcUi();
+
     const dot = document.getElementById('liveatc-dot');
     const pill = document.getElementById('pill-liveatc');
-    const hudStatus = document.getElementById('hud-liveatc-status');
 
-    if (btn) {
-      btn.classList.remove('playing');
-      const label = this.stationLabels[this.currentStation] || 'Schiphol Toren 1 (118.100 MHz)';
-      const shortName = label.split('(')[0].replace(/🇳🇱\s*/, '').trim();
-      btn.textContent = `▶ SPEEL LIVE ${shortName.toUpperCase()}`;
-    }
     if (dot) dot.className = 'dot red';
     if (pill) pill.classList.remove('active');
-    if (statusTxt) statusTxt.textContent = '📻 Live radio gestopt';
-    if (hudStatus) hudStatus.textContent = 'STANDBY';
 
     ATC.playMicClick(false);
   }
@@ -2891,6 +2983,11 @@ function selectFlight(flight, viewMode = 'chase30m') {
   const atcInfo = getFlightAtcStation(flight);
   flight.atcInfo = atcInfo;
 
+  if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+    LIVEATC.targetFlight = flight;
+    LIVEATC.updateAtcUi();
+  }
+
   // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig (visuele indicatie)
   ATC.setFrequency(atcInfo.freq, atcInfo.channel.toUpperCase());
 
@@ -2898,7 +2995,8 @@ function selectFlight(flight, viewMode = 'chase30m') {
 
   // Eén duidelijke, enkele statusmelding in het ATC venster (voorkomt dubbele communicatieteksten)
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
-  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
+  const regTxt = flight.registration ? ` (${flight.registration})` : '';
+  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
 }
 
 function updateFlightCardUI(flight) {
@@ -2950,6 +3048,10 @@ function updateFlightCardUI(flight) {
 function zoomToAirportRunway(airport, targetAltMeters = 30) {
   if (!airport) return;
   S.followFlight = null;
+  if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+    LIVEATC.targetFlight = null;
+    LIVEATC.updateAtcUi();
+  }
   S.flightViewMode = 'chase30m';
   S.controls.enabled = true;
   S.lastFlightPos = null;
@@ -2980,6 +3082,10 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
 
 function zoomToGlobe() {
   S.followFlight = null;
+  if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+    LIVEATC.targetFlight = null;
+    LIVEATC.updateAtcUi();
+  }
   S.flightViewMode = 'chase30m';
   S.controls.enabled = true;
   S.lastFlightPos = null;
@@ -3631,6 +3737,11 @@ function initAirportDeck() {
   const btnCloseFrc = document.getElementById('btn-close-frc');
   if (btnCloseFrc) {
     btnCloseFrc.addEventListener('click', () => {
+      S.followFlight = null;
+      if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+        LIVEATC.targetFlight = null;
+        LIVEATC.updateAtcUi();
+      }
       const fc = document.getElementById('flightradar-card');
       if (fc) fc.classList.remove('show');
     });
@@ -4929,7 +5040,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.9';
+let currentVersion = '2.6.0';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

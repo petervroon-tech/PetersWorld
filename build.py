@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.5.9"
+DEFAULT_VERSION = "2.6.0"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (259 voor v2.5.9)
-    code0 = bytes([0]) + i32_const(259) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (260 voor v2.6.0)
+    code0 = bytes([0]) + i32_const(260) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,6 +253,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Gevolgd vliegtuignummer in speel live sectie (v2.6.0): bij het volgen van een specifiek vliegtuig toont de speel live sectie direct de roepnaam (callsign), registratie, maatschappij en torenfrequentie voor 100% zekere verificatie van het individuele gesprek",
             "Dubbele audioweergave & echo opgelost (v2.5.9): bij het aanklikken van een individueel vliegtuig blijft de radioweergave 100% enkel en storingsvrij zonder echo; WebAudio destination dubbele connectie verwijderd en streamwissel stopt altijd eerst oude stream",
             "Vlucht-afhankelijke ATC communicatie: bij het aanklikken van een individueel vliegtuig stemt de radio direct automatisch af op de actieve toren-, naderings- of vertrekfrequentie van dat toestel, met gerichte luisterknop en realistische communicatieklaringen in het log",
             "Radar vliegtuigkleuren geüpdatet naar wens: Overvliegende toestellen echt donker paars (#6b21a8), Stijgende toestellen donker geel (#ca8a04) en Dalende toestellen donker groen (#15803d) met verfijnde 3D emissie voor diepe, verzadigde kleuren",
@@ -313,7 +314,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 259) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 260) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

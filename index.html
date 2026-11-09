@@ -1119,7 +1119,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.5.9</strong> beschikbaar &bull; <span id="upd-note">Dubbele audioweergave & echo opgelost &bull; Enkele, zuivere radiostream bij selectie vliegtuig &bull; Geen overlappende communicatie</span></span>
+      <span><strong id="upd-ver">v2.6.0</strong> beschikbaar &bull; <span id="upd-note">Vliegtuignummer & roepnaam in speel live sectie &bull; Individueel gesprek verificatie met verkeerstoren</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1155,7 +1155,7 @@
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.9</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.6.0</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1247,7 +1247,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.5.9</span>
+          <span class="hud-val" id="hud-wasm">v2.6.0</span>
         </div>
       </div>
 
@@ -1434,6 +1434,27 @@
           <div id="live-stream-start-row" style="display:none;align-items:center;justify-content:space-between;padding:4px 8px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.35);border-radius:4px;font-family:var(--mono);">
             <span style="font-size:0.65rem;color:#fca5a5;">🔴 Stream gestart om:</span>
             <span style="font-size:0.7rem;color:#fff;font-weight:700;" id="live-stream-started-at">--:--:--</span>
+          </div>
+          <div id="live-stream-flight-row" style="display:none;align-items:center;justify-content:space-between;padding:4px 8px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.35);border-radius:4px;font-family:var(--mono);">
+            <span style="font-size:0.65rem;color:#7dd3fc;">✈️ Gevolgd toestel:</span>
+            <span style="font-size:0.74rem;color:#fff;font-weight:800;" id="live-stream-flight-val">KLM1234 (PH-BXO)</span>
+          </div>
+        </div>
+
+        <!-- Specifiek Vliegtuig Live Communicatie Banner (direct boven de Speel Live knop) -->
+        <div id="liveatc-target-flight-box" style="display:none;background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.9));border:1px solid rgba(56,189,248,0.5);border-radius:8px;padding:8px 10px;box-shadow:0 3px 10px rgba(0,0,0,0.5);margin-bottom:2px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:0.9rem;">🎯</span>
+              <span style="font-size:0.68rem;color:#94a3b8;font-weight:700;letter-spacing:0.4px;">INDIVIDUEEL GESPREK MET TOREN:</span>
+              <strong id="atc-target-callsign" style="color:var(--cyan);font-family:var(--mono);font-size:0.92rem;letter-spacing:0.5px;">KLM1234</strong>
+              <span id="atc-target-reg" style="color:#f8fafc;font-family:var(--mono);font-size:0.76rem;font-weight:600;">(PH-BXO)</span>
+            </div>
+            <span style="background:rgba(56,189,248,0.2);color:#38bdf8;border:1px solid rgba(56,189,248,0.45);font-family:var(--mono);font-size:0.62rem;font-weight:800;padding:2px 6px;border-radius:4px;" id="atc-target-badge">1-OP-1 AFGESTEMD</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.7rem;color:#cbd5e1;background:rgba(0,0,0,0.35);padding:4px 8px;border-radius:4px;font-family:var(--mono);">
+            <span id="atc-target-airline" style="color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">KLM Royal Dutch Airlines · Boeing 737</span>
+            <span id="atc-target-freq" style="color:#10b981;font-weight:700;">118.100 MHz</span>
           </div>
         </div>
 
@@ -1765,6 +1786,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.5.9"></script>
+  <script src="app.js?v=2.6.0"></script>
 </body>
 </html>
