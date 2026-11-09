@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.4",
-  "build": 60,
-  "timestamp": "2026-11-09T08:09:29.498291+00:00",
-  "git_hash": "c4c07d8",
+  "version": "2.5.5",
+  "build": 61,
+  "timestamp": "2026-11-09T08:23:43.203721+00:00",
+  "git_hash": "917106a",
   "features": [
+    "Scherm Ordenen & Vensters Resetten knop: met één klik op '📐 Scherm Ordenen' worden alle verplaatste vensters (Luchthaven Bord en ATC Gesprekken) netjes, geordend en uitgeklapt teruggezet naar hun vaste standaardposities",
     "Zend Oproep knop verwijderd: de app fungeert uitsluitend als zuivere live scanner & luisterpost (RX only) voor spotters",
     "WAV opname hang-beveiliging: directe Web Audio PCM verwerking zonder asynchrone decodeerhaperingen; opnames sluiten altijd soepel af en downloaden direct",
     "Directe handmatige update: klik op 🔄 of de versie-pill om per direct alle browsercaches en Service Workers te legen en de nieuwste appversie te forceren",

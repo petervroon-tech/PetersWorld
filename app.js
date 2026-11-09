@@ -3905,6 +3905,9 @@ class PanelResizerManager {
     this.resizerDeck = document.getElementById('resizer-right-deck');
     this.resizerAtc = document.getElementById('resizer-atc');
 
+    this.btnResetLayoutHead = document.getElementById('btn-reset-layout');
+    this.btnResetLayoutCtrl = document.getElementById('btn-ctrl-reset-layout');
+
     this.loadSavedState();
     this.setupEvents();
     this.setupDragResizing();
@@ -4101,6 +4104,20 @@ class PanelResizerManager {
         if (this.atcMinimized) this.toggleAtcMinimize(false);
       });
     }
+
+    if (this.btnResetLayoutHead) {
+      this.btnResetLayoutHead.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetAllPanels();
+      });
+    }
+
+    if (this.btnResetLayoutCtrl) {
+      this.btnResetLayoutCtrl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetAllPanels();
+      });
+    }
   }
 
   cycleDeckSize() {
@@ -4263,6 +4280,43 @@ class PanelResizerManager {
       this.atcConsole.style.height = '';
       ATC.logMessage('SCHERM', '📻 Gesprekkenvenster hersteld naar standaardpositie (linksonder).', false);
     }
+  }
+
+  resetAllPanels() {
+    this.resetPosition('deck');
+    this.resetPosition('atc');
+
+    // Zorg dat beide vensters direct zichtbaar en geopend zijn
+    if (this.deckMinimized) this.toggleDeckMinimize(false);
+    if (this.atcMinimized) this.toggleAtcMinimize(false);
+    if (this.deckClosed) this.openDeck();
+    if (this.atcClosed) this.openAtc();
+
+    // Reset afmetingen naar standaard
+    if (this.rightDeck) {
+      this.deckSizeIdx = 1; // Normaal 390px
+      this.deckSizes.forEach(s => this.rightDeck.classList.remove(`size-${s.key}`));
+      this.rightDeck.classList.add('size-normal');
+      this.rightDeck.style.width = '390px';
+    }
+    if (this.atcConsole) {
+      this.atcSizeIdx = 1; // Normaal 360px
+      this.atcSizes.forEach(s => this.atcConsole.classList.remove(`size-${s.key}`));
+      this.atcConsole.classList.add('size-normal');
+      this.atcConsole.style.width = '360px';
+    }
+
+    // Visuele feedback op de knoppen
+    const btnResetHead = document.getElementById('btn-reset-layout');
+    const btnResetCtrl = document.getElementById('btn-ctrl-reset-layout');
+    [btnResetHead, btnResetCtrl].forEach(b => {
+      if (b) {
+        b.classList.add('flash');
+        setTimeout(() => b.classList.remove('flash'), 700);
+      }
+    });
+
+    ATC.logMessage('SCHERM', '📐 SCHERM GEORDEND: Luchthaven Bord en Gesprekken zijn netjes en geordend teruggezet naar hun vaste standaardposities.', true);
   }
 
   setupFreeDragging(panel, dragHandles, key) {
@@ -4488,8 +4542,7 @@ class PanelResizerManager {
       } else if (key === 'M') {
         this.toggleMinimizeAll();
       } else if (key === 'X') {
-        this.resetPosition('deck');
-        this.resetPosition('atc');
+        this.resetAllPanels();
       }
     });
   }
@@ -4669,7 +4722,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.4';
+let currentVersion = '2.5.5';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
