@@ -440,6 +440,7 @@ class LiveAtcEngine {
     this.analyser = null;
     this.animVizId = null;
     this.sessionId = 0; // Monotone teller: isoleert asynchrone audio verzoeken en voorkomt dat snelle wissels blijven hangen
+    this.pendingRetryTimeout = null;
 
     // Live Icecast mount points voor Schiphol en Nederlandse luchtruim feeds
     this.liveMounts = {
@@ -618,29 +619,35 @@ class LiveAtcEngine {
       this.audioEl.loop = false;
       this.audioEl.preload = 'none';
       this.audioEl.addEventListener('ended', () => {
-        if (this.isPlaying) {
-          // Direct herverbinden met actuele live stream
+        if (!this.isPlaying) return;
+        const currentSession = this.sessionId;
+        try {
           this.audioEl.src = this.getLiveStreamUrl(this.currentStation);
           this.audioEl.load();
           const p = this.audioEl.play();
           if (p && p.catch) p.catch(() => {});
-        }
+        } catch (e) {}
       });
       this.audioEl.addEventListener('error', (err) => {
-        if (this.isPlaying) {
-          console.warn('Live radio verbinding herstellen via backup server...', err);
-          setTimeout(() => {
-            if (this.isPlaying) {
-              try {
-                this.audioEl.removeAttribute('crossorigin');
-                this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
-                this.audioEl.load();
-                const p = this.audioEl.play();
-                if (p && p.catch) p.catch(() => {});
-              } catch (e) {}
-            }
-          }, 1500);
+        if (!this.isPlaying) return;
+        const currentSession = this.sessionId;
+        if (this.pendingRetryTimeout) {
+          clearTimeout(this.pendingRetryTimeout);
+          this.pendingRetryTimeout = null;
         }
+        this.pendingRetryTimeout = setTimeout(() => {
+          if (!this.isPlaying || this.sessionId !== currentSession) return;
+          console.warn('Live radio verbinding herstellen via backup server...', err);
+          try {
+            this.audioEl.pause();
+            this.audioEl.removeAttribute('src');
+            this.audioEl.load();
+            this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
+            this.audioEl.load();
+            const p = this.audioEl.play();
+            if (p && p.catch) p.catch(() => {});
+          } catch (e) {}
+        }, 2000);
       });
     }
 
@@ -758,7 +765,9 @@ class LiveAtcEngine {
       }
     }
 
-    ATC.logMessage('LIVE ATC', `🔴 ECHTE LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET ${flightTarget ? flightTarget + ' ' : ''}(${stationName}) — 100% Realtime Live Verkeersleiding`, true);
+    if (!flight) {
+      ATC.logMessage('LIVE ATC', `🔴 ECHTE LIVE STREAM GESTART OP: ${dt.date} OM ${dt.time} CET (${stationName}) — 100% Realtime Live Verkeersleiding`, true);
+    }
   }
 
   getDirectLiveAtcUrl(stationKey) {
@@ -1317,6 +1326,11 @@ class LiveAtcEngine {
     this.ensureAudioCtx();
     if (!this.audioEl) return;
 
+    if (this.pendingRetryTimeout) {
+      clearTimeout(this.pendingRetryTimeout);
+      this.pendingRetryTimeout = null;
+    }
+
     this.sessionId = (this.sessionId || 0) + 1;
     const currentSession = this.sessionId;
 
@@ -1330,7 +1344,7 @@ class LiveAtcEngine {
     const label = this.stationLabels[this.currentStation] || this.currentStation;
     if (statusTxt) {
       if (flight) {
-        statusTxt.textContent = `⏳ Live verbinding maken met ${flight.callsign} (${label})...`;
+        statusTxt.textContent = `⏳ Live verbinding maken met frequentie voor ${flight.callsign} (${label})...`;
       } else {
         statusTxt.textContent = `⏳ Live verbinding maken met ${label}...`;
       }
@@ -1338,16 +1352,17 @@ class LiveAtcEngine {
 
     const streamSrc = this.getLiveStreamUrl(this.currentStation);
 
+    // Stop eerst elke eerdere weergave en maak de buffer 100% leeg om dubbele streams of echo te voorkomen
     try {
       this.audioEl.pause();
-      this.audioEl.currentTime = 0;
+      this.audioEl.removeAttribute('src');
+      this.audioEl.load();
     } catch (e) {}
 
-    // Live Icecast audio feed: continue live uitzending
+    // Live Icecast audio feed: direct native afspelen zonder CORS-header restricties
     this.audioEl.loop = false;
     this.audioEl.muted = false;
     this.audioEl.volume = 1.0;
-    this.audioEl.crossOrigin = 'anonymous';
     this.audioEl.src = streamSrc;
     this.audioEl.load();
 
@@ -1355,6 +1370,11 @@ class LiveAtcEngine {
     if (p && p.then) {
       p.then(() => {
         if (this.sessionId !== currentSession) {
+          try {
+            this.audioEl.pause();
+            this.audioEl.removeAttribute('src');
+            this.audioEl.load();
+          } catch (e) {}
           return;
         }
         this.isPlaying = true;
@@ -1363,7 +1383,9 @@ class LiveAtcEngine {
         if (dot) dot.className = 'dot green';
         if (pill) pill.classList.add('active');
         ATC.playMicClick(true);
-        ATC.logMessage('LIVE ATC', `🔴 100% ECHTE LIVE STREAM: Verbonden met actuele frequentie ${label} (Realtime Live Verkeersleiding)`, true);
+        if (!flight) {
+          ATC.logMessage('LIVE ATC', `🔴 100% ECHTE LIVE STREAM: Verbonden met actuele frequentie ${label} (Realtime Live Verkeersleiding)`, true);
+        }
       }).catch((err) => {
         if (this.sessionId !== currentSession) return;
         if (err && (err.name === 'AbortError' || err.code === 20)) {
@@ -1371,9 +1393,9 @@ class LiveAtcEngine {
         }
         console.warn('Audio play request error, probeer live backup stream:', err);
         try {
-          this.audioEl.removeAttribute('crossorigin');
-          this.audioEl.muted = false;
-          this.audioEl.volume = 1.0;
+          this.audioEl.pause();
+          this.audioEl.removeAttribute('src');
+          this.audioEl.load();
           this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
           this.audioEl.load();
           const p2 = this.audioEl.play();
@@ -1389,6 +1411,10 @@ class LiveAtcEngine {
   stop() {
     this.sessionId = (this.sessionId || 0) + 1;
     this.isPlaying = false;
+    if (this.pendingRetryTimeout) {
+      clearTimeout(this.pendingRetryTimeout);
+      this.pendingRetryTimeout = null;
+    }
     if (this.isRecording) {
       this.stopRecording();
     }
@@ -5674,7 +5700,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.0';
+let currentVersion = '2.8.1';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
