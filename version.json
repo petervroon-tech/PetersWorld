@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.5",
-  "build": 61,
-  "timestamp": "2026-11-09T08:23:43.203721+00:00",
-  "git_hash": "917106a",
+  "version": "2.5.6",
+  "build": 62,
+  "timestamp": "2026-11-09T08:40:00.788361+00:00",
+  "git_hash": "a97f676",
   "features": [
+    "Laptop & MacBook lay-out optimalisatie: Radar & Hoogte HUD is nu netjes compact (150px i.p.v. 450px) en net zoals het Luchthaven Bord en ATC Gesprekken 100% vrij verplaatsbaar, 8-kanten schaalbaar en inklapbaar. De linker opnamehoek overschaduwt de HUD niet meer en alles reset perfect via '📐 Scherm Ordenen'",
     "Scherm Ordenen & Vensters Resetten knop: met één klik op '📐 Scherm Ordenen' worden alle verplaatste vensters (Luchthaven Bord en ATC Gesprekken) netjes, geordend en uitgeklapt teruggezet naar hun vaste standaardposities",
     "Zend Oproep knop verwijderd: de app fungeert uitsluitend als zuivere live scanner & luisterpost (RX only) voor spotters",
     "WAV opname hang-beveiliging: directe Web Audio PCM verwerking zonder asynchrone decodeerhaperingen; opnames sluiten altijd soepel af en downloaden direct",

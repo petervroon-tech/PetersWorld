@@ -147,16 +147,58 @@
     }
     .btn-icon:hover { border-color: var(--cyan); color: var(--cyan); }
 
-    /* ── Stats HUD (left) ── */
+    /* ── Stats HUD (Top-Left, Verplaatsbaar & Minimaliseerbaar) ── */
     #hud {
-      position: fixed; top: 80px; left: 16px; z-index: 10; width: 230px;
-      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-      backdrop-filter: var(--blur); padding: 12px 14px;
-      display: flex; flex-direction: column; gap: 8px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      position: fixed; top: 80px; left: 16px; z-index: 12; width: 295px;
+      background: rgba(6, 15, 30, 0.94); border: 1px solid var(--border); border-radius: 12px;
+      backdrop-filter: var(--blur); padding: 8px 11px;
+      display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.6), 0 0 15px rgba(56,189,248,0.12);
+      transition: width 0.2s ease, max-height 0.2s ease, padding 0.2s ease;
+      user-select: none;
+    }
+    #hud.minimized {
+      max-height: 40px !important;
+      overflow: hidden !important;
+      padding: 6px 10px !important;
+      border-color: rgba(56, 189, 248, 0.35) !important;
+    }
+    #hud.minimized #hud-content {
+      display: none !important;
+    }
+    .hud-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,.08); padding-bottom: 4px;
+    }
+    .hud-main-title {
+      font-size: .68rem; font-family: var(--mono); text-transform: uppercase;
+      color: var(--cyan); letter-spacing: 1px; font-weight: 700;
+    }
+    .hud-strip {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 2px;
+    }
+    .hud-pill-stat {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px; padding: 3px 5px; display: flex; align-items: center; gap: 4px;
+      font-size: 0.67rem; font-family: var(--mono);
+    }
+    .hud-pill-stat.pill-landing { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.1); }
+    .hud-pill-stat.pill-takeoff { border-color: rgba(234,179,8,0.35); background: rgba(234,179,8,0.1); }
+    .hud-pill-stat.pill-overflight { border-color: rgba(192,132,252,0.35); background: rgba(192,132,252,0.1); }
+    .hud-pill-lbl { font-size: 0.61rem; color: var(--muted); }
+    .hud-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .hud-dot.green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+    .hud-dot.gold  { background: #eab308; box-shadow: 0 0 5px #eab308; }
+    .hud-dot.purple{ background: #c084fc; box-shadow: 0 0 5px #c084fc; }
+
+    .hud-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
+    }
+    .hud-grid-cell {
+      display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;
     }
     .hud-title { font-size: .68rem; font-family: var(--mono); text-transform: uppercase; color: var(--cyan); letter-spacing: 1px; border-bottom: 1px solid rgba(255,255,255,.07); padding-bottom: 6px; display: flex; justify-content: space-between; }
-    .hud-row { display: flex; justify-content: space-between; font-size: .78rem; }
+    .hud-row { display: flex; justify-content: space-between; font-size: .74rem; }
     .hud-label { color: var(--muted); }
     .hud-val { font-family: var(--mono); font-weight: 600; }
     .hud-val.cy { color: var(--cyan); }
@@ -166,8 +208,9 @@
     /* ── LiveATC Radio Transceiver Console (Left-Bottom) ── */
     #atc-console {
       position: fixed; bottom: 85px; left: 16px; z-index: 15; width: 360px;
+      max-height: calc(100vh - 270px);
       background: rgba(6,15,30,0.96); border: 1px solid var(--cyan); border-radius: 14px;
-      backdrop-filter: var(--blur); padding: 12px 14px;
+      backdrop-filter: var(--blur); padding: 10px 12px;
       display: flex; flex-direction: column; gap: 8px;
       box-shadow: 0 10px 40px rgba(0,0,0,.75), 0 0 20px rgba(56,189,248,0.22);
     }
@@ -477,6 +520,10 @@
       background: rgba(14, 165, 233, 0.35);
       transform: translateY(-2px);
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.45);
+    }
+    .floating-panel-pill.top-left {
+      top: 80px;
+      left: 16px;
     }
     .floating-panel-pill.top-right {
       top: 80px;
@@ -870,6 +917,44 @@
       }
     }
 
+    /* ── Laptop & Compact Height Optimization (MacBook: height <= 900px) ── */
+    @media (max-height: 900px) {
+      #hud {
+        padding: 6px 9px;
+        gap: 4px;
+        width: 280px;
+      }
+      #hud .hud-strip {
+        gap: 3px;
+        margin-bottom: 1px;
+      }
+      #hud .hud-pill-stat {
+        padding: 2px 4px;
+        font-size: 0.64rem;
+      }
+      #hud .hud-grid {
+        gap: 2px 8px;
+      }
+      #hud .hud-grid-cell {
+        font-size: 0.69rem;
+      }
+      #atc-console {
+        max-height: calc(100vh - 250px);
+        gap: 5px;
+        padding: 8px 10px;
+      }
+      #atc-console #atc-log {
+        max-height: 90px;
+      }
+      #atc-console .liveatc-deck {
+        padding: 5px 8px;
+        gap: 5px;
+      }
+      #right-deck {
+        max-height: calc(100vh - 100px);
+      }
+    }
+
     /* ── Smartphone Optimization (Mobile: <= 640px) ── */
     @media (max-width: 640px) {
       #mobile-nav {
@@ -1034,7 +1119,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.5.5</strong> beschikbaar &bull; <span id="upd-note">Knop 'Scherm Ordenen' &bull; Alles netjes resetten &bull; Geordende vensterposities &bull; WAV opname</span></span>
+      <span><strong id="upd-ver">v2.5.6</strong> beschikbaar &bull; <span id="upd-note">Laptop & MacBook fix &bull; Geen overlappende vensters &bull; Radar HUD verplaatsbaar &bull; Scherm Ordenen</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1065,38 +1150,119 @@
         <span class="dot green" id="liveatc-dot"></span>
         <span id="liveatc-txt">🎧 Live Schiphol Radio</span>
       </div>
-      <div class="pill reset-layout-pill" id="btn-reset-layout" title="Reset alle verplaatste panelen (Luchthaven Bord & Gesprekken) direct netjes en geordend terug naar hun vaste plek [X]">
+      <div class="pill reset-layout-pill" id="btn-reset-layout" title="Reset alle panelen (Radar HUD, Luchthaven Bord & Gesprekken) direct netjes en zonder overlap terug naar standaardposities [X]">
         <span>📐</span>
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.5</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.6</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
 
-  <!-- Stats HUD -->
-  <div id="hud">
-    <div class="hud-title">
-      <span>✈ RADAR & HOOGTE</span>
-      <span id="hud-fps" class="hud-val cy">60 fps</span>
+  <!-- Stats HUD (Radar & Hoogte) - Vrij Verplaatsbaar, Minimaliseerbaar & Laptop-Geoptimaliseerd -->
+  <div id="hud" aria-label="Radar en Hoogte HUD">
+    <!-- 8-Kanten Resizers voor Radar HUD -->
+    <div class="p-resizer p-resizer-w" data-dir="w" title="Sleep linker rand"></div>
+    <div class="p-resizer p-resizer-e" data-dir="e" title="Sleep rechter rand"></div>
+    <div class="p-resizer p-resizer-n" data-dir="n" title="Sleep bovenrand"></div>
+    <div class="p-resizer p-resizer-s" data-dir="s" title="Sleep onderrand"></div>
+    <div class="p-resizer p-resizer-nw" data-dir="nw" title="Sleep linksboven hoek"></div>
+    <div class="p-resizer p-resizer-ne" data-dir="ne" title="Sleep rechtsboven hoek"></div>
+    <div class="p-resizer p-resizer-sw" data-dir="sw" title="Sleep linksonder hoek"></div>
+    <div class="p-resizer p-resizer-se" data-dir="se" title="Sleep rechtsonder hoek"></div>
+
+    <div class="hud-header" id="hud-drag-header" title="Sleep vanaf hier om het Radar & Hoogte venster vrij overal neer te zetten">
+      <div class="hud-title-left" id="hud-header-click" title="Klik om in of uit te klappen" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;">
+        <span class="panel-drag-grip" id="drag-grip-hud" title="Sleep dit onderdeel vrij overal op het scherm">⠿ Verplaats</span>
+        <span class="hud-main-title">✈ RADAR & HOOGTE</span>
+        <span class="hud-val cy" id="hud-fps" style="font-size:0.68rem;margin-left:2px;">60 fps</span>
+        <span class="hud-min-tag" id="hud-min-tag" style="display:none;font-size:0.65rem;color:#38bdf8;font-family:var(--mono);font-weight:700;margin-left:4px;">(60✈ · 300m ➕)</span>
+      </div>
+      <div class="hud-actions" style="display:flex;gap:4px;align-items:center;">
+        <button class="btn-icon-sm" id="btn-reset-pos-hud" title="Herstel standaardpositie linksboven">↺</button>
+        <button class="btn-icon-sm" id="btn-min-hud" title="Minimaliseer / Klap in (meer ruimte voor vliegende vliegtuigen)">➖</button>
+        <button class="btn-icon-sm" id="btn-close-hud" title="Sluit Radar & Hoogte venster">&times;</button>
+      </div>
     </div>
-    <div class="hud-row"><span class="hud-label">Camera hoogte</span><span class="hud-val cy" id="hud-cam-alt">300 m</span></div>
-    <div class="hud-row"><span class="hud-label">Live datum & tijd</span><span class="hud-val cy" id="hud-live-clock">--:--:--</span></div>
-    <div class="hud-row"><span class="hud-label">Vlucht datafeed</span><span class="hud-val gr" id="hud-feed-mode">🟢 LIVE ADS-B (FR24)</span></div>
-    <div class="hud-row"><span class="hud-label">Actieve vluchten</span><span class="hud-val cy" id="hud-flights">60</span></div>
-    <div class="hud-row"><span class="hud-label" style="color:#22c55e;">🛬 Landend (groen)</span><span class="hud-val gr" id="hud-count-landing" style="color:#22c55e;">0</span></div>
-    <div class="hud-row"><span class="hud-label" style="color:#eab308;">🛫 Opstijgend (geel)</span><span class="hud-val go" id="hud-count-takeoff" style="color:#eab308;">0</span></div>
-    <div class="hud-row"><span class="hud-label" style="color:#c084fc;">✈️ Over NL (paars)</span><span class="hud-val cy" id="hud-count-overflight" style="color:#c084fc;">0</span></div>
-    <div class="hud-row"><span class="hud-label">Sector stroom</span><span class="hud-val cy" id="hud-sector-flow">ALLE VERKEER</span></div>
-    <div class="hud-row"><span class="hud-label">Sector vluchten</span><span class="hud-val gr" id="hud-sector-count">0</span></div>
-    <div class="hud-row"><span class="hud-label">Passagiers in lucht</span><span class="hud-val go" id="hud-pax">7.420</span></div>
-    <div class="hud-row"><span class="hud-label">Luchthavens NL</span><span class="hud-val" id="hud-airports">15</span></div>
-    <div class="hud-row"><span class="hud-label">Geselecteerd</span><span class="hud-val go" id="hud-sel-airport">AMS</span></div>
-    <div class="hud-row"><span class="hud-label">Live radio stream</span><span class="hud-val gr" id="hud-liveatc-status">STANDBY</span></div>
-    <div class="hud-row"><span class="hud-label">Gesprek opname</span><span class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY (WAV)</span></div>
-    <div class="hud-row"><span class="hud-label">WASM engine</span><span class="hud-val" id="hud-wasm">v2.5.5</span></div>
+
+    <!-- Inhoud in compact grid: past perfect op laptops zonder overlap -->
+    <div id="hud-content">
+      <!-- 3-Kleurige Vliegtuigen Indicatie Strip (Landend, Opstijgend, Over NL) -->
+      <div class="hud-strip">
+        <div class="hud-pill-stat pill-landing" title="Landende vliegtuigen (groen op radar)">
+          <span class="hud-dot green"></span>
+          <span class="hud-pill-lbl">Landend:</span>
+          <span class="hud-val gr" id="hud-count-landing" style="color:#22c55e;">0</span>
+        </div>
+        <div class="hud-pill-stat pill-takeoff" title="Opstijgende vliegtuigen (geel op radar)">
+          <span class="hud-dot gold"></span>
+          <span class="hud-pill-lbl">Opstijgend:</span>
+          <span class="hud-val go" id="hud-count-takeoff" style="color:#eab308;">0</span>
+        </div>
+        <div class="hud-pill-stat pill-overflight" title="Vliegtuigen over Nederland (paars op radar)">
+          <span class="hud-dot purple"></span>
+          <span class="hud-pill-lbl">Over NL:</span>
+          <span class="hud-val cy" id="hud-count-overflight" style="color:#c084fc;">0</span>
+        </div>
+      </div>
+
+      <!-- Compact 2-Koloms Grid -->
+      <div class="hud-grid">
+        <div class="hud-grid-cell">
+          <span class="hud-label">Camera</span>
+          <span class="hud-val cy" id="hud-cam-alt">300 m</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Live tijd</span>
+          <span class="hud-val cy" id="hud-live-clock">--:--:--</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Datafeed</span>
+          <span class="hud-val gr" id="hud-feed-mode">🟢 LIVE ADS-B</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Vluchten</span>
+          <span class="hud-val cy" id="hud-flights">60</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Sector stroom</span>
+          <span class="hud-val cy" id="hud-sector-flow">ALLE VERKEER</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Sector aantal</span>
+          <span class="hud-val gr" id="hud-sector-count">0</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Passagiers</span>
+          <span class="hud-val go" id="hud-pax">7.420</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Vliegvelden</span>
+          <span class="hud-val" id="hud-airports">15</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">Geselecteerd</span>
+          <span class="hud-val go" id="hud-sel-airport">AMS</span>
+        </div>
+        <div class="hud-grid-cell">
+          <span class="hud-label">WASM engine</span>
+          <span class="hud-val" id="hud-wasm">v2.5.6</span>
+        </div>
+      </div>
+
+      <!-- Extra status regels (compact onderaan) -->
+      <div style="display:flex;justify-content:space-between;font-size:0.68rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:4px;margin-top:2px;">
+        <span style="color:var(--muted);">Radio: <strong class="hud-val gr" id="hud-liveatc-status">STANDBY</strong></span>
+        <span style="color:var(--muted);">Opname: <strong class="hud-val" id="hud-record-status" style="color:#94a3b8;">STANDBY (WAV)</strong></span>
+      </div>
+    </div>
   </div>
+
+  <!-- Zwevende Herstelknop voor Radar HUD (verschijnt als venster gesloten is) -->
+  <button id="floating-open-hud" class="floating-panel-pill top-left" style="display:none;" title="Open Radar & Hoogte HUD">
+    📊 Open Radar HUD ⤢
+  </button>
 
   <!-- LiveATC Radio Transceiver Console -->
   <div id="atc-console" aria-label="ATC Radio Transceiver">
@@ -1599,6 +1765,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.5.5"></script>
+  <script src="app.js?v=2.5.6"></script>
 </body>
 </html>

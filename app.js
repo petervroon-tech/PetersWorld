@@ -3873,13 +3873,26 @@ class PanelResizerManager {
     this.atcSizeIdx = 1;  // Normaal (360px)
     this.deckMinimized = false;
     this.atcMinimized = false;
+    this.hudMinimized = false;
     this.deckClosed = false;
     this.atcClosed = false;
+    this.hudClosed = false;
   }
 
   init() {
     this.rightDeck = document.getElementById('right-deck');
     this.atcConsole = document.getElementById('atc-console');
+    this.hud = document.getElementById('hud');
+    this.hudContent = document.getElementById('hud-content');
+    this.dragGripHud = document.getElementById('drag-grip-hud');
+    this.dragHeaderHud = document.getElementById('hud-drag-header');
+    this.hudHeaderClick = document.getElementById('hud-header-click');
+    this.hudMinTag = document.getElementById('hud-min-tag');
+    this.btnMinHud = document.getElementById('btn-min-hud');
+    this.btnResetPosHud = document.getElementById('btn-reset-pos-hud');
+    this.btnCloseHud = document.getElementById('btn-close-hud');
+    this.floatOpenHud = document.getElementById('floating-open-hud');
+
     this.btnSizeDeck = document.getElementById('btn-size-right-deck');
     this.btnMinDeck = document.getElementById('btn-min-right-deck');
     this.btnResetPosDeck = document.getElementById('btn-reset-pos-deck');
@@ -3978,6 +3991,26 @@ class PanelResizerManager {
             this.atcConsole.style.height = `${h}px`;
           }
         }
+
+        // 3. Radar & Hoogte HUD Positie
+        const hudX = localStorage.getItem('pw_hud_x');
+        const hudY = localStorage.getItem('pw_hud_y');
+        if (hudX !== null && hudY !== null && this.hud) {
+          const x = parseInt(hudX, 10);
+          const y = parseInt(hudY, 10);
+          if (!isNaN(x) && !isNaN(y)) {
+            const clampedX = Math.max(0, Math.min(window.innerWidth - 80, x));
+            const clampedY = Math.max(35, Math.min(window.innerHeight - 50, y));
+            this.hud.style.left = `${clampedX}px`;
+            this.hud.style.top = `${clampedY}px`;
+            this.hud.style.right = 'auto';
+            this.hud.style.bottom = 'auto';
+          }
+        }
+      }
+
+      if (localStorage.getItem('pw_hud_min') === 'true') {
+        this.toggleHudMinimize(true);
       }
 
       const savedDeckSize = localStorage.getItem('pw_deck_size');
@@ -4118,6 +4151,40 @@ class PanelResizerManager {
         this.resetAllPanels();
       });
     }
+
+    // Radar HUD Events
+    if (this.btnMinHud) {
+      this.btnMinHud.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleHudMinimize();
+      });
+    }
+
+    if (this.btnResetPosHud) {
+      this.btnResetPosHud.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.resetPosition('hud');
+      });
+    }
+
+    if (this.btnCloseHud) {
+      this.btnCloseHud.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeHud();
+      });
+    }
+
+    if (this.floatOpenHud) {
+      this.floatOpenHud.addEventListener('click', () => {
+        this.openHud();
+      });
+    }
+
+    if (this.hudHeaderClick) {
+      this.hudHeaderClick.addEventListener('click', () => {
+        if (this.hudMinimized) this.toggleHudMinimize(false);
+      });
+    }
   }
 
   cycleDeckSize() {
@@ -4234,17 +4301,58 @@ class PanelResizerManager {
     }
   }
 
+  toggleHudMinimize(forceState = null) {
+    this.hudMinimized = forceState !== null ? forceState : !this.hudMinimized;
+    if (this.hud) {
+      this.hud.classList.toggle('minimized', this.hudMinimized);
+      if (this.btnMinHud) {
+        this.btnMinHud.textContent = this.hudMinimized ? '➕' : '➖';
+        this.btnMinHud.title = this.hudMinimized ? 'Klap uit (toon alle radar en hoogte stats)' : 'Minimaliseer (meer ruimte voor vliegende vliegtuigen)';
+      }
+      if (this.hudMinTag) {
+        this.hudMinTag.style.display = this.hudMinimized ? 'inline' : 'none';
+      }
+    }
+    try { localStorage.setItem('pw_hud_min', this.hudMinimized ? 'true' : 'false'); } catch (e) {}
+    if (this.hudMinimized) {
+      ATC.logMessage('SCHERM', '📊 Radar & Hoogte HUD ingeklapt: maximale ruimte voor vliegende vliegtuigen.', false);
+    }
+  }
+
+  closeHud() {
+    this.hudClosed = true;
+    if (this.hud) {
+      this.hud.style.display = 'none';
+    }
+    if (this.floatOpenHud) {
+      this.floatOpenHud.style.display = 'flex';
+    }
+    ATC.logMessage('SCHERM', '📊 Radar HUD gesloten. Klik linksboven op "Open Radar HUD" om het terug te halen.', false);
+  }
+
+  openHud() {
+    this.hudClosed = false;
+    if (this.hud) {
+      this.hud.style.display = '';
+    }
+    if (this.floatOpenHud) {
+      this.floatOpenHud.style.display = 'none';
+    }
+  }
+
   toggleMinimizeAll() {
-    const shouldMin = !this.deckMinimized || !this.atcMinimized;
+    const shouldMin = !this.deckMinimized || !this.atcMinimized || !this.hudMinimized;
     this.toggleDeckMinimize(shouldMin);
     this.toggleAtcMinimize(shouldMin);
-    ATC.logMessage('SCHERM', shouldMin ? '🔍 Maximaal Zicht geactiveerd: beide vensters ingeklapt voor vrij zicht op vliegende vliegtuigen.' : '📋 Beide vensters uitgeklapt.', false);
+    this.toggleHudMinimize(shouldMin);
+    ATC.logMessage('SCHERM', shouldMin ? '🔍 Maximaal Zicht geactiveerd: alle vensters ingeklapt voor vrij zicht op vliegende vliegtuigen.' : '📋 Alle vensters uitgeklapt.', false);
   }
 
   bringToFront(panel) {
     if (!panel) return;
     if (this.rightDeck) this.rightDeck.style.zIndex = '18';
     if (this.atcConsole) this.atcConsole.style.zIndex = '18';
+    if (this.hud) this.hud.style.zIndex = '18';
     panel.style.zIndex = '28';
   }
 
@@ -4276,21 +4384,38 @@ class PanelResizerManager {
       this.atcConsole.style.top = '';
       this.atcConsole.style.right = '';
       this.atcConsole.style.width = '360px';
-      this.atcConsole.style.maxHeight = 'calc(100vh - 180px)';
+      this.atcConsole.style.maxHeight = 'calc(100vh - 270px)';
       this.atcConsole.style.height = '';
       ATC.logMessage('SCHERM', '📻 Gesprekkenvenster hersteld naar standaardpositie (linksonder).', false);
+    } else if (key === 'hud' && this.hud) {
+      try {
+        localStorage.removeItem('pw_hud_x');
+        localStorage.removeItem('pw_hud_y');
+      } catch (e) {}
+      this.hud.style.left = '16px';
+      this.hud.style.top = '80px';
+      this.hud.style.right = '';
+      this.hud.style.bottom = '';
+      this.hud.style.width = '295px';
+      this.hud.style.maxHeight = '';
+      this.hud.style.height = '';
+      ATC.logMessage('SCHERM', '📊 Radar HUD hersteld naar standaardpositie (linksboven).', false);
     }
   }
 
   resetAllPanels() {
     this.resetPosition('deck');
     this.resetPosition('atc');
+    this.resetPosition('hud');
 
-    // Zorg dat beide vensters direct zichtbaar en geopend zijn
+    // Zorg dat alle vensters direct zichtbaar en geopend zijn
     if (this.deckMinimized) this.toggleDeckMinimize(false);
     if (this.atcMinimized) this.toggleAtcMinimize(false);
+    if (this.hudMinimized) this.toggleHudMinimize(false);
+
     if (this.deckClosed) this.openDeck();
     if (this.atcClosed) this.openAtc();
+    if (this.hudClosed) this.openHud();
 
     // Reset afmetingen naar standaard
     if (this.rightDeck) {
@@ -4497,10 +4622,12 @@ class PanelResizerManager {
     // 1. Vrij verplaatsen (Drag & Drop over het hele scherm/bord)
     this.setupFreeDragging(this.rightDeck, [this.dragGripDeck, this.dragHeaderDeck, this.dragBottomDeck], 'deck');
     this.setupFreeDragging(this.atcConsole, [this.dragGripAtc, this.dragHeaderAtc, this.dragBottomAtc], 'atc');
+    this.setupFreeDragging(this.hud, [this.dragGripHud, this.dragHeaderHud], 'hud');
 
     // 2. Multi-directioneel resizen van alle 8 kanten & hoeken
     this.setupMultiDirectionalResizing(this.rightDeck, 'deck');
     this.setupMultiDirectionalResizing(this.atcConsole, 'atc');
+    this.setupMultiDirectionalResizing(this.hud, 'hud');
 
     // 3. Focus / Z-Index Elevation
     if (this.rightDeck) {
@@ -4508,6 +4635,9 @@ class PanelResizerManager {
     }
     if (this.atcConsole) {
       this.atcConsole.addEventListener('pointerdown', () => this.bringToFront(this.atcConsole));
+    }
+    if (this.hud) {
+      this.hud.addEventListener('pointerdown', () => this.bringToFront(this.hud));
     }
 
     // 4. Viewport clamp bij scherm resize
@@ -4522,6 +4652,11 @@ class PanelResizerManager {
           const curLeft = parseInt(this.atcConsole.style.left, 10);
           const maxL = Math.max(0, window.innerWidth - 80);
           if (curLeft > maxL) this.atcConsole.style.left = `${maxL}px`;
+        }
+        if (this.hud && this.hud.style.left) {
+          const curLeft = parseInt(this.hud.style.left, 10);
+          const maxL = Math.max(0, window.innerWidth - 80);
+          if (curLeft > maxL) this.hud.style.left = `${maxL}px`;
         }
       }
     });
@@ -4539,6 +4674,8 @@ class PanelResizerManager {
         this.cycleDeckSize();
       } else if (key === 'R') {
         this.cycleAtcSize();
+      } else if (key === 'H') {
+        this.toggleHudMinimize();
       } else if (key === 'M') {
         this.toggleMinimizeAll();
       } else if (key === 'X') {
@@ -4722,7 +4859,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.5';
+let currentVersion = '2.5.6';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
