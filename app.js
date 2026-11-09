@@ -2038,6 +2038,187 @@ function onResize() {
 //  3D OBJECTEN
 // ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
+//  ECHTE ULTRA-HD SATELLIET DETAIL ENGINE (PDOK & ARCGIS)
+//  Laadt echte satelliet- en luchtfoto's tot op detailniveau (sub-meter)
+// ═══════════════════════════════════════════════════════
+const SATELLITE_LOD = {
+  enabled: true,
+  group: null,
+  tilesMap: new Map(),
+  textureLoader: null,
+  lastUpdate: 0,
+  maxLoadedTiles: 45,
+
+  init() {
+    if (this.group) return;
+    this.group = new THREE.Group();
+    this.group.name = 'satellite_lod_group';
+    S.scene.add(this.group);
+
+    this.textureLoader = new THREE.TextureLoader();
+    this.textureLoader.setCrossOrigin('anonymous');
+  },
+
+  latLonToTile(lat, lon, zoom) {
+    const n = Math.pow(2, zoom);
+    const x = Math.floor(((lon + 180) / 360) * n);
+    const latRad = (lat * Math.PI) / 180;
+    const y = Math.floor((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * n);
+    return { x, y, z: zoom };
+  },
+
+  tileToLatLon(x, y, zoom) {
+    const n = Math.pow(2, zoom);
+    const lon = (x / n) * 360 - 180;
+    const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)));
+    const lat = (latRad * 180) / Math.PI;
+    return { lat, lon };
+  },
+
+  getTileUrls(x, y, z) {
+    const nw = this.tileToLatLon(x, y, z);
+    const se = this.tileToLatLon(x + 1, y + 1, z);
+    const inNL = nw.lat <= 53.8 && se.lat >= 50.6 && nw.lon >= 3.1 && se.lon <= 7.4;
+
+    const esriUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}.jpg`;
+    if (inNL && z <= 16) {
+      return {
+        primary: `https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_ortho25/EPSG:3857/${z}/${x}/${y}.jpeg`,
+        fallback: esriUrl
+      };
+    }
+    return {
+      primary: esriUrl,
+      fallback: `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}.jpg`
+    };
+  },
+
+  createTileMesh(x, y, z) {
+    const key = `${z}_${x}_${y}`;
+    if (this.tilesMap.has(key)) {
+      const item = this.tilesMap.get(key);
+      item.lastUsed = Date.now();
+      return item;
+    }
+
+    const nw = this.tileToLatLon(x, y, z);
+    const se = this.tileToLatLon(x + 1, y + 1, z);
+
+    const nwPos = latLonToVector3(nw.lat, nw.lon);
+    const sePos = latLonToVector3(se.lat, se.lon);
+
+    const w = Math.abs(sePos.x - nwPos.x);
+    const h = Math.abs(sePos.z - nwPos.z);
+    const cx = (nwPos.x + sePos.x) / 2;
+    const cz = (nwPos.z + sePos.z) / 2;
+
+    const geo = new THREE.PlaneGeometry(w, h, 1, 1);
+    geo.rotateX(-Math.PI / 2);
+
+    const urls = this.getTileUrls(x, y, z);
+
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      depthWrite: true,
+      depthTest: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(cx, 0.002, cz);
+    this.group.add(mesh);
+
+    const item = { mesh, x, y, z, lastUsed: Date.now() };
+    this.tilesMap.set(key, item);
+
+    if (this.textureLoader) {
+      this.textureLoader.load(
+        urls.primary,
+        (tex) => {
+          tex.anisotropy = 16;
+          tex.generateMipmaps = true;
+          mat.map = tex;
+          mat.needsUpdate = true;
+        },
+        undefined,
+        () => {
+          if (urls.fallback) {
+            this.textureLoader.load(urls.fallback, (texFb) => {
+              texFb.anisotropy = 16;
+              texFb.generateMipmaps = true;
+              mat.map = texFb;
+              mat.needsUpdate = true;
+            });
+          }
+        }
+      );
+    }
+
+    return item;
+  },
+
+  update(focusLat, focusLon, cameraDistanceKm) {
+    if (!this.enabled || !this.group) return;
+    const now = Date.now();
+    if (now - this.lastUpdate < 280) return;
+    this.lastUpdate = now;
+
+    if (cameraDistanceKm > 40) {
+      if (this.group.visible) this.group.visible = false;
+      return;
+    }
+    if (!this.group.visible) this.group.visible = true;
+
+    let zoom = 14;
+    let radius = 1;
+
+    if (cameraDistanceKm > 15) {
+      zoom = 13;
+      radius = 1;
+    } else if (cameraDistanceKm > 6) {
+      zoom = 14;
+      radius = 1;
+    } else if (cameraDistanceKm > 1.8) {
+      zoom = 15;
+      radius = 2; // 5x5 tegels
+    } else {
+      // Dichtbij tot 30m / 300m: Ultra HD sub-meter detail
+      zoom = 16;
+      radius = 2; // 5x5 tegels = ~1.9 km x 1.9 km haarscherp detail
+    }
+
+    const centerTile = this.latLonToTile(focusLat, focusLon, zoom);
+    const activeKeys = new Set();
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        const tx = centerTile.x + dx;
+        const ty = centerTile.y + dy;
+        const k = `${zoom}_${tx}_${ty}`;
+        activeKeys.add(k);
+        this.createTileMesh(tx, ty, zoom);
+      }
+    }
+
+    if (this.tilesMap.size > this.maxLoadedTiles) {
+      for (const [k, item] of this.tilesMap.entries()) {
+        if (!activeKeys.has(k) && now - item.lastUsed > 12000) {
+          this.group.remove(item.mesh);
+          if (item.mesh.geometry) item.mesh.geometry.dispose();
+          if (item.mesh.material) {
+            if (item.mesh.material.map) item.mesh.material.map.dispose();
+            item.mesh.material.dispose();
+          }
+          this.tilesMap.delete(k);
+        }
+      }
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
 //  ECHTE SATELLIET ACHTERGROND NEDERLAND (FLIGHTRADAR MODUS)
 // ═══════════════════════════════════════════════════════
 function createRealSatelliteBackground() {
@@ -2101,6 +2282,11 @@ function buildNetherlandsRadarBackground() {
   S.radarMesh.position.set(22.18, -0.01, -3.87);
   S.earthGroup.add(S.radarMesh);
   S.earthMesh = S.radarMesh; // compatibiliteit
+
+  // Activeer direct de Ultra-HD Satelliet Detail Engine
+  if (typeof SATELLITE_LOD !== 'undefined') {
+    SATELLITE_LOD.init();
+  }
 
   // Subtiele radar afstandsringen over de echte satellietfoto (zoals Flightradar overlay)
   const camsPos = latLonToVector3(52.31, 4.76, 0.05);
@@ -3650,6 +3836,32 @@ function animate(now) {
     }
   }
 
+  // Realtime Ultra-HD Satelliet Detail Engine update (PDOK 25cm & ArcGIS)
+  if (typeof SATELLITE_LOD !== 'undefined' && SATELLITE_LOD.enabled) {
+    let focusLat = NL_CENTER_LAT;
+    let focusLon = NL_CENTER_LON;
+    let camDistKm = 100;
+
+    if (S.followFlight) {
+      const f = S.followFlight;
+      const p = f.isLive ? f.currentPos : f.curve.getPointAt(f.progress);
+      focusLon = NL_CENTER_LON + (p.x / KM_PER_DEG_LON);
+      focusLat = NL_CENTER_LAT - (p.z / KM_PER_DEG_LAT);
+      camDistKm = S.camera.position.distanceTo(p);
+    } else if (S.selectedAirport && S.cameraTargetPos) {
+      focusLat = S.selectedAirport.lat;
+      focusLon = S.selectedAirport.lon;
+      const apPos = latLonToVector3(focusLat, focusLon, 0);
+      camDistKm = S.camera.position.distanceTo(apPos);
+    } else {
+      focusLon = NL_CENTER_LON + (S.controls.target.x / KM_PER_DEG_LON);
+      focusLat = NL_CENTER_LAT - (S.controls.target.z / KM_PER_DEG_LAT);
+      camDistKm = S.camera.position.distanceTo(S.controls.target);
+    }
+
+    SATELLITE_LOD.update(focusLat, focusLon, camDistKm);
+  }
+
   // Exacte camera hoogte weergave (tot 30 meter boven de grond!)
   const groundAltMeters = Math.max(1, Math.round(S.camera.position.y * 1000));
   const hudAlt = document.getElementById('hud-cam-alt');
@@ -4233,6 +4445,16 @@ function initAirportDeck() {
   if (btnZoomGlobe) {
     btnZoomGlobe.addEventListener('click', () => {
       zoomToGlobe();
+    });
+  }
+
+  const btnSatDetail = document.getElementById('btn-sat-detail');
+  if (btnSatDetail) {
+    btnSatDetail.addEventListener('click', () => {
+      SATELLITE_LOD.enabled = !SATELLITE_LOD.enabled;
+      btnSatDetail.classList.toggle('active', SATELLITE_LOD.enabled);
+      if (SATELLITE_LOD.group) SATELLITE_LOD.group.visible = SATELLITE_LOD.enabled;
+      ATC.logMessage('SATELLIET', `Ultra-HD Satellietbeelden (PDOK 25cm & ArcGIS) ${SATELLITE_LOD.enabled ? 'ingeschakeld (volledig detailniveau actief)' : 'uitgeschakeld'}.`, false);
     });
   }
 
@@ -5452,7 +5674,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.7.1';
+let currentVersion = '2.8.0';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
