@@ -2386,6 +2386,222 @@ function build3DAirports() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  FOTOREALISTISCHE ARCHITECTONISCHE GEBOUWTEXTUREN (GEEN GEEL!)
+// ═══════════════════════════════════════════════════════
+const BUILDING_TEXTURES = {
+  initialized: false,
+  terminalFacade: null,
+  terminalRoof: null,
+  pierFacade: null,
+  hangarFacade: null,
+  towerConcrete: null,
+  jetBridge: null,
+  hotelFacade: null,
+
+  init() {
+    if (this.initialized) return;
+    if (typeof document === 'undefined') return;
+
+    try {
+      // 1. Moderne Glazen Vliesgevel / Terminal Facade (512x256) - Donkerblauw/antraciet reflecterend glas (GEEN GEEL!)
+      const tfCanvas = document.createElement('canvas');
+      tfCanvas.width = 512;
+      tfCanvas.height = 256;
+      const tfCtx = tfCanvas.getContext('2d');
+
+      const glassGrad = tfCtx.createLinearGradient(0, 0, 0, 256);
+      glassGrad.addColorStop(0, '#0b1329');
+      glassGrad.addColorStop(0.35, '#1e293b');
+      glassGrad.addColorStop(0.70, '#0f2744');
+      glassGrad.addColorStop(1.0, '#0284c7');
+      tfCtx.fillStyle = glassGrad;
+      tfCtx.fillRect(0, 0, 512, 256);
+
+      // Verdiepingsscheidingen & composiet banden
+      tfCtx.fillStyle = '#64748b';
+      tfCtx.fillRect(0, 80, 512, 12);
+      tfCtx.fillRect(0, 168, 512, 14);
+
+      // Verticale stijlen en aluminium kozijnen
+      tfCtx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
+      tfCtx.lineWidth = 2;
+      for (let x = 0; x <= 512; x += 16) {
+        tfCtx.beginPath();
+        tfCtx.moveTo(x, 0);
+        tfCtx.lineTo(x, 256);
+        tfCtx.stroke();
+      }
+      for (let y = 0; y <= 256; y += 22) {
+        tfCtx.beginPath();
+        tfCtx.moveTo(0, y);
+        tfCtx.lineTo(512, y);
+        tfCtx.stroke();
+      }
+
+      // Subtiele interieur gateverlichting (koel wit/cyaan)
+      tfCtx.fillStyle = 'rgba(56, 189, 248, 0.16)';
+      for (let x = 4; x < 508; x += 32) {
+        tfCtx.fillRect(x, 96, 24, 66);
+        tfCtx.fillRect(x, 186, 24, 62);
+      }
+
+      this.terminalFacade = new THREE.CanvasTexture(tfCanvas);
+      this.terminalFacade.wrapS = THREE.RepeatWrapping;
+      this.terminalFacade.wrapT = THREE.RepeatWrapping;
+      this.terminalFacade.anisotropy = 16;
+
+      // 2. Realistisch Donkergrijs Bitumen Plat Dak met HVAC (256x256) - GEEN GEEL GRIND!
+      const trCanvas = document.createElement('canvas');
+      trCanvas.width = 256;
+      trCanvas.height = 256;
+      const trCtx = trCanvas.getContext('2d');
+      trCtx.fillStyle = '#334155'; // Donker leisteen/bitumen
+      trCtx.fillRect(0, 0, 256, 256);
+
+      // Dakranden en naden
+      trCtx.strokeStyle = '#1e293b';
+      trCtx.lineWidth = 3;
+      trCtx.strokeRect(4, 4, 248, 248);
+      trCtx.strokeRect(64, 64, 128, 128);
+
+      // Onderhoudslooppaden
+      trCtx.fillStyle = '#475569';
+      trCtx.fillRect(120, 0, 16, 256);
+      trCtx.fillRect(0, 120, 256, 16);
+
+      // Luchtbehandelingskasten (HVAC), chillers en ventilatoren
+      trCtx.fillStyle = '#0f172a';
+      trCtx.fillRect(20, 20, 36, 26);
+      trCtx.fillRect(75, 20, 32, 20);
+      trCtx.fillRect(170, 20, 42, 32);
+      trCtx.fillRect(20, 170, 38, 38);
+      trCtx.fillRect(165, 165, 55, 45);
+
+      this.terminalRoof = new THREE.CanvasTexture(trCanvas);
+      this.terminalRoof.wrapS = THREE.RepeatWrapping;
+      this.terminalRoof.wrapT = THREE.RepeatWrapping;
+      this.terminalRoof.anisotropy = 16;
+
+      // 3. Pier Facade (256x128) - moderne gates met panoramaramen
+      const pfCanvas = document.createElement('canvas');
+      pfCanvas.width = 256;
+      pfCanvas.height = 128;
+      const pfCtx = pfCanvas.getContext('2d');
+      pfCtx.fillStyle = '#1e293b';
+      pfCtx.fillRect(0, 0, 256, 128);
+      pfCtx.fillStyle = '#94a3b8';
+      pfCtx.fillRect(0, 0, 256, 18);
+      pfCtx.fillRect(0, 110, 256, 18);
+
+      pfCtx.fillStyle = '#0284c7';
+      pfCtx.globalAlpha = 0.65;
+      for (let x = 8; x < 248; x += 24) {
+        pfCtx.fillRect(x, 24, 18, 80);
+      }
+      pfCtx.globalAlpha = 1.0;
+
+      this.pierFacade = new THREE.CanvasTexture(pfCanvas);
+      this.pierFacade.wrapS = THREE.RepeatWrapping;
+      this.pierFacade.wrapT = THREE.RepeatWrapping;
+      this.pierFacade.anisotropy = 16;
+
+      // 4. Industriële Hangar Facade (256x256) - geprofileerd staal & schuifdeuren
+      const hgCanvas = document.createElement('canvas');
+      hgCanvas.width = 256;
+      hgCanvas.height = 256;
+      const hgCtx = hgCanvas.getContext('2d');
+      hgCtx.fillStyle = '#475569';
+      hgCtx.fillRect(0, 0, 256, 256);
+
+      hgCtx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      hgCtx.lineWidth = 2;
+      for (let x = 0; x <= 256; x += 8) {
+        hgCtx.beginPath();
+        hgCtx.moveTo(x, 0);
+        hgCtx.lineTo(x, 256);
+        hgCtx.stroke();
+      }
+
+      hgCtx.fillStyle = '#1e293b';
+      hgCtx.fillRect(16, 50, 224, 195);
+      hgCtx.strokeStyle = '#94a3b8';
+      hgCtx.lineWidth = 3;
+      hgCtx.strokeRect(16, 50, 224, 195);
+      hgCtx.strokeRect(16, 50, 112, 195);
+
+      this.hangarFacade = new THREE.CanvasTexture(hgCanvas);
+      this.hangarFacade.anisotropy = 16;
+
+      // 5. Toren Betongevel (128x256) - architectonisch beton met paneelnaden
+      const twCanvas = document.createElement('canvas');
+      twCanvas.width = 128;
+      twCanvas.height = 256;
+      const twCtx = twCanvas.getContext('2d');
+      twCtx.fillStyle = '#cbd5e1';
+      twCtx.fillRect(0, 0, 128, 256);
+      twCtx.strokeStyle = '#94a3b8';
+      twCtx.lineWidth = 1.5;
+      for (let y = 0; y <= 256; y += 16) {
+        twCtx.beginPath();
+        twCtx.moveTo(0, y);
+        twCtx.lineTo(128, y);
+        twCtx.stroke();
+      }
+      for (let x = 0; x <= 128; x += 32) {
+        twCtx.beginPath();
+        twCtx.moveTo(x, 0);
+        twCtx.lineTo(x, 256);
+        twCtx.stroke();
+      }
+
+      this.towerConcrete = new THREE.CanvasTexture(twCanvas);
+      this.towerConcrete.wrapS = THREE.RepeatWrapping;
+      this.towerConcrete.wrapT = THREE.RepeatWrapping;
+      this.towerConcrete.anisotropy = 16;
+
+      // 6. Passagiersslurf / Jet Bridge (128x64)
+      const jbCanvas = document.createElement('canvas');
+      jbCanvas.width = 128;
+      jbCanvas.height = 64;
+      const jbCtx = jbCanvas.getContext('2d');
+      jbCtx.fillStyle = '#64748b';
+      jbCtx.fillRect(0, 0, 128, 64);
+      jbCtx.fillStyle = '#0284c7';
+      jbCtx.fillRect(8, 16, 112, 28);
+      jbCtx.strokeStyle = '#1e293b';
+      jbCtx.lineWidth = 2;
+      jbCtx.strokeRect(0, 0, 128, 64);
+
+      this.jetBridge = new THREE.CanvasTexture(jbCanvas);
+      this.jetBridge.anisotropy = 16;
+
+      // 7. Hotel / Office Facade (Hilton & WTC Schiphol)
+      const htCanvas = document.createElement('canvas');
+      htCanvas.width = 256;
+      htCanvas.height = 256;
+      const htCtx = htCanvas.getContext('2d');
+      htCtx.fillStyle = '#f1f5f9';
+      htCtx.fillRect(0, 0, 256, 256);
+      htCtx.fillStyle = '#0284c7';
+      for (let y = 8; y < 246; y += 22) {
+        for (let x = 8; x < 248; x += 18) {
+          htCtx.fillRect(x, y, 12, 14);
+        }
+      }
+
+      this.hotelFacade = new THREE.CanvasTexture(htCanvas);
+      this.hotelFacade.wrapS = THREE.RepeatWrapping;
+      this.hotelFacade.wrapT = THREE.RepeatWrapping;
+      this.hotelFacade.anisotropy = 16;
+
+      this.initialized = true;
+    } catch (e) {
+      console.warn('BUILDING_TEXTURES init:', e);
+    }
+  }
+};
+
+// ═══════════════════════════════════════════════════════
 //  GEDETAILLEERD 3D LANDINGSBAAN & LUCHTHAVEN MODEL (VOOR 300M ZOOM)
 // ═══════════════════════════════════════════════════════
 function getAirportSatelliteTextureUrl(airport) {
@@ -2419,6 +2635,109 @@ function buildDetailedAirportModel(airport) {
     tex.generateMipmaps = true;
     tex.needsUpdate = true;
   });
+
+  // Initialiseer fotorealistische gebouwtexturen (geen geel!)
+  BUILDING_TEXTURES.init();
+
+  const termMatSide = BUILDING_TEXTURES.terminalFacade ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.terminalFacade,
+    roughness: 0.25,
+    metalness: 0.50
+  }) : new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
+
+  const termMatRoof = BUILDING_TEXTURES.terminalRoof ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.terminalRoof,
+    roughness: 0.85,
+    metalness: 0.15
+  }) : new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+
+  const termMaterials = [
+    termMatSide, termMatSide,
+    termMatRoof, termMatRoof,
+    termMatSide, termMatSide
+  ];
+
+  const pierMatSide = BUILDING_TEXTURES.pierFacade ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.pierFacade,
+    roughness: 0.35,
+    metalness: 0.45
+  }) : new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+
+  const pierMaterials = [
+    pierMatSide, pierMatSide,
+    termMatRoof, termMatRoof,
+    pierMatSide, pierMatSide
+  ];
+
+  const hangarMatSide = BUILDING_TEXTURES.hangarFacade ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.hangarFacade,
+    roughness: 0.65,
+    metalness: 0.35
+  }) : new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 });
+
+  const hangarMaterials = [
+    hangarMatSide, hangarMatSide,
+    termMatRoof, termMatRoof,
+    hangarMatSide, hangarMatSide
+  ];
+
+  const hotelMatSide = BUILDING_TEXTURES.hotelFacade ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.hotelFacade,
+    roughness: 0.30,
+    metalness: 0.40
+  }) : new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.3 });
+
+  const hotelMaterials = [
+    hotelMatSide, hotelMatSide,
+    termMatRoof, termMatRoof,
+    hotelMatSide, hotelMatSide
+  ];
+
+  const towerConcreteMat = BUILDING_TEXTURES.towerConcrete ? new THREE.MeshStandardMaterial({
+    map: BUILDING_TEXTURES.towerConcrete,
+    roughness: 0.80,
+    metalness: 0.10
+  }) : new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.8 });
+
+  const towerGlassMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    roughness: 0.12,
+    metalness: 0.85
+  });
+
+  // Functie voor fotorealistische passagiersslurven (Jet Bridges)
+  const createJetBridge = (fromX, fromZ, toX, toZ, height = 0.012) => {
+    const dx = toX - fromX;
+    const dz = toZ - fromZ;
+    const len = Math.hypot(dx, dz);
+    const angle = Math.atan2(dx, dz);
+
+    const jbGroup = new THREE.Group();
+    // Rotunda aan pier
+    const rot = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.016, 8), termMatSide);
+    rot.position.set(fromX, height, fromZ);
+    jbGroup.add(rot);
+
+    // Telescopische slurf
+    const bridgeGeo = new THREE.BoxGeometry(0.010, 0.010, len);
+    const bridgeMat = BUILDING_TEXTURES.jetBridge ? new THREE.MeshStandardMaterial({
+      map: BUILDING_TEXTURES.jetBridge,
+      roughness: 0.45,
+      metalness: 0.40
+    }) : new THREE.MeshStandardMaterial({ color: 0x64748b });
+    const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+    bridge.position.set(fromX + dx / 2, height, fromZ + dz / 2);
+    bridge.rotation.y = angle;
+    jbGroup.add(bridge);
+
+    // Vliegtuigaansluiting
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.012, 0.012), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 }));
+    hood.position.set(toX, height, toZ);
+    hood.rotation.y = angle;
+    jbGroup.add(hood);
+
+    S.airportDetailGroup.add(jbGroup);
+  };
 
   // 1. Teuge Vliegveld Specifiek Model
   if (airport.code === 'TGE') {
@@ -2508,22 +2827,21 @@ function buildDetailedAirportModel(airport) {
     twy.rotation.y = -84 * (Math.PI / 180);
     S.airportDetailGroup.add(twy);
 
-    // Teuge Havenkantoor & Toren
+    // Teuge Havenkantoor & Toren (Fotorealistisch architectonisch model, geen geel!)
     const towerGroup = new THREE.Group();
     const tBaseGeo = new THREE.BoxGeometry(0.040, 0.016, 0.030);
-    const tBaseMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
-    const tBase = new THREE.Mesh(tBaseGeo, tBaseMat);
+    const tBase = new THREE.Mesh(tBaseGeo, termMaterials);
     tBase.position.y = 0.008;
     towerGroup.add(tBase);
 
     const cabGeo = new THREE.CylinderGeometry(0.012, 0.014, 0.010, 8);
-    const cabMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
-    const cab = new THREE.Mesh(cabGeo, cabMat);
+    const cab = new THREE.Mesh(cabGeo, towerGlassMat);
     cab.position.y = 0.021;
     towerGroup.add(cab);
 
+    // Rood/wit baken (geen geel!)
     const antGeo = new THREE.CylinderGeometry(0.001, 0.001, 0.015, 4);
-    const antMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    const antMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
     const ant = new THREE.Mesh(antGeo, antMat);
     ant.position.y = 0.032;
     towerGroup.add(ant);
@@ -2531,10 +2849,9 @@ function buildDetailedAirportModel(airport) {
     towerGroup.position.set(-0.06, 0.002, 0.09);
     S.airportDetailGroup.add(towerGroup);
 
-    // Paracentrum Skydive Teuge Hangar & Dropzone
+    // Paracentrum Skydive Teuge Hangar & Dropzone (Fotorealistisch geprofileerd staal)
     const skydiveHangarGeo = new THREE.BoxGeometry(0.065, 0.014, 0.045);
-    const skydiveHangarMat = new THREE.MeshPhongMaterial({ color: 0x1e3a8a });
-    const skydiveHangar = new THREE.Mesh(skydiveHangarGeo, skydiveHangarMat);
+    const skydiveHangar = new THREE.Mesh(skydiveHangarGeo, hangarMaterials);
     skydiveHangar.position.set(0.08, 0.008, 0.09);
     S.airportDetailGroup.add(skydiveHangar);
 
@@ -2545,15 +2862,14 @@ function buildDetailedAirportModel(airport) {
     dz.position.set(0.18, 0.002, 0.11);
     S.airportDetailGroup.add(dz);
 
-    // Stella Aviation Hangars
+    // Stella Aviation Hangars (Fotorealistische hangardeuren & dak)
     const stellaGeo = new THREE.BoxGeometry(0.055, 0.012, 0.040);
-    const stellaMat = new THREE.MeshPhongMaterial({ color: 0x475569 });
-    const stella = new THREE.Mesh(stellaGeo, stellaMat);
+    const stella = new THREE.Mesh(stellaGeo, hangarMaterials);
     stella.position.set(-0.16, 0.007, 0.09);
     S.airportDetailGroup.add(stella);
 
-    // Vliegtuigen op Teuge
-    const fstPlane = createAirplaneMesh(0xf59e0b);
+    // Vliegtuigen op Teuge (Echte luchtvaartkleuren: blauw en groen, geen geel!)
+    const fstPlane = createAirplaneMesh(0x0284c7);
     fstPlane.scale.set(0.018, 0.018, 0.018);
     fstPlane.position.set(0.06, 0.004, 0.065);
     fstPlane.rotation.y = Math.PI / 4;
@@ -2692,30 +3008,67 @@ function buildDetailedAirportModel(airport) {
     createTaxiway(0.025, 2.8, 58 * Math.PI / 180, -0.32, 0.52);
     createTaxiway(0.025, 2.5, 3 * Math.PI / 180, -0.75, -0.50);
 
-    // Schiphol Centrum Terminal Complex & Pieren
-    const termBaseMat = new THREE.MeshPhongMaterial({ color: 0x64748b, shininess: 30 });
-    const glassMat    = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 });
-    const pierMat     = new THREE.MeshPhongMaterial({ color: 0x94a3b8 });
-
-    // Hoofdgebouw (Vertrek- en Aankomsthallen 1, 2, 3 en Schiphol Plaza)
-    const plazaGeo = new THREE.BoxGeometry(0.55, 0.035, 0.35);
-    const plaza = new THREE.Mesh(plazaGeo, termBaseMat);
-    plaza.position.set(0, 0.0175, 0);
+    // Schiphol Centrum Terminal Complex & Pieren (Fotorealistisch, GEEN GEEL!)
+    // 1. Hoofdgebouw (Vertrek- en Aankomsthallen 1, 2, 3 en Schiphol Plaza)
+    const plazaGeo = new THREE.BoxGeometry(0.55, 0.038, 0.35);
+    const plaza = new THREE.Mesh(plazaGeo, termMaterials);
+    plaza.position.set(0, 0.019, 0);
     S.airportDetailGroup.add(plaza);
 
-    // Glazen lichtkoepel / Schiphol Plaza overkapping
-    const roofGlassGeo = new THREE.BoxGeometry(0.45, 0.010, 0.25);
-    const roofGlass = new THREE.Mesh(roofGlassGeo, glassMat);
-    roofGlass.position.set(0, 0.038, 0);
-    S.airportDetailGroup.add(roofGlass);
+    // Aerodynamische witte overkapping / Glazen lichtkoepel Schiphol Plaza
+    const roofCanopyGeo = new THREE.BoxGeometry(0.48, 0.012, 0.26);
+    const roofCanopyMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9, // Zuiver wit/zilver composietdak (geen geel!)
+      roughness: 0.35,
+      metalness: 0.50
+    });
+    const roofCanopy = new THREE.Mesh(roofCanopyGeo, roofCanopyMat);
+    roofCanopy.position.set(0, 0.040, 0);
+    S.airportDetailGroup.add(roofCanopy);
 
-    // Pierencomplex Schiphol (B, C, D, E, F, G, H/M)
+    // Glazen atriumstrook in het dak
+    const atriumGeo = new THREE.BoxGeometry(0.38, 0.005, 0.12);
+    const atriumMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0284c7,
+      roughness: 0.1,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 0.85
+    });
+    const atrium = new THREE.Mesh(atriumGeo, atriumMat);
+    atrium.position.set(0, 0.0465, 0);
+    S.airportDetailGroup.add(atrium);
+
+    // 2. Hilton Hotel Amsterdam Airport Schiphol & WTC Kantorencomplex
+    const hiltonGeo = new THREE.BoxGeometry(0.18, 0.042, 0.18);
+    const hilton = new THREE.Mesh(hiltonGeo, hotelMaterials);
+    hilton.position.set(-0.20, 0.021, 0.22);
+    S.airportDetailGroup.add(hilton);
+
+    const wtcGeo = new THREE.BoxGeometry(0.24, 0.048, 0.16);
+    const wtc = new THREE.Mesh(wtcGeo, hotelMaterials);
+    wtc.position.set(0.18, 0.024, 0.22);
+    S.airportDetailGroup.add(wtc);
+
+    // 3. KLM Engineering & Maintenance Hangars (Hangars 10, 11 en 12 bij Schiphol-Oost)
+    const hangar10Geo = new THREE.BoxGeometry(0.32, 0.032, 0.18);
+    const hangar10 = new THREE.Mesh(hangar10Geo, hangarMaterials);
+    hangar10.position.set(0.72, 0.016, -0.25);
+    S.airportDetailGroup.add(hangar10);
+
+    const hangar11Geo = new THREE.BoxGeometry(0.26, 0.028, 0.16);
+    const hangar11 = new THREE.Mesh(hangar11Geo, hangarMaterials);
+    hangar11.position.set(0.96, 0.014, -0.15);
+    S.airportDetailGroup.add(hangar11);
+
+    // 4. Pierencomplex Schiphol (B, C, D, E, F, G, H/M) met fotorealistische gevels
     const createPier = (w, h, d, x, y, z, rotY = 0) => {
       const pGeo = new THREE.BoxGeometry(w, h, d);
-      const pMesh = new THREE.Mesh(pGeo, pierMat);
+      const pMesh = new THREE.Mesh(pGeo, pierMaterials);
       pMesh.position.set(x, y, z);
       pMesh.rotation.y = rotY;
       S.airportDetailGroup.add(pMesh);
+      return pMesh;
     };
 
     // Pier B (Schengen, 7 gates)
@@ -2733,29 +3086,35 @@ function buildDetailedAirportModel(airport) {
     // Pier H/M (Low-Cost)
     createPier(0.055, 0.020, 0.26, 0.28, 0.010, 0.28, -120 * Math.PI / 180);
 
-    // 1. Verkeerstoren Schiphol Centrum (101 meter iconische toren)
+    // 5. Fotorealistische Passagiersslurven (Jet Bridges) aangesloten op de pieren
+    createJetBridge(-0.25, -0.22, -0.24, -0.20, 0.011);
+    createJetBridge(0.02, -0.40, 0.03, -0.42, 0.012);
+    createJetBridge(0.22, -0.32, 0.25, -0.34, 0.012);
+    createJetBridge(0.35, -0.15, 0.38, -0.17, 0.012);
+    createJetBridge(0.38, 0.08, 0.40, 0.10, 0.012);
+
+    // 6. Verkeerstoren Schiphol Centrum (101 meter iconische toren, architectonisch beton & glas)
     const towerGroup = new THREE.Group();
-    const tShaftGeo = new THREE.CylinderGeometry(0.016, 0.024, 0.101, 12);
-    const tShaftMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
-    const tShaft = new THREE.Mesh(tShaftGeo, tShaftMat);
+    const tShaftGeo = new THREE.CylinderGeometry(0.016, 0.024, 0.101, 16);
+    const tShaft = new THREE.Mesh(tShaftGeo, towerConcreteMat);
     tShaft.position.y = 0.0505;
     towerGroup.add(tShaft);
 
-    // Koepel & glazen verkeersleidingscabine
-    const tCabGeo = new THREE.CylinderGeometry(0.032, 0.026, 0.018, 12);
-    const tCab = new THREE.Mesh(tCabGeo, glassMat);
+    // Koepel & glazen verkeersleidingscabine (donker getint glas, GEEN GEEL!)
+    const tCabGeo = new THREE.CylinderGeometry(0.034, 0.026, 0.018, 16);
+    const tCab = new THREE.Mesh(tCabGeo, towerGlassMat);
     tCab.position.y = 0.105;
     towerGroup.add(tCab);
 
-    // Radome en communicatieantennes bovenop de toren
-    const radomeGeo = new THREE.SphereGeometry(0.012, 10, 10);
-    const radomeMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    // Radome en communicatieantennes bovenop de toren (wit en rood baken, GEEN GEEL!)
+    const radomeGeo = new THREE.SphereGeometry(0.012, 12, 12);
+    const radomeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
     const radome = new THREE.Mesh(radomeGeo, radomeMat);
     radome.position.y = 0.120;
     towerGroup.add(radome);
 
     const antGeo = new THREE.CylinderGeometry(0.0015, 0.0015, 0.025, 4);
-    const antMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const antMat = new THREE.MeshBasicMaterial({ color: 0xef4444 }); // Rood luchtvaartbaken
     const ant = new THREE.Mesh(antGeo, antMat);
     ant.position.y = 0.138;
     towerGroup.add(ant);
@@ -2763,12 +3122,12 @@ function buildDetailedAirportModel(airport) {
     towerGroup.position.set(0.12, 0.002, -0.05);
     S.airportDetailGroup.add(towerGroup);
 
-    // 2. Verkeerstoren West (bij Polderbaan, 60 meter)
+    // 7. Verkeerstoren West (bij Polderbaan, 60 meter)
     const twGroup = new THREE.Group();
-    const twShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.060, 10), tShaftMat);
+    const twShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.060, 12), towerConcreteMat);
     twShaft.position.y = 0.030;
     twGroup.add(twShaft);
-    const twCab = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.016, 0.014, 10), glassMat);
+    const twCab = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.016, 0.014, 12), towerGlassMat);
     twCab.position.y = 0.065;
     twGroup.add(twCab);
     twGroup.position.set(-1.85, 0.002, -0.10);
@@ -2806,7 +3165,7 @@ function buildDetailedAirportModel(airport) {
     S.airportDetailGroup.add(transavia);
 
   } else {
-    // 3. Regionale Luchthaven Standaard Model
+    // 3. Regionale Luchthaven Standaard Model (Fotorealistisch, GEEN GEEL!)
     const groundGeo = new THREE.PlaneGeometry(3.0, 3.0);
     groundGeo.rotateX(-Math.PI / 2);
     const groundMat = new THREE.MeshStandardMaterial({
@@ -2827,11 +3186,26 @@ function buildDetailedAirportModel(airport) {
     rwy.rotation.y = Math.PI / 4;
     S.airportDetailGroup.add(rwy);
 
-    const tGeo = new THREE.CylinderGeometry(0.012, 0.016, 0.035, 8);
-    const tMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
-    const tower = new THREE.Mesh(tGeo, tMat);
-    tower.position.set(-0.08, 0.018, 0.08);
-    S.airportDetailGroup.add(tower);
+    // Terminalgebouw
+    const rTerm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.024, 0.12), termMaterials);
+    rTerm.position.set(-0.16, 0.012, 0.12);
+    S.airportDetailGroup.add(rTerm);
+
+    // Hangar
+    const rHangar = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.020, 0.10), hangarMaterials);
+    rHangar.position.set(0.18, 0.010, 0.14);
+    S.airportDetailGroup.add(rHangar);
+
+    // Toren met beton en donker glas
+    const tGroup = new THREE.Group();
+    const tShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 0.035, 12), towerConcreteMat);
+    tShaft.position.y = 0.0175;
+    tGroup.add(tShaft);
+    const tCab = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.013, 0.012, 12), towerGlassMat);
+    tCab.position.y = 0.040;
+    tGroup.add(tCab);
+    tGroup.position.set(-0.06, 0.002, 0.08);
+    S.airportDetailGroup.add(tGroup);
 
     const pl = createAirplaneMesh(0x00a1de);
     pl.scale.set(0.022, 0.022, 0.022);
@@ -6085,7 +6459,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.3';
+let currentVersion = '2.8.4';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
