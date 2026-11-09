@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.7.0",
-  "build": 68,
-  "timestamp": "2026-11-09T22:06:11.425092+00:00",
-  "git_hash": "6408b91",
+  "version": "2.7.1",
+  "build": 69,
+  "timestamp": "2026-11-09T22:23:12.796382+00:00",
+  "git_hash": "3d9fd96",
   "features": [
+    "Vloeiende daling & hoogtemeter fix (v2.7.1): lost het stilstaan van de hoogtemeters bij 560m op; bij het naderen en dalen onder radardekking zet dead-reckoning de ILS 3° glijvlucht realistisch en soepel voort tot touchdown op de baan, waarbij de meters frame-voor-frame doortellen naar 0m zonder te bevriezen",
     "Startbaan & landingsbaan per individueel vliegtuig (v2.7.0): toont direct per specifiek toestel op welke baan het landt of opstijgt (zoals Polderbaan 18R, Kaagbaan 24, Zwanenburgerbaan 18C, Buitenveldertbaan 09/27, etc.) op de vliegtuigkaart, in de live radiospeler en in de vluchtenlijst",
     "Directe live audio bij aanklikken individueel vliegtuig (v2.6.1): het aanklikken van een individueel vliegtuig start per direct automatisch de 100% live radiocommunicatie tussen dat specifieke toestel en de toren zonder dat er handmatig op extra knoppen gedrukt hoeft te worden",
     "Gevolgd vliegtuignummer in speel live sectie (v2.6.0): bij het volgen van een specifiek vliegtuig toont de speel live sectie direct de roepnaam (callsign), registratie, maatschappij en torenfrequentie voor 100% zekere verificatie van het individuele gesprek",

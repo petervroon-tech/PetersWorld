@@ -1655,7 +1655,12 @@ class LiveRadarManager {
     // Verlopen toestellen verwijderen (>25s geen transponder signaal meer boven NL)
     for (const [key, flight] of this.liveFlightsMap.entries()) {
       if (now - flight.lastSeen > 25000) {
-        if (S.followFlight === flight) continue;
+        if (S.followFlight === flight) {
+          if (now - flight.lastSeen > 90000 && (flight.altitude <= 5 || flight.status.includes('Geland'))) {
+            flight.status = 'Geland op luchthaven (Aan de gate)';
+          }
+          continue;
+        }
         if (flight.planeMesh) S.flightsGroup.remove(flight.planeMesh);
         if (flight.arcLine) S.trailsGroup.remove(flight.arcLine);
         this.liveFlightsMap.delete(key);
@@ -3445,14 +3450,72 @@ function animate(now) {
   }
 
   // Vluchten positie updaten (vloeiende live ADS-B tracking & fallback)
+  const dtSec = Math.max(0.001, dt / 1000);
   const dtSim = dt * S.speed;
   for (const f of S.flights) {
     applyFlightCategoryColor(f);
     if (f.isLive) {
       // 100% ECHTE LIVE RADAR BEWEGING
+      const timeSinceLastData = now - (f.lastSeen || now);
+      const cat = f.category || getFlightCategory(f);
+      const isDescending = (typeof f.vspeed === 'number' && f.vspeed < -80) || (cat.type === 'landing') || (f.status && (f.status.includes('Dal') || f.status.includes('Approach') || f.status.includes('Final')));
+
       if (f.targetPos && f.currentPos) {
-        f.currentPos.lerp(f.targetPos, 0.05);
+        if (timeSinceLastData < 3500) {
+          // Vloeiende interpolatie naar laatst gemeten transponderpositie
+          f.currentPos.lerp(f.targetPos, 0.05);
+        } else if (isDescending && f.currentPos.y > 0.004) {
+          // RADAR DEKKING DEAD-RECKONING (VOORKOMT BLIJVEN HANGEN BIJ 560M / LAGE VLIEGHOOGTE)
+          // Als een dalend toestel onder radardekking zakt (< 600m / 1800ft) blijft het niet hangen,
+          // maar zet het de naderingsdaling en voorwaartse vlucht realistisch voort richting de landingsbaan.
+          const dir = f.directionVector || new THREE.Vector3(0, 0, -1);
+          const fwdSpeedKmh = Math.max(140, Math.min(320, f.speedKmh || 230));
+          const distStepKm = (fwdSpeedKmh / 3600) * dtSec;
+
+          f.currentPos.x += dir.x * distStepKm;
+          f.currentPos.z += dir.z * distStepKm;
+
+          // Daling: standaard ILS 3° glijpad (~ -750 ft/min = ~3.81 m/s = 0.00381 km/s)
+          const vspeedFpm = (typeof f.vspeed === 'number' && f.vspeed < -100) ? f.vspeed : -750;
+          const sinkRateKmPerSec = Math.abs(vspeedFpm) * (0.0003048 / 60);
+          f.currentPos.y = Math.max(0.003, f.currentPos.y - sinkRateKmPerSec * dtSec);
+
+          if (f.currentPos.y <= 0.006) {
+            // Touchdown op de landingsbaan
+            f.currentPos.y = 0.003;
+            f.altitude = 0;
+            f.speedKmh = Math.max(35, f.speedKmh * 0.985); // Uitrollen op de baan
+            f.status = 'Geland op baan / Uitrollen';
+            f.vspeed = 0;
+            if (!f._landedLogged) {
+              f._landedLogged = true;
+              const rwy = f.runwayInfo ? f.runwayInfo.shortLabel : 'landingsbaan';
+              ATC.logMessage('STATUS', `🛬 Toestel ${f.callsign} veilig geland op ${rwy}.`, true);
+            }
+          } else {
+            f.altitude = Math.max(0, Math.round(f.currentPos.y * 1000));
+            if (f.altitude < 120) {
+              f.status = 'Korte nadering (Final)';
+            } else if (f.altitude < 600) {
+              f.status = 'Final Approach / Landing';
+            }
+          }
+          f.targetPos.copy(f.currentPos);
+        } else if (timeSinceLastData < 15000 && f.currentPos.y > 0.006) {
+          // En-route zachte voorwaartse voortzetting bij tijdelijke radar vertraging
+          const dir = f.directionVector || new THREE.Vector3(0, 0, -1);
+          const fwdSpeedKmh = Math.max(140, f.speedKmh || 450);
+          const distStepKm = (fwdSpeedKmh / 3600) * dtSec;
+          f.currentPos.x += dir.x * distStepKm;
+          f.currentPos.z += dir.z * distStepKm;
+          f.targetPos.copy(f.currentPos);
+        }
+
         f.planeMesh.position.copy(f.currentPos);
+        // Synchroniseer altijd de actuele hoogte in meters met de 3D positie
+        if (f.currentPos.y > 0.005) {
+          f.altitude = Math.max(0, Math.round(f.currentPos.y * 1000));
+        }
       }
       if (f.directionVector) {
         const tangent = f.directionVector;
@@ -3496,6 +3559,17 @@ function animate(now) {
 
       const p = f.curve.getPointAt(f.progress);
       f.planeMesh.position.copy(p);
+      // Synchroniseer altijd dynamisch de vlieghoogte in meters
+      f.altitude = Math.max(0, Math.round(p.y * 1000));
+      if (f.progress > 0.96) {
+        f.status = 'Touchdown / Geland';
+      } else if (f.progress > 0.86) {
+        f.status = 'Final Approach';
+      } else if (f.progress < 0.12) {
+        f.status = 'Klimmen na vertrek';
+      } else {
+        f.status = 'Kruishoogte';
+      }
 
       const tangent = f.curve.getTangentAt(f.progress).normalize();
       const up = new THREE.Vector3(0, 1, 0);
@@ -3537,6 +3611,28 @@ function animate(now) {
       }
     }
     S.lastFlightPos = p.clone();
+
+    // Realtime synchronisatie van vluchtgegevens op de Flightradar kaart (hoogtemeters tikken soepel af)
+    const elAlt = document.getElementById('frc-alt');
+    const elSpd = document.getElementById('frc-spd');
+    const elStatus = document.getElementById('frc-status');
+    const elHdg = document.getElementById('frc-hdg');
+
+    if (elAlt) {
+      const altM = Math.max(0, Math.round(f.altitude || 0));
+      elAlt.textContent = `${altM.toLocaleString('nl-NL')} m (${Math.round(altM * 3.28084)} ft)`;
+    }
+    if (elSpd) {
+      elSpd.textContent = `${Math.round(f.speedKmh || 0)} km/h (${Math.round((f.speedKmh || 0) * 0.539957)} kts)`;
+    }
+    if (elStatus && f.status) {
+      const cat = f.category || getFlightCategory(f);
+      const sec = f.sector || getFlightDirectionSector(f, S.selectedAirport);
+      elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="background:rgba(56,189,248,0.18);color:var(--cyan);border:1px solid rgba(56,189,248,0.35);padding:2px 6px;border-radius:4px;font-weight:700;font-size:0.72rem;margin-left:4px;">${sec.icon}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${f.status})</span>`;
+    }
+    if (elHdg) {
+      elHdg.textContent = `${Math.round(f.heading || 0)}°`;
+    }
   } else {
     // Niet in volgmodus: normale OrbitControls navigatie
     S.controls.enabled = true;
@@ -5356,7 +5452,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.7.0';
+let currentVersion = '2.7.1';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

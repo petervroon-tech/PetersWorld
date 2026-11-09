@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.7.0"
+DEFAULT_VERSION = "2.7.1"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (270 voor v2.7.0)
-    code0 = bytes([0]) + i32_const(270) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (271 voor v2.7.1)
+    code0 = bytes([0]) + i32_const(271) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,6 +253,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Vloeiende daling & hoogtemeter fix (v2.7.1): lost het stilstaan van de hoogtemeters bij 560m op; bij het naderen en dalen onder radardekking zet dead-reckoning de ILS 3° glijvlucht realistisch en soepel voort tot touchdown op de baan, waarbij de meters frame-voor-frame doortellen naar 0m zonder te bevriezen",
             "Startbaan & landingsbaan per individueel vliegtuig (v2.7.0): toont direct per specifiek toestel op welke baan het landt of opstijgt (zoals Polderbaan 18R, Kaagbaan 24, Zwanenburgerbaan 18C, Buitenveldertbaan 09/27, etc.) op de vliegtuigkaart, in de live radiospeler en in de vluchtenlijst",
             "Directe live audio bij aanklikken individueel vliegtuig (v2.6.1): het aanklikken van een individueel vliegtuig start per direct automatisch de 100% live radiocommunicatie tussen dat specifieke toestel en de toren zonder dat er handmatig op extra knoppen gedrukt hoeft te worden",
             "Gevolgd vliegtuignummer in speel live sectie (v2.6.0): bij het volgen van een specifiek vliegtuig toont de speel live sectie direct de roepnaam (callsign), registratie, maatschappij en torenfrequentie voor 100% zekere verificatie van het individuele gesprek",
@@ -316,7 +317,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 270) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 271) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');
