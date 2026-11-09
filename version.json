@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.8.2",
-  "build": 74,
-  "timestamp": "2026-11-09T23:03:02.198560+00:00",
-  "git_hash": "fe01cd0",
+  "version": "2.8.3",
+  "build": 75,
+  "timestamp": "2026-11-09T23:17:16.560280+00:00",
+  "git_hash": "dbb1fb3",
   "features": [
+    "Fotorealistisch Schiphol & zijdezacht vloeiend zoomen (v2.8.3): gele markeringen en massieve ringen verwijderd en luchthavenmarkers verdwijnen automatisch bij inzoomen, waardoor de echte 100% fotorealistische satellietbeelden van Schiphol (alle 6 banen, markeringen, pieren B t/m H, Schiphol Plaza en torens) kristalhelder zichtbaar zijn. Schokkerig inzoomen definitief opgelost door OrbitControls te pauzeren tijdens camerabewegingen, vloeiende inertie-demping en soepel zweven naar geselecteerde toestellen.",
     "Vingertik touch-bediening & logische mobiele ordening voor iPad, iPhone en Android (v2.8.2): met je vinger direct op elk vliegtuig of vlucht tikken om live radio en verkeersleidingconversaties te volgen; inclusief aanraaksfeer (hit-target) voor vingers, screen-space nabijheidsselectie, mobiele Safari/Chrome audio-ontgrendeling en logisch geordende tabbladen & bottom-sheets voor tablet en smartphone",
     "Enkelvoudige radio communicatie & audio overlap fix (v2.8.1): lost dubbele en overlappende gesprekken definitief op; asynchrone audiobuffers worden direct geleegd bij het wisselen van frequentie of vliegtuig, vertraagde backup-retries botsen niet meer en directe streamverbinding voorkomt race-conditions",
     "Echte ultra-hoge-resolutie satellietbeelden van Nederland (v2.8.0): fotorealistische satelliet- en orthofotodekking tot op detailniveau (sub-meter) via PDOK 25cm Luchtfoto Actueel en Esri World Imagery; dynamische satelliet detail-engine laadt haarscherpe banen, markeringen, polders, steden en wateren die live meebewegen met het vliegtuig en de camera tot op 30 meter hoogte",

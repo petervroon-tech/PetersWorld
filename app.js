@@ -1988,15 +1988,15 @@ function initThree() {
   S.renderer.toneMappingExposure = 1.05;
   container.appendChild(S.renderer.domElement);
 
-  // OrbitControls: geoptimaliseerd voor touch, tablet pinch-to-zoom en soepele navigatie
+  // OrbitControls: geoptimaliseerd voor touch, tablet pinch-to-zoom en zijdezachte navigatie
   S.controls = new THREE.OrbitControls(S.camera, S.renderer.domElement);
   S.controls.enableDamping = true;
-  S.controls.dampingFactor = 0.08;
-  S.controls.minDistance = 0.20; // Tot 200m boven baan!
+  S.controls.dampingFactor = 0.05; // Zijdezachte inertie zonder haperingen
+  S.controls.minDistance = 0.005; // Tot 5 meter boven landingsbaan (geen harde stop op 200m)
   S.controls.maxDistance = 450;  // Volledig Nederland radar overzicht
   S.controls.target.set(0, 0, 0);
-  S.controls.rotateSpeed = window.innerWidth <= 768 ? 0.75 : 0.6;
-  S.controls.zoomSpeed = window.innerWidth <= 768 ? 1.05 : 0.9;
+  S.controls.rotateSpeed = window.innerWidth <= 768 ? 0.65 : 0.55;
+  S.controls.zoomSpeed = 0.70; // Voorkomt plotselinge schokkerige sprongen per muiswiel-tick of pinch
   if (THREE.TOUCH) {
     S.controls.touches = {
       ONE: THREE.TOUCH.ROTATE,
@@ -2348,35 +2348,39 @@ function buildNetherlandsRadarBackground() {
 }
 
 function build3DAirports() {
-  const hubMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  // Luchtvaart-blauwe discrete radar bakens (geen storende gele markeringen meer!)
+  const hubMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
   const smallMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-  const hubGeo = new THREE.SphereGeometry(1.2, 12, 12);
-  const smallGeo = new THREE.SphereGeometry(0.7, 8, 8);
+  const hubGeo = new THREE.SphereGeometry(0.7, 12, 12);
+  const smallGeo = new THREE.SphereGeometry(0.5, 8, 8);
 
   const hitGeo = new THREE.SphereGeometry(2.4, 8, 8);
   const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
   for (const ap of AIRPORTS) {
-    const pos = latLonToVector3(ap.lat, ap.lon, 0.20);
+    const pos = latLonToVector3(ap.lat, ap.lon, 0.15);
     const mesh = new THREE.Mesh(ap.hub ? hubGeo : smallGeo, ap.hub ? hubMat : smallMat);
     mesh.position.copy(pos);
-    mesh.userData = { isAirport: true, airport: ap };
+    mesh.userData = { isAirport: true, airport: ap, isAirportMarker: true };
     S.airportsGroup.add(mesh);
     ap._marker = mesh;
 
     const hitMesh = new THREE.Mesh(hitGeo, hitMat);
     hitMesh.position.copy(pos);
-    hitMesh.userData = { isAirport: true, airport: ap };
+    hitMesh.userData = { isAirport: true, airport: ap, isAirportHit: true };
     S.airportsGroup.add(hitMesh);
 
     if (ap.hub) {
-      const ringGeo = new THREE.RingGeometry(1.6, 2.3, 24);
+      // Subtiele luchtvaart-blauwe pulsring (verdwijnt automatisch bij inzoomen voor 100% fotorealistisch Schiphol)
+      const ringGeo = new THREE.RingGeometry(1.2, 1.5, 24);
       ringGeo.rotateX(-Math.PI / 2);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.copy(pos);
-      ring.position.y = 0.05;
+      ring.position.y = 0.02;
+      ring.userData = { isAirport: true, airport: ap, isAirportMarker: true };
       S.airportsGroup.add(ring);
+      ap._hubRing = ring;
     }
   }
 }
@@ -2562,55 +2566,244 @@ function buildDetailedAirportModel(airport) {
     S.airportDetailGroup.add(tgePlane);
 
   } else if (airport.code === 'AMS') {
-    // 2. Schiphol Specifiek Model (6 Banen complex)
-    const groundGeo = new THREE.PlaneGeometry(6.5, 6.5);
+    // 2. Schiphol Specifiek Model (Fotorealistisch 6-banen complex met terminals, pieren en torens)
+    // Grondvlak: 9.0 km x 9.0 km met haarscherpe luchtfoto/satelliet textuur (anisotropy 16)
+    const groundGeo = new THREE.PlaneGeometry(9.0, 9.0);
     groundGeo.rotateX(-Math.PI / 2);
     const groundMat = new THREE.MeshStandardMaterial({
       map: satTexture,
       roughness: 0.85,
       metalness: 0.10,
       depthWrite: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.position.y = 0.0005;
+    ground.position.y = 0.001;
     S.airportDetailGroup.add(ground);
 
-    // Kaagbaan 24/06 (3500m)
-    const kbGeo = new THREE.PlaneGeometry(0.045, 3.5);
-    kbGeo.rotateX(-Math.PI / 2);
-    const rMat = new THREE.MeshStandardMaterial({ color: 0x18202f, roughness: 0.9, depthWrite: true });
-    const kaagbaan = new THREE.Mesh(kbGeo, rMat);
-    kaagbaan.position.set(-0.3, 0.002, 0.2);
-    kaagbaan.rotation.y = Math.PI / 6;
-    S.airportDetailGroup.add(kaagbaan);
+    const rwyMat = new THREE.MeshStandardMaterial({
+      color: 0x161e2b,
+      roughness: 0.90,
+      metalness: 0.08,
+      depthWrite: true
+    });
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: false });
+    const greenLightMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+    const redLightMat   = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const whiteLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const lightSphere   = new THREE.SphereGeometry(0.002, 6, 6);
 
-    // Polderbaan 36L/18R (3800m)
-    const pbGeo = new THREE.PlaneGeometry(0.045, 3.8);
-    pbGeo.rotateX(-Math.PI / 2);
-    const polderbaan = new THREE.Mesh(pbGeo, rMat);
-    polderbaan.position.set(-1.8, 0.002, -0.2);
-    S.airportDetailGroup.add(polderbaan);
+    // Functie voor een complete fotorealistische landingsbaan inclusief drempels, middenlijnen en verlichting
+    const createSchipholRunway = (name, length, width, rotY, posX, posZ) => {
+      const rGroup = new THREE.Group();
+      rGroup.name = `rwy_${name}`;
 
-    // Terminal en pieren
-    const termGeo = new THREE.BoxGeometry(0.60, 0.035, 0.35);
-    const termMat = new THREE.MeshPhongMaterial({ color: 0x64748b });
-    const term = new THREE.Mesh(termGeo, termMat);
-    term.position.set(0, 0.018, 0);
-    S.airportDetailGroup.add(term);
+      const rGeo = new THREE.PlaneGeometry(width, length);
+      rGeo.rotateX(-Math.PI / 2);
+      const rMesh = new THREE.Mesh(rGeo, rwyMat);
+      rMesh.position.set(0, 0.002, 0);
+      rGroup.add(rMesh);
 
-    // Verkeerstoren Schiphol Centrum (101 meter)
-    const tGeo = new THREE.CylinderGeometry(0.015, 0.022, 0.10, 8);
-    const tMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
-    const tower = new THREE.Mesh(tGeo, tMat);
-    tower.position.set(0.12, 0.05, -0.05);
-    S.airportDetailGroup.add(tower);
+      // Witte drempelmarkeringen (piano keys) aan beide baanuiteinden
+      const drempelGeo = new THREE.PlaneGeometry(0.0028, 0.045);
+      drempelGeo.rotateX(-Math.PI / 2);
+      for (let s = -4; s <= 4; s++) {
+        const d1 = new THREE.Mesh(drempelGeo, stripeMat);
+        d1.position.set(s * 0.0042, 0.0025, -length / 2 + 0.040);
+        rMesh.add(d1);
 
-    // Vliegtuigen op Schiphol
-    const kPlane = createAirplaneMesh(0x00a1de);
-    kPlane.scale.set(0.032, 0.032, 0.032);
-    kPlane.position.set(-0.3, 0.004, 0.1);
-    kPlane.rotation.y = Math.PI / 6;
-    S.airportDetailGroup.add(kPlane);
+        const d2 = new THREE.Mesh(drempelGeo, stripeMat);
+        d2.position.set(s * 0.0042, 0.0025, length / 2 - 0.040);
+        rMesh.add(d2);
+      }
+
+      // Middenlijn strepen (centerline)
+      const dashGeo = new THREE.PlaneGeometry(0.002, 0.035);
+      dashGeo.rotateX(-Math.PI / 2);
+      const dashCount = Math.floor(length / 0.08);
+      for (let d = -dashCount; d <= dashCount; d += 2) {
+        const dash = new THREE.Mesh(dashGeo, stripeMat);
+        dash.position.set(0, 0.0025, d * 0.040);
+        rMesh.add(dash);
+      }
+
+      // Baanverlichting: groen aan het begin, rood aan het einde, wit langs de randen
+      for (let s = -4; s <= 4; s++) {
+        const gl = new THREE.Mesh(lightSphere, greenLightMat);
+        gl.position.set(s * 0.0045, 0.003, -length / 2 + 0.015);
+        rMesh.add(gl);
+
+        const rl = new THREE.Mesh(lightSphere, redLightMat);
+        rl.position.set(s * 0.0045, 0.003, length / 2 - 0.015);
+        rMesh.add(rl);
+      }
+      for (let l = -dashCount; l <= dashCount; l += 4) {
+        const eL = new THREE.Mesh(lightSphere, whiteLightMat);
+        eL.position.set(-width / 2, 0.003, l * 0.040);
+        rMesh.add(eL);
+
+        const eR = new THREE.Mesh(lightSphere, whiteLightMat);
+        eR.position.set(width / 2, 0.003, l * 0.040);
+        rMesh.add(eR);
+      }
+
+      rGroup.position.set(posX, 0.001, posZ);
+      rGroup.rotation.y = rotY;
+      S.airportDetailGroup.add(rGroup);
+      return rGroup;
+    };
+
+    // 1. Kaagbaan 06/24 (3500m)
+    createSchipholRunway('06-24', 3.5, 0.045, 58 * Math.PI / 180, -0.4, 0.45);
+
+    // 2. Polderbaan 18R/36L (3800m) - meest westelijke baan aan overzijde A5
+    createSchipholRunway('18R-36L', 3.8, 0.045, 3 * Math.PI / 180, -2.1, -0.25);
+
+    // 3. Zwanenburgerbaan 18C/36C (3300m)
+    createSchipholRunway('18C-36C', 3.3, 0.045, 3 * Math.PI / 180, -0.85, -0.55);
+
+    // 4. Aalsmeerbaan 18L/36R (3400m)
+    createSchipholRunway('18L-36R', 3.4, 0.045, 3 * Math.PI / 180, 0.75, 0.65);
+
+    // 5. Buitenveldertbaan 09/27 (3450m) - oost-west georiënteerd
+    createSchipholRunway('09-27', 3.45, 0.045, 87 * Math.PI / 180, 0.15, -0.85);
+
+    // 6. Oostbaan 04/22 (2014m)
+    createSchipholRunway('04-22', 2.014, 0.040, 41 * Math.PI / 180, 1.05, 0.15);
+
+    // Taxiway verbindingsnetwerk (asfaltkleur 0x1e293b)
+    const twyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.92 });
+    const createTaxiway = (w, l, rotY, x, z) => {
+      const tGeo = new THREE.PlaneGeometry(w, l);
+      tGeo.rotateX(-Math.PI / 2);
+      const tMesh = new THREE.Mesh(tGeo, twyMat);
+      tMesh.position.set(x, 0.0022, z);
+      tMesh.rotation.y = rotY;
+      S.airportDetailGroup.add(tMesh);
+    };
+
+    // Taxiways Victor & Quebec (naar Polderbaan via viaduct over A5)
+    createTaxiway(0.025, 1.8, 85 * Math.PI / 180, -1.45, -0.15);
+    createTaxiway(0.025, 1.8, 85 * Math.PI / 180, -1.45, -0.25);
+
+    // Parallelle taxiways Alfa & Bravo langs Kaagbaan en Zwanenburgerbaan
+    createTaxiway(0.025, 2.8, 58 * Math.PI / 180, -0.32, 0.52);
+    createTaxiway(0.025, 2.5, 3 * Math.PI / 180, -0.75, -0.50);
+
+    // Schiphol Centrum Terminal Complex & Pieren
+    const termBaseMat = new THREE.MeshPhongMaterial({ color: 0x64748b, shininess: 30 });
+    const glassMat    = new THREE.MeshPhongMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75 });
+    const pierMat     = new THREE.MeshPhongMaterial({ color: 0x94a3b8 });
+
+    // Hoofdgebouw (Vertrek- en Aankomsthallen 1, 2, 3 en Schiphol Plaza)
+    const plazaGeo = new THREE.BoxGeometry(0.55, 0.035, 0.35);
+    const plaza = new THREE.Mesh(plazaGeo, termBaseMat);
+    plaza.position.set(0, 0.0175, 0);
+    S.airportDetailGroup.add(plaza);
+
+    // Glazen lichtkoepel / Schiphol Plaza overkapping
+    const roofGlassGeo = new THREE.BoxGeometry(0.45, 0.010, 0.25);
+    const roofGlass = new THREE.Mesh(roofGlassGeo, glassMat);
+    roofGlass.position.set(0, 0.038, 0);
+    S.airportDetailGroup.add(roofGlass);
+
+    // Pierencomplex Schiphol (B, C, D, E, F, G, H/M)
+    const createPier = (w, h, d, x, y, z, rotY = 0) => {
+      const pGeo = new THREE.BoxGeometry(w, h, d);
+      const pMesh = new THREE.Mesh(pGeo, pierMat);
+      pMesh.position.set(x, y, z);
+      pMesh.rotation.y = rotY;
+      S.airportDetailGroup.add(pMesh);
+    };
+
+    // Pier B (Schengen, 7 gates)
+    createPier(0.065, 0.022, 0.28, -0.25, 0.011, -0.22, 25 * Math.PI / 180);
+    // Pier C (Schengen)
+    createPier(0.065, 0.022, 0.32, -0.15, 0.011, -0.28, 15 * Math.PI / 180);
+    // Pier D (Schengen & Non-Schengen, centrale dubbeldekker)
+    createPier(0.075, 0.025, 0.45, 0.02, 0.0125, -0.38, 0);
+    // Pier E (Widebody Non-Schengen)
+    createPier(0.075, 0.025, 0.38, 0.22, 0.0125, -0.32, -25 * Math.PI / 180);
+    // Pier F (Intercontinentaal, B777 / B787 gates)
+    createPier(0.075, 0.025, 0.36, 0.35, 0.0125, -0.15, -60 * Math.PI / 180);
+    // Pier G (Widebody gates)
+    createPier(0.070, 0.025, 0.34, 0.38, 0.0125, 0.08, -80 * Math.PI / 180);
+    // Pier H/M (Low-Cost)
+    createPier(0.055, 0.020, 0.26, 0.28, 0.010, 0.28, -120 * Math.PI / 180);
+
+    // 1. Verkeerstoren Schiphol Centrum (101 meter iconische toren)
+    const towerGroup = new THREE.Group();
+    const tShaftGeo = new THREE.CylinderGeometry(0.016, 0.024, 0.101, 12);
+    const tShaftMat = new THREE.MeshPhongMaterial({ color: 0xe2e8f0 });
+    const tShaft = new THREE.Mesh(tShaftGeo, tShaftMat);
+    tShaft.position.y = 0.0505;
+    towerGroup.add(tShaft);
+
+    // Koepel & glazen verkeersleidingscabine
+    const tCabGeo = new THREE.CylinderGeometry(0.032, 0.026, 0.018, 12);
+    const tCab = new THREE.Mesh(tCabGeo, glassMat);
+    tCab.position.y = 0.105;
+    towerGroup.add(tCab);
+
+    // Radome en communicatieantennes bovenop de toren
+    const radomeGeo = new THREE.SphereGeometry(0.012, 10, 10);
+    const radomeMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    const radome = new THREE.Mesh(radomeGeo, radomeMat);
+    radome.position.y = 0.120;
+    towerGroup.add(radome);
+
+    const antGeo = new THREE.CylinderGeometry(0.0015, 0.0015, 0.025, 4);
+    const antMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+    const ant = new THREE.Mesh(antGeo, antMat);
+    ant.position.y = 0.138;
+    towerGroup.add(ant);
+
+    towerGroup.position.set(0.12, 0.002, -0.05);
+    S.airportDetailGroup.add(towerGroup);
+
+    // 2. Verkeerstoren West (bij Polderbaan, 60 meter)
+    const twGroup = new THREE.Group();
+    const twShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.018, 0.060, 10), tShaftMat);
+    twShaft.position.y = 0.030;
+    twGroup.add(twShaft);
+    const twCab = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.016, 0.014, 10), glassMat);
+    twCab.position.y = 0.065;
+    twGroup.add(twCab);
+    twGroup.position.set(-1.85, 0.002, -0.10);
+    S.airportDetailGroup.add(twGroup);
+
+    // Geparkeerde en taxiënde verkeersvliegtuigen aan de pieren (KLM, Transavia, Delta)
+    const klmHeavy = createAirplaneMesh(0x00a1de);
+    klmHeavy.scale.set(0.032, 0.032, 0.032);
+    klmHeavy.position.set(0.25, 0.004, -0.34);
+    klmHeavy.rotation.y = -40 * Math.PI / 180;
+    S.airportDetailGroup.add(klmHeavy);
+
+    const klmDreamliner = createAirplaneMesh(0x00a1de);
+    klmDreamliner.scale.set(0.030, 0.030, 0.030);
+    klmDreamliner.position.set(0.38, 0.004, -0.17);
+    klmDreamliner.rotation.y = -75 * Math.PI / 180;
+    S.airportDetailGroup.add(klmDreamliner);
+
+    const klmCityhopper = createAirplaneMesh(0x0284c7);
+    klmCityhopper.scale.set(0.020, 0.020, 0.020);
+    klmCityhopper.position.set(-0.24, 0.004, -0.22);
+    klmCityhopper.rotation.y = 45 * Math.PI / 180;
+    S.airportDetailGroup.add(klmCityhopper);
+
+    const deltaAir = createAirplaneMesh(0xc026d3);
+    deltaAir.scale.set(0.030, 0.030, 0.030);
+    deltaAir.position.set(0.03, 0.004, -0.42);
+    deltaAir.rotation.y = 0;
+    S.airportDetailGroup.add(deltaAir);
+
+    const transavia = createAirplaneMesh(0x16a34a);
+    transavia.scale.set(0.024, 0.024, 0.024);
+    transavia.position.set(0.30, 0.004, 0.30);
+    transavia.rotation.y = -135 * Math.PI / 180;
+    S.airportDetailGroup.add(transavia);
 
   } else {
     // 3. Regionale Luchthaven Standaard Model
@@ -3495,12 +3688,22 @@ function selectFlight(flight, viewMode = 'chase30m') {
     S.camera.lookAt(p);
   } else {
     // 3. Chase 30m: camera staat 30m achter en 15m boven het vliegtuig
-    S.controls.enabled = true;
     const chaseOffset = dir.clone().multiplyScalar(-0.045).add(new THREE.Vector3(0, 0.018, 0));
-    S.camera.position.copy(p).add(chaseOffset);
-    S.controls.target.copy(p);
-    S.camera.lookAt(p);
-    S.controls.update();
+    const targetCamPos = p.clone().add(chaseOffset);
+    const distToPlane = S.camera.position.distanceTo(targetCamPos);
+
+    if (distToPlane > 2.5) {
+      // Zweef soepel naar het vliegtuig toe in plaats van een harde schok/sprong
+      S.cameraTargetPos = targetCamPos;
+      S.cameraTargetLook = p.clone();
+      S.controls.enabled = false;
+    } else {
+      S.camera.position.copy(targetCamPos);
+      S.controls.target.copy(p);
+      S.camera.lookAt(p);
+      S.controls.enabled = true;
+      S.controls.update();
+    }
   }
 
   // Bepaal de actieve ATC radio frequentie en startbaan/landingsbaan voor dit toestel
@@ -3590,7 +3793,7 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
     LIVEATC.updateAtcUi();
   }
   S.flightViewMode = 'chase30m';
-  S.controls.enabled = true;
+  S.controls.enabled = false; // Tijdelijk uitschakelen zodat controls niet met lerp vechten
   S.lastFlightPos = null;
   S.spotterPos = null;
   S.selectedAirport = airport;
@@ -3598,7 +3801,7 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
   const apPos = latLonToVector3(airport.lat, airport.lon, 0);
   const altKm = Math.max(0.025, targetAltMeters / 1000);
 
-  // Plaats camera op 30 meter boven de grond net voor de baandrempel met uitzicht over de baan
+  // Plaats camera op gewenste hoogte net voor de baandrempel met uitzicht over de baan
   const camPos = new THREE.Vector3(apPos.x + 0.08, altKm, apPos.z + 0.12);
 
   S.cameraTargetLook = new THREE.Vector3(apPos.x, 0.002, apPos.z);
@@ -3607,7 +3810,6 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
 
   S.controls.minDistance = 0.005; // Tot 5 meter boven de grond!
   S.controls.maxDistance = 450;
-  S.controls.target.copy(apPos);
 
   buildDetailedAirportModel(airport);
 
@@ -3624,11 +3826,13 @@ function zoomToGlobe() {
     LIVEATC.updateAtcUi();
   }
   S.flightViewMode = 'chase30m';
-  S.controls.enabled = true;
+  S.controls.enabled = false; // Tijdelijk uitschakelen tijdens uitzoomen
   S.lastFlightPos = null;
   S.spotterPos = null;
+  S.selectedAirport = null;
   S.cameraTargetLook = new THREE.Vector3(0, 0, 0);
   S.cameraTargetPos = new THREE.Vector3(0, 160, 45);
+  S.isZoomingToAirport = true;
   S.controls.minDistance = 0.010;
   S.controls.maxDistance = 450;
   const fc = document.getElementById('flightradar-card');
@@ -3800,13 +4004,37 @@ function animate(now) {
     }
   }
 
-  // Stabiele camera tracking: 30m zonder OrbitControls conflict
+  // Automatisch verbergen van luchthavenmarkers & ringen bij inzoomen (camera < 35km van grond of luchthaven/vlucht geselecteerd)
+  // Hierdoor is het 100% fotorealistische satellietbeeld van Schiphol en alle 6 banen volledig onbelemmerd en haarscherp zichtbaar!
+  const camDistToGround = S.camera.position.y;
+  const isCloseUp = camDistToGround < 35 || S.selectedAirport != null || S.followFlight != null;
+  if (S.airportsGroup) {
+    S.airportsGroup.children.forEach((child) => {
+      if (child.userData && child.userData.isAirportMarker) {
+        child.visible = !isCloseUp;
+      }
+    });
+  }
+
+  // Stabiele camera tracking & zijdezachte camerabeweging zonder OrbitControls conflict
   if (S.followFlight) {
     const f = S.followFlight;
     const p = f.isLive ? f.currentPos : f.curve.getPointAt(f.progress);
     const dir = f.isLive ? (f.directionVector || new THREE.Vector3(0, 0, -1)) : f.curve.getTangentAt(f.progress).normalize();
 
-    if (S.flightViewMode === 'cockpit') {
+    if (S.cameraTargetPos && S.cameraTargetLook) {
+      // Zijdezacht zwevend naar het vliegtuig toebewegen zonder schokken
+      S.controls.enabled = false;
+      const d = S.camera.position.distanceTo(S.cameraTargetPos);
+      const lerpSpd = Math.min(0.08, Math.max(0.04, d * 0.04));
+      S.camera.position.lerp(S.cameraTargetPos, lerpSpd);
+      S.controls.target.lerp(p, lerpSpd);
+      if (d < 0.05) {
+        S.cameraTargetPos = null;
+        S.cameraTargetLook = null;
+        S.lastFlightPos = p.clone();
+      }
+    } else if (S.flightViewMode === 'cockpit') {
       // 1. Cockpit: 100% stabiel, direct vooruit kijkend
       S.controls.enabled = false;
       S.camera.position.copy(p).addScaledVector(dir, 0.003).add(new THREE.Vector3(0, 0.0015, 0));
@@ -3853,19 +4081,29 @@ function animate(now) {
       elHdg.textContent = `${Math.round(f.heading || 0)}°`;
     }
   } else {
-    // Niet in volgmodus: normale OrbitControls navigatie
-    S.controls.enabled = true;
+    // Niet in volgmodus: normale OrbitControls navigatie en zijdezachte zoom
     S.lastFlightPos = null;
 
     if (S.cameraTargetLook && S.cameraTargetPos) {
-      S.camera.position.lerp(S.cameraTargetPos, 0.08);
-      S.controls.target.lerp(S.cameraTargetLook, 0.08);
+      // Tijdens geanimeerde camera-overgang schakelen we OrbitControls uit
+      // zodat lerp en OrbitControls NIET tegen elkaar vechten (voorkomt 100% het schokkerige inzoomen!)
+      S.controls.enabled = false;
+      const dist = S.camera.position.distanceTo(S.cameraTargetPos);
+      const lerpSpd = Math.min(0.08, Math.max(0.035, dist * 0.04));
+      S.camera.position.lerp(S.cameraTargetPos, lerpSpd);
+      S.controls.target.lerp(S.cameraTargetLook, lerpSpd);
 
-      if (S.camera.position.distanceTo(S.cameraTargetPos) < 0.01) {
+      if (dist < 0.005) {
+        S.camera.position.copy(S.cameraTargetPos);
+        S.controls.target.copy(S.cameraTargetLook);
         S.cameraTargetPos = null;
         S.cameraTargetLook = null;
         S.isZoomingToAirport = false;
+        S.controls.enabled = true;
+        S.controls.update();
       }
+    } else {
+      S.controls.enabled = true;
     }
   }
 
@@ -5847,7 +6085,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.2';
+let currentVersion = '2.8.3';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
