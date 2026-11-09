@@ -3825,16 +3825,6 @@ function setupControls() {
   const btnAtcMute = document.getElementById('btn-atc-mute');
   if (btnAtcMute) btnAtcMute.addEventListener('click', () => ATC.toggleMute());
 
-  const triggerCall = () => {
-    LIVEATC.openLiveAtcStream();
-  };
-
-  const btnAtcCall = document.getElementById('btn-atc-call');
-  if (btnAtcCall) btnAtcCall.addEventListener('click', triggerCall);
-
-  const btnAtcTrigger = document.getElementById('btn-atc-trigger');
-  if (btnAtcTrigger) btnAtcTrigger.addEventListener('click', triggerCall);
-
   // Dagzicht schakelaar (bovenbalk + onderbalk)
   const toggleDaylight = () => setDaylightMode(!S.daylightMode);
   const btnToggleDaylight = document.getElementById('btn-toggle-daylight');
@@ -4679,7 +4669,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.3';
+let currentVersion = '2.5.4';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

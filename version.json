@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.3",
-  "build": 59,
-  "timestamp": "2026-11-08T13:46:57.105269+00:00",
-  "git_hash": "a7eb2fb",
+  "version": "2.5.4",
+  "build": 60,
+  "timestamp": "2026-11-09T08:09:29.498291+00:00",
+  "git_hash": "c4c07d8",
   "features": [
+    "Zend Oproep knop verwijderd: de app fungeert uitsluitend als zuivere live scanner & luisterpost (RX only) voor spotters",
     "WAV opname hang-beveiliging: directe Web Audio PCM verwerking zonder asynchrone decodeerhaperingen; opnames sluiten altijd soepel af en downloaden direct",
     "Directe handmatige update: klik op 🔄 of de versie-pill om per direct alle browsercaches en Service Workers te legen en de nieuwste appversie te forceren",
     "Vrij verplaatsen en overal neerzetten (Drag & Drop) en 8-kanten resizen voor zowel Luchthaven Bord & Regie als ATC Gesprekken: sleepbare koppen, randen en hoeken, vrij overal op het scherm/bord te plaatsen met positiegeheugen en ↺ herstelknoppen",
