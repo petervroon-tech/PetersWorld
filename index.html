@@ -849,8 +849,8 @@
       box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
 
-    /* ── Tablet Optimization (iPad: 641px - 1024px) ── */
-    @media (min-width: 641px) and (max-width: 1024px) {
+    /* ── Tablet Landscape Optimization (iPad & Android Tablets: 861px - 1080px) ── */
+    @media (min-width: 861px) and (max-width: 1080px) {
       #header {
         top: 10px;
         left: 10px;
@@ -873,40 +873,45 @@
         font-size: 0.70rem;
       }
       #hud {
-        width: 195px;
+        width: 185px;
         top: 68px;
         left: 10px;
-        padding: 9px 11px;
-        font-size: 0.72rem;
+        padding: 8px 10px;
+        font-size: 0.70rem;
       }
       #hud .hud-row {
-        font-size: 0.72rem;
+        font-size: 0.70rem;
       }
       #right-deck {
-        width: 325px;
+        width: 310px;
         top: 68px;
         right: 10px;
         max-height: calc(100vh - 130px);
         padding: 10px 12px;
       }
       .deck-mobile-close-bar {
-        display: flex;
+        display: none;
       }
       #atc-console {
-        width: 310px;
+        width: 300px;
         left: 10px;
         bottom: 74px;
         max-height: calc(100vh - 280px);
         padding: 10px 12px;
       }
+      .flightradar-card {
+        bottom: 74px;
+        left: 320px;
+        width: 320px;
+      }
       #runway-cam-deck {
         left: 10px;
         top: 68px;
-        width: 350px;
+        width: 340px;
         max-width: calc(100vw - 355px);
       }
       .cam-view-wrap {
-        height: 200px;
+        height: 190px;
       }
       #controls {
         bottom: 12px;
@@ -955,8 +960,8 @@
       }
     }
 
-    /* ── Smartphone Optimization (Mobile: <= 640px) ── */
-    @media (max-width: 640px) {
+    /* ── Touch Optimization voor iPad (Portrait), iPhone & Android (Schermen <= 860px) ── */
+    @media (max-width: 860px) {
       #mobile-nav {
         display: flex;
       }
@@ -990,16 +995,17 @@
       }
       .airport-quick-select {
         width: 100%;
-        max-width: 135px;
-        font-size: 0.68rem;
-        padding: 4px 6px;
+        max-width: 140px;
+        font-size: 0.72rem;
+        padding: 5px 8px;
         border-radius: 8px;
+        min-height: 36px;
       }
 
       .header-right {
         gap: 4px;
       }
-      /* Verberg overtollige header-knoppen op mobiel want ze zitten in de mobile nav */
+      /* Verberg overtollige knoppen in de topbalk; ze zitten in de handige mobiele tab-balk */
       .header-right .runwaycam-pill,
       .header-right .daylight-pill,
       .header-right .liveatc-pill,
@@ -1011,16 +1017,30 @@
         font-size: 0.66rem;
       }
       .btn-icon {
-        width: 30px;
-        height: 30px;
-        font-size: 0.85rem;
+        width: 34px;
+        height: 34px;
+        font-size: 0.92rem;
       }
 
       #hud {
         display: none !important;
       }
 
-      /* Scrollbare onderbalk net boven de mobiele navigatie */
+      /* Flight card zweeft perfect boven de mobiele tab-balk */
+      .flightradar-card {
+        position: fixed;
+        bottom: calc(58px + max(8px, env(safe-area-inset-bottom)));
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: 500px;
+        margin: 0 auto;
+        border-radius: 14px;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.88), 0 0 20px rgba(56, 189, 248, 0.35);
+        z-index: 55;
+      }
+
+      /* Scrollbare zoom/camera onderbalk */
       #controls {
         position: fixed;
         bottom: calc(56px + max(8px, env(safe-area-inset-bottom)));
@@ -1036,14 +1056,16 @@
         gap: 8px;
         padding: 6px 10px;
         border-radius: 12px;
+        z-index: 35;
       }
       #controls::-webkit-scrollbar {
         display: none;
       }
       .btn {
-        padding: 6px 10px;
-        font-size: 0.72rem;
-        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 0.74rem;
+        min-height: 36px;
+        touch-action: manipulation;
       }
       .ctrl-label {
         font-size: 0.54rem;
@@ -1052,47 +1074,31 @@
         height: 20px;
       }
 
-      /* Panelen als comfortabele bottom sheets */
-      #right-deck {
-        display: none;
-        position: fixed;
-        top: auto;
-        bottom: calc(54px + max(6px, env(safe-area-inset-bottom)));
-        left: 6px;
-        right: 6px;
-        width: auto;
-        max-height: 74vh;
-        border-radius: 16px;
-        padding: 12px;
-        z-index: 45;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.35);
-      }
-      #right-deck.show-mobile {
-        display: flex;
-      }
-      .deck-mobile-close-bar {
-        display: flex;
-      }
-
+      /* Panelen als soepele touch-bottom-sheets op iPad, iPhone en Android */
+      #right-deck,
       #atc-console {
         display: none;
         position: fixed;
         top: auto;
-        bottom: calc(54px + max(6px, env(safe-area-inset-bottom)));
+        bottom: calc(56px + max(6px, env(safe-area-inset-bottom)));
         left: 6px;
         right: 6px;
         width: auto;
+        max-width: 600px;
+        margin: 0 auto;
         max-height: 74vh;
         border-radius: 16px;
         padding: 12px;
-        z-index: 45;
+        z-index: 52;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(56, 189, 248, 0.35);
       }
+      #right-deck.show-mobile,
       #atc-console.show-mobile {
+        display: flex;
+      }
+      .deck-mobile-close-bar {
         display: flex;
       }
 
@@ -1119,7 +1125,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.8.1</strong> beschikbaar &bull; <span id="upd-note">Enkelvoudige radio communicatie; stream overlap en dubbele afspeelbuffers opgelost</span></span>
+      <span><strong id="upd-ver">v2.8.2</strong> beschikbaar &bull; <span id="upd-note">Vingerklik touch-bediening & logische mobiele ordening voor iPad, iPhone en Android</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1155,7 +1161,7 @@
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.1</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.2</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1247,7 +1253,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.8.1</span>
+          <span class="hud-val" id="hud-wasm">v2.8.2</span>
         </div>
       </div>
 
@@ -1705,7 +1711,7 @@
       <div class="frc-actions">
         <button class="btn frc-btn" id="btn-frc-zoom30">🔍 Volg tot 30m</button>
         <button class="btn frc-btn" id="btn-frc-cockpit">🛩️ Cockpit</button>
-        <button class="btn frc-btn" id="btn-frc-listen">🎙️ Luister Radio</button>
+        <button class="btn frc-btn" id="btn-frc-listen" style="background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;font-weight:700;">📻 Volg Gesprek</button>
       </div>
     </div>
   </div>
@@ -1762,7 +1768,7 @@
     </div>
   </div>
 
-  <!-- Mobiele Navigatiebalk voor Smartphone & Tablet -->
+  <!-- Mobiele Navigatiebalk voor Smartphone & Tablet (iPad, iPhone, Android) -->
   <nav id="mobile-nav" class="mobile-nav-bar" aria-label="Mobiele navigatie">
     <button class="m-nav-btn active" id="m-btn-globe" data-tab="globe" title="Toon Nederland radar en baan overzicht">
       <span class="m-nav-icon">📡</span>
@@ -1774,7 +1780,11 @@
     </button>
     <button class="m-nav-btn" id="m-btn-atc" data-tab="atc" title="Live verkeersleiding radio">
       <span class="m-nav-icon">📻</span>
-      <span class="m-nav-label">Radio</span>
+      <span class="m-nav-label">Radio & Gesprek</span>
+    </button>
+    <button class="m-nav-btn" id="m-btn-target" data-tab="target" title="Gevolgd vliegtuig en individueel gesprek" style="display:none;">
+      <span class="m-nav-icon">🎯</span>
+      <span class="m-nav-label" id="m-nav-target-label">Vliegtuig</span>
     </button>
     <button class="m-nav-btn" id="m-btn-daylight" data-tab="daylight" title="Schakel dag- of nachtzicht">
       <span class="m-nav-icon">☀️</span>
@@ -1796,6 +1806,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.8.1"></script>
+  <script src="app.js?v=2.8.2"></script>
 </body>
 </html>

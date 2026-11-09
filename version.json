@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.8.1",
-  "build": 72,
-  "timestamp": "2026-11-09T22:54:37.254934+00:00",
-  "git_hash": "04fa85a",
+  "version": "2.8.2",
+  "build": 74,
+  "timestamp": "2026-11-09T23:03:02.198560+00:00",
+  "git_hash": "fe01cd0",
   "features": [
+    "Vingertik touch-bediening & logische mobiele ordening voor iPad, iPhone en Android (v2.8.2): met je vinger direct op elk vliegtuig of vlucht tikken om live radio en verkeersleidingconversaties te volgen; inclusief aanraaksfeer (hit-target) voor vingers, screen-space nabijheidsselectie, mobiele Safari/Chrome audio-ontgrendeling en logisch geordende tabbladen & bottom-sheets voor tablet en smartphone",
     "Enkelvoudige radio communicatie & audio overlap fix (v2.8.1): lost dubbele en overlappende gesprekken definitief op; asynchrone audiobuffers worden direct geleegd bij het wisselen van frequentie of vliegtuig, vertraagde backup-retries botsen niet meer en directe streamverbinding voorkomt race-conditions",
     "Echte ultra-hoge-resolutie satellietbeelden van Nederland (v2.8.0): fotorealistische satelliet- en orthofotodekking tot op detailniveau (sub-meter) via PDOK 25cm Luchtfoto Actueel en Esri World Imagery; dynamische satelliet detail-engine laadt haarscherpe banen, markeringen, polders, steden en wateren die live meebewegen met het vliegtuig en de camera tot op 30 meter hoogte",
     "Vloeiende daling & hoogtemeter fix (v2.7.1): lost het stilstaan van de hoogtemeters bij 560m op; bij het naderen en dalen onder radardekking zet dead-reckoning de ILS 3° glijvlucht realistisch en soepel voort tot touchdown op de baan, waarbij de meters frame-voor-frame doortellen naar 0m zonder te bevriezen",

@@ -2986,6 +2986,13 @@ function createAirplaneMesh(colorHex) {
   group.add(redLight);
   group.add(greenLight);
 
+  // Onzichtbare aanraaksfeer (hit sphere) voor betrouwbare vingertikken op iPad, iPhone en Android
+  const hitGeo = new THREE.SphereGeometry(2.4, 8, 8);
+  const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+  const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+  hitMesh.userData = { isHitTarget: true };
+  group.add(hitMesh);
+
   group._mainMat = mat;
   return group;
 }
@@ -3985,12 +3992,17 @@ function setupInteraction(container) {
     container.style.cursor = 'grab';
   };
 
-  const onClick = (e) => {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let isTouchAction = false;
+
+  const handleSelectAtCoords = (clientX, clientY) => {
     ATC.ensureAudioCtx();
     LIVEATC.ensureAudioCtx();
 
-    S.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-    S.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    S.mouse.x = (clientX / window.innerWidth) * 2 - 1;
+    S.mouse.y = -(clientY / window.innerHeight) * 2 + 1;
 
     S.raycaster.setFromCamera(S.mouse, S.camera);
 
@@ -4000,7 +4012,7 @@ function setupInteraction(container) {
       if (ap) {
         selectAirport(ap);
         zoomToAirportRunway(ap, 300);
-        return;
+        return true;
       }
     }
 
@@ -4012,13 +4024,77 @@ function setupInteraction(container) {
       if (flight) {
         selectFlight(flight, 'chase30m');
         updateGlobalFlightListUI();
-        return;
+        if (typeof showMobileFlightSelection === 'function') {
+          showMobileFlightSelection(flight);
+        }
+        return true;
+      }
+    }
+
+    // Touch proximity fallback: 36px vingeraanraakradius rond vliegtuigen op iPad / iPhone / Android
+    let closestFlight = null;
+    let closestDist = 36;
+    const tempVec = new THREE.Vector3();
+
+    for (const f of S.flights) {
+      if (!f.planeMesh) continue;
+      f.planeMesh.getWorldPosition(tempVec);
+      tempVec.project(S.camera);
+      if (tempVec.z > 1 || tempVec.z < -1) continue;
+      const sx = ((tempVec.x + 1) * window.innerWidth) / 2;
+      const sy = ((-tempVec.y + 1) * window.innerHeight) / 2;
+      const d = Math.hypot(sx - clientX, sy - clientY);
+      if (d < closestDist) {
+        closestDist = d;
+        closestFlight = f;
+      }
+    }
+
+    if (closestFlight) {
+      selectFlight(closestFlight, 'chase30m');
+      updateGlobalFlightListUI();
+      if (typeof showMobileFlightSelection === 'function') {
+        showMobileFlightSelection(closestFlight);
+      }
+      return true;
+    }
+
+    return false;
+  };
+
+  const onClick = (e) => {
+    if (isTouchAction && (Date.now() - touchStartTime < 700)) return;
+    handleSelectAtCoords(e.clientX, e.clientY);
+  };
+
+  const onTouchStart = (e) => {
+    if (e.touches && e.touches.length === 1) {
+      isTouchAction = true;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+      ATC.ensureAudioCtx();
+      LIVEATC.ensureAudioCtx();
+    }
+  };
+
+  const onTouchEnd = (e) => {
+    if (e.changedTouches && e.changedTouches.length === 1) {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const dist = Math.hypot(touchEndX - touchStartX, touchEndY - touchStartY);
+      const elapsed = Date.now() - touchStartTime;
+      // Als de vinger nauwelijks verschoof (< 18px) en binnen 450ms werd opgetild: directe vingertik!
+      if (dist < 18 && elapsed < 450) {
+        handleSelectAtCoords(touchEndX, touchEndY);
       }
     }
   };
 
-  container.addEventListener('mousemove', onPointerMove);
+  container.addEventListener('mousemove', onPointerMove, { passive: true });
   container.addEventListener('click', onClick);
+  container.addEventListener('touchstart', onTouchStart, { passive: true });
+  container.addEventListener('touchend', onTouchEnd, { passive: true });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4422,6 +4498,13 @@ function initAirportDeck() {
       if (select) select.value = targetStation;
       LIVEATC.updateAtcUi();
       LIVEATC.playStream();
+
+      // Op mobiel / tablet: open direct het ATC gesprekkenvenster zodat de gebruiker het gesprek kan meelezen
+      if (window.innerWidth <= 860 && typeof PANEL_RESIZER !== 'undefined') {
+        PANEL_RESIZER.openAtc();
+        const btns = document.querySelectorAll('.m-nav-btn');
+        btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'atc'));
+      }
     });
   }
 
@@ -5078,7 +5161,7 @@ class PanelResizerManager {
     this.deckClosed = false;
     if (this.rightDeck) {
       this.rightDeck.style.display = '';
-      if (window.innerWidth <= 640) this.rightDeck.classList.add('show-mobile');
+      if (window.innerWidth <= 860) this.rightDeck.classList.add('show-mobile');
     }
     if (this.floatOpenDeck) {
       this.floatOpenDeck.style.display = 'none';
@@ -5135,7 +5218,7 @@ class PanelResizerManager {
     this.atcClosed = false;
     if (this.atcConsole) {
       this.atcConsole.style.display = '';
-      if (window.innerWidth <= 640) this.atcConsole.classList.add('show-mobile');
+      if (window.innerWidth <= 860) this.atcConsole.classList.add('show-mobile');
     }
     if (this.floatOpenAtc) {
       this.floatOpenAtc.style.display = 'none';
@@ -5531,15 +5614,44 @@ const PANEL_RESIZER = new PanelResizerManager();
 // ═══════════════════════════════════════════════════════
 //  RESPONSIEVE UI MANAGER (SMARTPHONE, IPAD & LAPTOP)
 // ═══════════════════════════════════════════════════════
+function showMobileFlightSelection(flight) {
+  if (!flight) return;
+  const targetBtn = document.getElementById('m-btn-target');
+  const targetLabel = document.getElementById('m-nav-target-label');
+  if (targetBtn) {
+    targetBtn.style.display = 'flex';
+    targetBtn.classList.add('active');
+  }
+  if (targetLabel) {
+    targetLabel.textContent = flight.callsign;
+  }
+  const fc = document.getElementById('flightradar-card');
+  if (fc) {
+    fc.classList.add('show');
+  }
+  // Als we op een smartphone of tablet portrait zitten: sluit geopende tab-sheets zodat het vliegtuig en de radiokaart direct zichtbaar zijn
+  if (window.innerWidth <= 860) {
+    const rightDeck = document.getElementById('right-deck');
+    if (rightDeck) rightDeck.classList.remove('show-mobile');
+    const btns = document.querySelectorAll('.m-nav-btn');
+    btns.forEach(b => {
+      if (b.id === 'm-btn-target') b.classList.add('active');
+      else if (b.dataset.tab === 'flights') b.classList.remove('active');
+    });
+  }
+}
+
 function initResponsiveUI() {
   const btnGlobe = document.getElementById('m-btn-globe');
   const btnFlights = document.getElementById('m-btn-flights');
   const btnAtc = document.getElementById('m-btn-atc');
+  const btnTarget = document.getElementById('m-btn-target');
   const btnCam = document.getElementById('m-btn-cam');
   const btnDaylight = document.getElementById('m-btn-daylight');
 
   const rightDeck = document.getElementById('right-deck');
   const atcConsole = document.getElementById('atc-console');
+  const flightCard = document.getElementById('flightradar-card');
   const btnCloseRightDeck = document.getElementById('btn-close-right-deck');
   const btnCloseAtc = document.getElementById('btn-close-atc');
 
@@ -5561,6 +5673,7 @@ function initResponsiveUI() {
   if (btnGlobe) {
     btnGlobe.addEventListener('click', () => {
       closeAllMobileSheets();
+      if (flightCard) flightCard.classList.remove('show');
       updateMobileTab('globe');
     });
   }
@@ -5589,6 +5702,30 @@ function initResponsiveUI() {
         closeAllMobileSheets();
         PANEL_RESIZER.openAtc();
         updateMobileTab('atc');
+      }
+    });
+  }
+
+  if (btnTarget) {
+    btnTarget.addEventListener('click', () => {
+      const fl = S.followFlight || (S.flights && S.flights[0]);
+      if (fl) {
+        if (!S.followFlight) selectFlight(fl, 'chase30m');
+        if (flightCard) {
+          const isShown = flightCard.classList.contains('show');
+          if (isShown && !rightDeck.classList.contains('show-mobile') && !atcConsole.classList.contains('show-mobile')) {
+            flightCard.classList.remove('show');
+            updateMobileTab('globe');
+          } else {
+            closeAllMobileSheets();
+            flightCard.classList.add('show');
+            updateMobileTab('target');
+          }
+        }
+      } else {
+        closeAllMobileSheets();
+        PANEL_RESIZER.openDeck();
+        updateMobileTab('flights');
       }
     });
   }
@@ -5629,9 +5766,19 @@ function initResponsiveUI() {
     });
   }
 
+  // Eerste aanraking op iPad / iPhone / Android ontgrendelt audio direct (Safari & Chrome audio policy)
+  const unlockMobileAudio = () => {
+    ATC.ensureAudioCtx();
+    LIVEATC.ensureAudioCtx();
+    window.removeEventListener('touchstart', unlockMobileAudio);
+    window.removeEventListener('touchend', unlockMobileAudio);
+  };
+  window.addEventListener('touchstart', unlockMobileAudio, { passive: true });
+  window.addEventListener('touchend', unlockMobileAudio, { passive: true });
+
   // Reset display stijlen bij venster resize (bijv. van smartphone naar tablet/desktop)
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 640) {
+    if (window.innerWidth > 860) {
       if (!PANEL_RESIZER.deckClosed && rightDeck) {
         rightDeck.classList.remove('show-mobile');
         rightDeck.style.display = '';
@@ -5700,7 +5847,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.1';
+let currentVersion = '2.8.2';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
