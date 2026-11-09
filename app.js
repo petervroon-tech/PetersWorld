@@ -1321,8 +1321,15 @@ class LiveAtcEngine {
     const pill = document.getElementById('pill-liveatc');
     const hudStatus = document.getElementById('hud-liveatc-status');
 
+    const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
     const label = this.stationLabels[this.currentStation] || this.currentStation;
-    if (statusTxt) statusTxt.textContent = `⏳ Live verbinding maken met ${label}...`;
+    if (statusTxt) {
+      if (flight) {
+        statusTxt.textContent = `⏳ Live verbinding maken met ${flight.callsign} (${label})...`;
+      } else {
+        statusTxt.textContent = `⏳ Live verbinding maken met ${label}...`;
+      }
+    }
 
     const streamSrc = this.getLiveStreamUrl(this.currentStation);
 
@@ -1333,6 +1340,8 @@ class LiveAtcEngine {
 
     // Live Icecast audio feed: continue live uitzending
     this.audioEl.loop = false;
+    this.audioEl.muted = false;
+    this.audioEl.volume = 1.0;
     this.audioEl.crossOrigin = 'anonymous';
     this.audioEl.src = streamSrc;
     this.audioEl.load();
@@ -1358,6 +1367,8 @@ class LiveAtcEngine {
         console.warn('Audio play request error, probeer live backup stream:', err);
         try {
           this.audioEl.removeAttribute('crossorigin');
+          this.audioEl.muted = false;
+          this.audioEl.volume = 1.0;
           this.audioEl.src = this.getBackupStreamUrl(this.currentStation);
           this.audioEl.load();
           const p2 = this.audioEl.play();
@@ -2983,20 +2994,26 @@ function selectFlight(flight, viewMode = 'chase30m') {
   const atcInfo = getFlightAtcStation(flight);
   flight.atcInfo = atcInfo;
 
+  // Start direct de live communicatie en stem direct af op dit individuele vliegtuig
   if (typeof LIVEATC !== 'undefined' && LIVEATC) {
     LIVEATC.targetFlight = flight;
+    LIVEATC.currentStation = atcInfo.stationKey;
+    const select = document.getElementById('liveatc-station-select');
+    if (select) select.value = atcInfo.stationKey;
     LIVEATC.updateAtcUi();
+    LIVEATC.playStream();
   }
 
   // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig (visuele indicatie)
   ATC.setFrequency(atcInfo.freq, atcInfo.channel.toUpperCase());
+  ATC.playMicClick(true);
 
   updateFlightCardUI(flight);
 
   // Eén duidelijke, enkele statusmelding in het ATC venster (voorkomt dubbele communicatieteksten)
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
   const regTxt = flight.registration ? ` (${flight.registration})` : '';
-  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
+  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz) — Live radio actief!`, true);
 }
 
 function updateFlightCardUI(flight) {
@@ -5040,7 +5057,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.6.0';
+let currentVersion = '2.6.1';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

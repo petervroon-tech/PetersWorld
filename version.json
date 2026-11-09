@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.6.0",
-  "build": 66,
-  "timestamp": "2026-11-09T21:33:56.312624+00:00",
-  "git_hash": "2b8a720",
+  "version": "2.6.1",
+  "build": 67,
+  "timestamp": "2026-11-09T21:47:40.881175+00:00",
+  "git_hash": "6bd5763",
   "features": [
+    "Directe live audio bij aanklikken individueel vliegtuig (v2.6.1): het aanklikken van een individueel vliegtuig start per direct automatisch de 100% live radiocommunicatie tussen dat specifieke toestel en de toren zonder dat er handmatig op extra knoppen gedrukt hoeft te worden",
     "Gevolgd vliegtuignummer in speel live sectie (v2.6.0): bij het volgen van een specifiek vliegtuig toont de speel live sectie direct de roepnaam (callsign), registratie, maatschappij en torenfrequentie voor 100% zekere verificatie van het individuele gesprek",
     "Dubbele audioweergave & echo opgelost (v2.5.9): bij het aanklikken van een individueel vliegtuig blijft de radioweergave 100% enkel en storingsvrij zonder echo; WebAudio destination dubbele connectie verwijderd en streamwissel stopt altijd eerst oude stream",
     "Vlucht-afhankelijke ATC communicatie: bij het aanklikken van een individueel vliegtuig stemt de radio direct automatisch af op de actieve toren-, naderings- of vertrekfrequentie van dat toestel, met gerichte luisterknop en realistische communicatieklaringen in het log",
