@@ -804,9 +804,11 @@ class LiveAtcEngine {
       select.value = stationKey;
     }
     this.updateAtcUi();
-    if (!this.isPlaying) {
-      this.playStream();
+    // Stop eerst eventuele oude actieve stream om dubbele weergave/overlapping te voorkomen
+    if (this.isPlaying) {
+      this.stop();
     }
+    this.playStream();
   }
 
   ensureAudioCtx() {
@@ -887,7 +889,7 @@ class LiveAtcEngine {
         try {
           this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
           this.mediaDestNode = this.audioCtx.createMediaStreamDestination();
-          this.mediaSourceNode.connect(this.audioCtx.destination);
+          // Geen dubbele connectie naar destination; native <audio> speelt al direct af via luidsprekers
           this.mediaSourceNode.connect(this.mediaDestNode);
         } catch (err) {
           console.warn('Web Audio createMediaElementSource error:', err);
@@ -955,7 +957,7 @@ class LiveAtcEngine {
           audioSource.connect(sp);
           // Koppel aan een onhoorbare sink zodat de WebAudio scheduler de onaudioprocess blijft aanroepen
           const recSink = this.audioCtx.createGain();
-          recSink.gain.value = 0.00001;
+          recSink.gain.value = 0;
           sp.connect(recSink);
           recSink.connect(this.audioCtx.destination);
           this.scriptProcessorNode = sp;
@@ -2889,32 +2891,14 @@ function selectFlight(flight, viewMode = 'chase30m') {
   const atcInfo = getFlightAtcStation(flight);
   flight.atcInfo = atcInfo;
 
-  // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig
+  // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig (visuele indicatie)
   ATC.setFrequency(atcInfo.freq, atcInfo.channel.toUpperCase());
-
-  // Indien radio al actief is, stem direct mee af op deze stream
-  if (LIVEATC.isPlaying && LIVEATC.currentStation !== atcInfo.stationKey) {
-    LIVEATC.openLiveAtcStream(atcInfo.stationKey);
-  }
 
   updateFlightCardUI(flight);
 
-  // Toon duidelijke communicatielog in het ATC gesprekkenvenster
+  // Eén duidelijke, enkele statusmelding in het ATC venster (voorkomt dubbele communicatieteksten)
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
-  ATC.logMessage('RADIO', `🎯 ${flight.callsign} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
-
-  // Authentieke radio-oproep en klaring tussen toren en vliegtuig
-  if (flight.category && flight.category.type === 'landing') {
-    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, continue approach, wind 230 at 12kt, runway 18R.`, true);
-    ATC.logMessage(flight.callsign, `Runway 18R, cleared to land, ${flight.callsign}.`, false);
-  } else if (flight.category && flight.category.type === 'takeoff') {
-    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, climb and maintain FL100, contact Departure ${atcInfo.freq}.`, true);
-    ATC.logMessage(flight.callsign, `Climb FL100, contact Departure, ${flight.callsign}.`, false);
-  } else {
-    const fl = Math.round((flight.altitude || 10000) / 30.48);
-    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, radar contact, maintain flight level ${fl}.`, true);
-    ATC.logMessage(flight.callsign, `Maintaining FL${fl}, ${flight.callsign}.`, false);
-  }
+  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
 }
 
 function updateFlightCardUI(flight) {
@@ -3669,12 +3653,17 @@ function initAirportDeck() {
   const btnFrcListen = document.getElementById('btn-frc-listen');
   if (btnFrcListen) {
     btnFrcListen.addEventListener('click', () => {
-      if (S.followFlight) {
-        const atcInfo = S.followFlight.atcInfo || getFlightAtcStation(S.followFlight);
-        LIVEATC.openLiveAtcStream(atcInfo.stationKey);
-      } else {
-        LIVEATC.openLiveAtcStream();
-      }
+      const targetFlight = S.followFlight;
+      const atcInfo = targetFlight ? (targetFlight.atcInfo || getFlightAtcStation(targetFlight)) : null;
+      const targetStation = atcInfo ? atcInfo.stationKey : (S.selectedAirport ? (S.selectedAirport.liveAtcStation || 'eham_twr') : 'eham_twr');
+
+      // Stop altijd eerst netjes elke lopende stream om dubbel afspelen te voorkomen
+      LIVEATC.stop();
+      LIVEATC.currentStation = targetStation;
+      const select = document.getElementById('liveatc-station-select');
+      if (select) select.value = targetStation;
+      LIVEATC.updateAtcUi();
+      LIVEATC.playStream();
     });
   }
 
@@ -4940,7 +4929,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.8';
+let currentVersion = '2.5.9';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
