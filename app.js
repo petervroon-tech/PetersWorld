@@ -2323,32 +2323,32 @@ function buildDetailedAirportModel(airport) {
 
 // ═══════════════════════════════════════════════════════
 //  VLIEGTUIG CATEGORIEËN & RADAR KLEUREN
-//  - Landend:        GROEN (#22c55e / 0x22c55e)
-//  - Opstijgend:     GEEL  (#eab308 / 0xeab308)
-//  - Over Nederland: PAARS (#a855f7 / 0xa855f7)
+//  - Dalend:         DONKER GROEN (#15803d / 0x15803d)
+//  - Stijgend:       DONKER GEEL  (#ca8a04 / 0xca8a04)
+//  - Over Nederland: ECHT DONKER PAARS (#6b21a8 / 0x6b21a8)
 // ═══════════════════════════════════════════════════════
 const FLIGHT_COLORS = {
   landing: {
     type: 'landing',
-    name: 'Landend',
-    colorHex: 0x22c55e,
-    hex: '#22c55e',
+    name: 'Dalend',
+    colorHex: 0x15803d,
+    hex: '#15803d',
     badgeClass: 'badge-landing',
     icon: '🛬'
   },
   takeoff: {
     type: 'takeoff',
-    name: 'Opstijgend',
-    colorHex: 0xeab308,
-    hex: '#eab308',
+    name: 'Stijgend',
+    colorHex: 0xca8a04,
+    hex: '#ca8a04',
     badgeClass: 'badge-takeoff',
     icon: '🛫'
   },
   overflight: {
     type: 'overflight',
     name: 'Over Nederland',
-    colorHex: 0xa855f7,
-    hex: '#a855f7',
+    colorHex: 0x6b21a8,
+    hex: '#6b21a8',
     badgeClass: 'badge-overflight',
     icon: '✈️'
   }
@@ -2418,7 +2418,7 @@ function applyFlightCategoryColor(flight) {
     if (flight.planeMesh._mainMat.color.getHex() !== cat.colorHex) {
       flight.planeMesh._mainMat.color.setHex(cat.colorHex);
       flight.planeMesh._mainMat.emissive.setHex(cat.colorHex);
-      flight.planeMesh._mainMat.emissiveIntensity = 0.32;
+      flight.planeMesh._mainMat.emissiveIntensity = 0.16;
       flight.planeMesh._mainMat.needsUpdate = true;
     }
   }
@@ -2427,7 +2427,7 @@ function applyFlightCategoryColor(flight) {
   if (flight.arcLine && flight.arcLine.material) {
     if (flight.arcLine.material.color.getHex() !== cat.colorHex) {
       flight.arcLine.material.color.setHex(cat.colorHex);
-      flight.arcLine.material.opacity = 0.45;
+      flight.arcLine.material.opacity = 0.55;
       flight.arcLine.material.needsUpdate = true;
     }
   }
@@ -2612,7 +2612,7 @@ function updateSectorCountsAndRadar() {
   const badge = document.getElementById('atc-active-flow-badge');
   if (badge) {
     badge.textContent = `${fullTag} (${matchingCount})`;
-    badge.style.color = (activeFlow === 'arr') ? '#22c55e' : ((activeFlow === 'dep') ? '#eab308' : 'var(--cyan)');
+    badge.style.color = (activeFlow === 'arr') ? '#15803d' : ((activeFlow === 'dep') ? '#ca8a04' : 'var(--cyan)');
   }
 
   const hudSecFlow = document.getElementById('hud-sector-flow');
@@ -2628,7 +2628,7 @@ function createAirplaneMesh(colorHex) {
     color: colorHex,
     shininess: 70,
     emissive: colorHex,
-    emissiveIntensity: 0.32
+    emissiveIntensity: 0.16
   });
 
   // Vliegtuig model geschaald voor Nederlandse vluchtradar (2.8 eenheden spanwijdte)
@@ -4859,7 +4859,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.6';
+let currentVersion = '2.5.7';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

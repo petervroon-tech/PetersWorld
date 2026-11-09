@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.5.6",
-  "build": 62,
-  "timestamp": "2026-11-09T08:40:00.788361+00:00",
-  "git_hash": "a97f676",
+  "version": "2.5.7",
+  "build": 63,
+  "timestamp": "2026-11-09T20:51:35.429489+00:00",
+  "git_hash": "f738a67",
   "features": [
+    "Radar vliegtuigkleuren geüpdatet naar wens: Overvliegende toestellen echt donker paars (#6b21a8), Stijgende toestellen donker geel (#ca8a04) en Dalende toestellen donker groen (#15803d) met verfijnde 3D emissie voor diepe, verzadigde kleuren",
     "Laptop & MacBook lay-out optimalisatie: Radar & Hoogte HUD is nu netjes compact (150px i.p.v. 450px) en net zoals het Luchthaven Bord en ATC Gesprekken 100% vrij verplaatsbaar, 8-kanten schaalbaar en inklapbaar. De linker opnamehoek overschaduwt de HUD niet meer en alles reset perfect via '📐 Scherm Ordenen'",
     "Scherm Ordenen & Vensters Resetten knop: met één klik op '📐 Scherm Ordenen' worden alle verplaatste vensters (Luchthaven Bord en ATC Gesprekken) netjes, geordend en uitgeklapt teruggezet naar hun vaste standaardposities",
     "Zend Oproep knop verwijderd: de app fungeert uitsluitend als zuivere live scanner & luisterpost (RX only) voor spotters",

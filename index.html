@@ -182,14 +182,14 @@
       border-radius: 6px; padding: 3px 5px; display: flex; align-items: center; gap: 4px;
       font-size: 0.67rem; font-family: var(--mono);
     }
-    .hud-pill-stat.pill-landing { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.1); }
-    .hud-pill-stat.pill-takeoff { border-color: rgba(234,179,8,0.35); background: rgba(234,179,8,0.1); }
-    .hud-pill-stat.pill-overflight { border-color: rgba(192,132,252,0.35); background: rgba(192,132,252,0.1); }
+    .hud-pill-stat.pill-landing { border-color: rgba(21,128,61,0.5); background: rgba(21,128,61,0.18); }
+    .hud-pill-stat.pill-takeoff { border-color: rgba(202,138,4,0.5); background: rgba(202,138,4,0.18); }
+    .hud-pill-stat.pill-overflight { border-color: rgba(107,33,168,0.55); background: rgba(107,33,168,0.22); }
     .hud-pill-lbl { font-size: 0.61rem; color: var(--muted); }
     .hud-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .hud-dot.green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
-    .hud-dot.gold  { background: #eab308; box-shadow: 0 0 5px #eab308; }
-    .hud-dot.purple{ background: #c084fc; box-shadow: 0 0 5px #c084fc; }
+    .hud-dot.green { background: #15803d; box-shadow: 0 0 5px #15803d; }
+    .hud-dot.gold  { background: #ca8a04; box-shadow: 0 0 5px #ca8a04; }
+    .hud-dot.purple{ background: #6b21a8; box-shadow: 0 0 5px #6b21a8; }
 
     .hud-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px;
@@ -1119,7 +1119,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.5.6</strong> beschikbaar &bull; <span id="upd-note">Laptop & MacBook fix &bull; Geen overlappende vensters &bull; Radar HUD verplaatsbaar &bull; Scherm Ordenen</span></span>
+      <span><strong id="upd-ver">v2.5.7</strong> beschikbaar &bull; <span id="upd-note">Radar vliegtuigkleuren &bull; Overvliegend: echt donker paars &bull; Stijgend: donker geel &bull; Dalend: donker groen</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1155,7 +1155,7 @@
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.6</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.5.7</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1188,22 +1188,22 @@
 
     <!-- Inhoud in compact grid: past perfect op laptops zonder overlap -->
     <div id="hud-content">
-      <!-- 3-Kleurige Vliegtuigen Indicatie Strip (Landend, Opstijgend, Over NL) -->
+      <!-- 3-Kleurige Vliegtuigen Indicatie Strip (Dalend, Stijgend, Over NL) -->
       <div class="hud-strip">
-        <div class="hud-pill-stat pill-landing" title="Landende vliegtuigen (groen op radar)">
+        <div class="hud-pill-stat pill-landing" title="Dalende vliegtuigen (donker groen op radar)">
           <span class="hud-dot green"></span>
-          <span class="hud-pill-lbl">Landend:</span>
-          <span class="hud-val gr" id="hud-count-landing" style="color:#22c55e;">0</span>
+          <span class="hud-pill-lbl">Dalend:</span>
+          <span class="hud-val gr" id="hud-count-landing" style="color:#15803d;">0</span>
         </div>
-        <div class="hud-pill-stat pill-takeoff" title="Opstijgende vliegtuigen (geel op radar)">
+        <div class="hud-pill-stat pill-takeoff" title="Stijgende vliegtuigen (donker geel op radar)">
           <span class="hud-dot gold"></span>
-          <span class="hud-pill-lbl">Opstijgend:</span>
-          <span class="hud-val go" id="hud-count-takeoff" style="color:#eab308;">0</span>
+          <span class="hud-pill-lbl">Stijgend:</span>
+          <span class="hud-val go" id="hud-count-takeoff" style="color:#ca8a04;">0</span>
         </div>
-        <div class="hud-pill-stat pill-overflight" title="Vliegtuigen over Nederland (paars op radar)">
+        <div class="hud-pill-stat pill-overflight" title="Overvliegende vliegtuigen (echt donker paars op radar)">
           <span class="hud-dot purple"></span>
           <span class="hud-pill-lbl">Over NL:</span>
-          <span class="hud-val cy" id="hud-count-overflight" style="color:#c084fc;">0</span>
+          <span class="hud-val cy" id="hud-count-overflight" style="color:#a855f7;">0</span>
         </div>
       </div>
 
@@ -1247,7 +1247,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.5.6</span>
+          <span class="hud-val" id="hud-wasm">v2.5.7</span>
         </div>
       </div>
 
@@ -1622,9 +1622,9 @@
         🌍 ALLE VLIEGTUIGEN IN DE LUCHT
       </div>
       <div style="display:flex;gap:6px;font-size:0.68rem;font-weight:700;margin-bottom:4px;flex-wrap:wrap;padding:4px 6px;background:rgba(255,255,255,0.04);border-radius:6px;">
-        <span style="color:#22c55e;">● 🛬 Landend</span>
-        <span style="color:#eab308;">● 🛫 Opstijgend</span>
-        <span style="color:#c084fc;">● ✈️ Over NL</span>
+        <span style="color:#15803d;">● 🛬 Dalend</span>
+        <span style="color:#ca8a04;">● 🛫 Stijgend</span>
+        <span style="color:#a855f7;">● ✈️ Over NL</span>
       </div>
       <div id="flight-list" class="fids-scroll"></div>
     </div>
@@ -1707,9 +1707,9 @@
     <div class="ctrl-group">
       <span class="ctrl-label">Radar Kleuren</span>
       <div class="btn-row" style="display:flex;align-items:center;gap:5px;">
-        <span class="btn" style="border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.12);color:#22c55e;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die dalen en landen"><span class="dot" style="background:#22c55e;box-shadow:0 0 6px #22c55e;"></span>🛬 Landend</span>
-        <span class="btn" style="border-color:rgba(234,179,8,0.4);background:rgba(234,179,8,0.12);color:#eab308;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die opstijgen en klimmen"><span class="dot" style="background:#eab308;box-shadow:0 0 6px #eab308;"></span>🛫 Opstijgend</span>
-        <span class="btn" style="border-color:rgba(168,85,247,0.4);background:rgba(168,85,247,0.12);color:#c084fc;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen op kruishoogte over Nederland"><span class="dot" style="background:#a855f7;box-shadow:0 0 6px #a855f7;"></span>✈️ Over NL</span>
+        <span class="btn" style="border-color:rgba(21,128,61,0.5);background:rgba(21,128,61,0.16);color:#15803d;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die dalen (donker groen)"><span class="dot" style="background:#15803d;box-shadow:0 0 6px #15803d;"></span>🛬 Dalend</span>
+        <span class="btn" style="border-color:rgba(202,138,4,0.5);background:rgba(202,138,4,0.16);color:#ca8a04;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen die stijgen (donker geel)"><span class="dot" style="background:#ca8a04;box-shadow:0 0 6px #ca8a04;"></span>🛫 Stijgend</span>
+        <span class="btn" style="border-color:rgba(107,33,168,0.6);background:rgba(107,33,168,0.22);color:#c084fc;font-weight:700;font-size:0.73rem;cursor:default;" title="Vliegtuigen op kruishoogte (echt donker paars)"><span class="dot" style="background:#6b21a8;box-shadow:0 0 6px #6b21a8;"></span>✈️ Over NL</span>
       </div>
     </div>
     <div class="sep"></div>
@@ -1765,6 +1765,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.5.6"></script>
+  <script src="app.js?v=2.5.7"></script>
 </body>
 </html>
