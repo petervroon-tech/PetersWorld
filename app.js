@@ -2804,6 +2804,49 @@ async function loadWasm() {
 // ═══════════════════════════════════════════════════════
 //  CAMERA NAVIGATIE: 30 METER ZOOM & STABIELE FLIGHTRADAR TRACKING
 // ═══════════════════════════════════════════════════════
+function getFlightAtcStation(flight) {
+  if (!flight) return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1' };
+
+  const origCode = ((flight.origin && (flight.origin.code || flight.origin.icao || flight.origin)) || '').toUpperCase();
+  const destCode = ((flight.dest && (flight.dest.code || flight.dest.icao || flight.dest)) || '').toUpperCase();
+  const cat = flight.category || getFlightCategory(flight);
+
+  // Regionale vliegvelden
+  if (destCode === 'EHRD' || origCode === 'EHRD' || destCode === 'RTM' || origCode === 'RTM') {
+    return { stationKey: 'ehrd_twr', freq: '118.200', channel: 'Rotterdam Toren' };
+  }
+  if (destCode === 'EHEH' || origCode === 'EHEH' || destCode === 'EIN' || origCode === 'EIN') {
+    return { stationKey: 'eheh_twr', freq: '118.625', channel: 'Eindhoven Toren' };
+  }
+  if (destCode === 'EHBK' || origCode === 'EHBK' || destCode === 'MST' || origCode === 'MST') {
+    return { stationKey: 'ehbk_twr', freq: '119.475', channel: 'Maastricht Toren' };
+  }
+  if (destCode === 'EHGG' || origCode === 'EHGG' || destCode === 'GRQ' || origCode === 'GRQ') {
+    return { stationKey: 'ehgg_twr', freq: '118.700', channel: 'Groningen Toren' };
+  }
+
+  // Schiphol & Hoofdluchtruim
+  if (cat.type === 'landing') {
+    const alt = flight.altitude || 0;
+    if (alt < 1400) {
+      return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1' };
+    } else if (alt < 3200) {
+      return { stationKey: 'eham_app_fin', freq: '124.875', channel: 'Schiphol Final Director' };
+    } else {
+      return { stationKey: 'eham_app_n', freq: '119.050', channel: 'Schiphol Approach' };
+    }
+  } else if (cat.type === 'takeoff') {
+    const alt = flight.altitude || 0;
+    if (alt < 1500) {
+      return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1' };
+    } else {
+      return { stationKey: 'eham_dep_n', freq: '121.200', channel: 'Schiphol Departure' };
+    }
+  }
+
+  return { stationKey: 'eham_radar', freq: '124.300', channel: 'Amsterdam Radar' };
+}
+
 function selectFlight(flight, viewMode = 'chase30m') {
   if (!flight) return;
   S.followFlight = flight;
@@ -2842,10 +2885,36 @@ function selectFlight(flight, viewMode = 'chase30m') {
     S.controls.update();
   }
 
+  // Bepaal de actieve ATC radio frequentie voor dit toestel
+  const atcInfo = getFlightAtcStation(flight);
+  flight.atcInfo = atcInfo;
+
+  // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig
+  ATC.setFrequency(atcInfo.freq, atcInfo.channel.toUpperCase());
+
+  // Indien radio al actief is, stem direct mee af op deze stream
+  if (LIVEATC.isPlaying && LIVEATC.currentStation !== atcInfo.stationKey) {
+    LIVEATC.openLiveAtcStream(atcInfo.stationKey);
+  }
+
   updateFlightCardUI(flight);
-  // Geen automatische audio-oproep in loop: audio speelt alleen op klik van de radioknop
+
+  // Toon duidelijke communicatielog in het ATC gesprekkenvenster
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
-  ATC.logMessage('RADAR', `Vliegtuig ${flight.callsign} (${airName}) geselecteerd [${viewMode}].`, false);
+  ATC.logMessage('RADIO', `🎯 ${flight.callsign} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz).`, true);
+
+  // Authentieke radio-oproep en klaring tussen toren en vliegtuig
+  if (flight.category && flight.category.type === 'landing') {
+    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, continue approach, wind 230 at 12kt, runway 18R.`, true);
+    ATC.logMessage(flight.callsign, `Runway 18R, cleared to land, ${flight.callsign}.`, false);
+  } else if (flight.category && flight.category.type === 'takeoff') {
+    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, climb and maintain FL100, contact Departure ${atcInfo.freq}.`, true);
+    ATC.logMessage(flight.callsign, `Climb FL100, contact Departure, ${flight.callsign}.`, false);
+  } else {
+    const fl = Math.round((flight.altitude || 10000) / 30.48);
+    ATC.logMessage(atcInfo.channel.toUpperCase(), `${flight.callsign}, radar contact, maintain flight level ${fl}.`, true);
+    ATC.logMessage(flight.callsign, `Maintaining FL${fl}, ${flight.callsign}.`, false);
+  }
 }
 
 function updateFlightCardUI(flight) {
@@ -2884,6 +2953,13 @@ function updateFlightCardUI(flight) {
       elStatus.innerHTML = `<span style="background:${cat.hex}22;color:${cat.hex};border:1px solid ${cat.hex}55;padding:2px 7px;border-radius:4px;font-weight:800;letter-spacing:0.4px;">${cat.icon} ${cat.name.toUpperCase()}</span> <span style="background:rgba(56,189,248,0.18);color:var(--cyan);border:1px solid rgba(56,189,248,0.35);padding:2px 6px;border-radius:4px;font-weight:700;font-size:0.72rem;margin-left:4px;">${sec.icon}</span> <span style="color:var(--text);font-size:0.75rem;margin-left:4px;">(${flight.status || 'In vlucht'})</span>`;
     }
     if (elHdg) elHdg.textContent = `${flight.heading || 0}°`;
+
+    const atcInfo = flight.atcInfo || getFlightAtcStation(flight);
+    const btnListen = document.getElementById('btn-frc-listen');
+    if (btnListen) {
+      btnListen.textContent = `🎙️ Luister ${atcInfo.channel} (${atcInfo.freq} MHz)`;
+      btnListen.title = `Luister live naar de communicatie van ${flight.callsign} op ${atcInfo.freq} MHz`;
+    }
   }
 }
 
@@ -3593,7 +3669,12 @@ function initAirportDeck() {
   const btnFrcListen = document.getElementById('btn-frc-listen');
   if (btnFrcListen) {
     btnFrcListen.addEventListener('click', () => {
-      LIVEATC.openLiveAtcStream();
+      if (S.followFlight) {
+        const atcInfo = S.followFlight.atcInfo || getFlightAtcStation(S.followFlight);
+        LIVEATC.openLiveAtcStream(atcInfo.stationKey);
+      } else {
+        LIVEATC.openLiveAtcStream();
+      }
     });
   }
 
@@ -4859,7 +4940,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.5.7';
+let currentVersion = '2.5.8';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
