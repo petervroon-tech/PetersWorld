@@ -956,27 +956,46 @@ class LiveAtcEngine {
     const targetFlight = flight || this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
     if (targetFlight) this.targetFlight = targetFlight;
 
-    if (mode === 'individual') {
-      // Mute en leeg de algemene stream zodat andere vliegtuigen NIET hoorbaar zijn
-      if (this.audioEl) {
-        try {
-          this.audioEl.pause();
-          this.audioEl.removeAttribute('src');
-          this.audioEl.load();
-        } catch (e) {}
+    // 100% gegarandeerd GEEN computerstemmen: annuleer direct elke eventuele spraaksynthese
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    const btnIndiv = document.getElementById('btn-mode-individual');
+    const btnAll = document.getElementById('btn-mode-all');
+    if (btnIndiv && btnAll) {
+      if (mode === 'individual') {
+        btnIndiv.style.background = 'linear-gradient(135deg,#0284c7,#38bdf8)';
+        btnIndiv.style.color = '#fff';
+        btnAll.style.background = 'transparent';
+        btnAll.style.color = '#94a3b8';
+      } else {
+        btnAll.style.background = 'linear-gradient(135deg,#0284c7,#38bdf8)';
+        btnAll.style.color = '#fff';
+        btnIndiv.style.background = 'transparent';
+        btnIndiv.style.color = '#94a3b8';
       }
-      this.isPlaying = true;
-      if (typeof ATC !== 'undefined' && ATC && targetFlight) {
+    }
+
+    if (mode === 'individual' && targetFlight) {
+      const atcInfo = targetFlight.atcInfo || getFlightAtcStation(targetFlight);
+      if (atcInfo && atcInfo.stationKey) {
+        this.currentStation = atcInfo.stationKey;
+        const select = document.getElementById('liveatc-station-select');
+        if (select) select.value = atcInfo.stationKey;
+      }
+      if (typeof ATC !== 'undefined' && ATC) {
         ATC.startIndividualCommunication(targetFlight);
       }
+      this.playStream(); // Direct 100% echte menselijke live radio van die toren!
       this.updateAtcUi();
     } else {
-      // 'all' modus: stop de 1-op-1 dialoog en open de live stream van de torenfrequentie
       if (typeof ATC !== 'undefined' && ATC) {
         ATC.stopIndividualCommunication();
-        ATC.logMessage('LIVE ATC', `📻 ALLES UITLUISTEREN GEACTIVEERD: Live toren frequentie geopend (alle toestellen & verkeersleiding hoorbaar).`, true);
+        ATC.logMessage('LIVE ATC', `📻 ALLES UITLUISTEREN GEACTIVEERD: Live toren frequentie geopend (100% echte live radio, geen computerstemmen).`, true);
       }
       this.playStream();
+      this.updateAtcUi();
     }
   }
 
@@ -1384,22 +1403,9 @@ class LiveAtcEngine {
   }
 
   togglePlay() {
-    if (this.audioMode === 'individual') {
-      if (this.isPlaying) {
-        this.isPlaying = false;
-        if (typeof ATC !== 'undefined' && ATC) {
-          ATC.stopIndividualCommunication();
-        }
-        this.updateAtcUi();
-      } else {
-        this.isPlaying = true;
-        const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
-        if (typeof ATC !== 'undefined' && ATC && flight) {
-          ATC.startIndividualCommunication(flight);
-        }
-        this.updateAtcUi();
-      }
-      return;
+    // 100% gegarandeerd GEEN computerstemmen
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
     }
 
     if (this.isPlaying) {
@@ -1876,16 +1882,9 @@ class AtcRadioEngine {
   }
 
   init() {
+    // 100% ECHTE MENSELIJKE LIVE VERKEERSLEIDING - GEEN COMPUTERSTEMMEN
     if ('speechSynthesis' in window) {
-      const loadVoices = () => {
-        try {
-          this.voices = window.speechSynthesis.getVoices() || [];
-        } catch (e) {}
-      };
-      loadVoices();
-      if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-      }
+      try { window.speechSynthesis.cancel(); } catch (e) {}
     }
   }
 
@@ -2156,69 +2155,26 @@ class AtcRadioEngine {
   }
 
   speak(speechText, isTower, onDone) {
-    if (!this.enabled) {
-      if (onDone) setTimeout(onDone, 50);
-      return;
+    // 100% ECHTE MENSELIJKE LIVE RADIO - GEEN COMPUTERSTEMMEN
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
     }
-    this.ensureAudioCtx();
-    this.playMicClick(true);
-    this.setTxIndicator(isTower ? 'tower' : 'pilot');
-
-    if ('speechSynthesis' in window && speechText) {
-      try {
-        window.speechSynthesis.cancel();
-        const utt = new SpeechSynthesisUtterance(speechText);
-        utt.lang = 'en-US';
-        utt.rate = isTower ? 1.08 : 1.02;
-        utt.pitch = isTower ? 1.02 : 0.88;
-
-        const voices = this.voices && this.voices.length > 0 ? this.voices : (window.speechSynthesis.getVoices() || []);
-        if (voices && voices.length > 0) {
-          const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-          if (enVoices.length > 0) {
-            utt.voice = isTower ? enVoices[0] : (enVoices.length > 1 ? enVoices[1] : enVoices[0]);
-          }
-        }
-
-        let finished = false;
-        const finish = () => {
-          if (finished) return;
-          finished = true;
-          this.playMicClick(false);
-          this.setTxIndicator('rx');
-          if (onDone) setTimeout(onDone, 200);
-        };
-
-        utt.onend = finish;
-        utt.onerror = finish;
-        setTimeout(finish, 7500);
-
-        window.speechSynthesis.speak(utt);
-      } catch (err) {
-        this.playMicClick(false);
-        this.setTxIndicator('rx');
-        if (onDone) setTimeout(onDone, 50);
-      }
-    } else {
-      setTimeout(() => {
-        this.playMicClick(false);
-        this.setTxIndicator('rx');
-        if (onDone) setTimeout(onDone, 50);
-      }, 1200);
-    }
+    if (onDone) setTimeout(onDone, 50);
   }
 
   exchangeDialogue(towerSpeaker, towerText, towerSpeech, pilotSpeaker, pilotText, pilotSpeech, onDone) {
-    this.logMessage(towerSpeaker, towerText, true);
-    this.speak(towerSpeech || towerText, true, () => {
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    if (towerText) this.logMessage(towerSpeaker, towerText, true);
+    if (pilotText) {
       setTimeout(() => {
-        if (!this.activeIndividualFlight) return;
         this.logMessage(pilotSpeaker, pilotText, false);
-        this.speak(pilotSpeech || pilotText, false, () => {
-          if (onDone) onDone();
-        });
-      }, 450);
-    });
+        if (onDone) onDone();
+      }, 500);
+    } else if (onDone) {
+      setTimeout(onDone, 50);
+    }
   }
 
   contactFlight(flight) {
@@ -6865,7 +6821,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.5';
+let currentVersion = '2.8.6';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

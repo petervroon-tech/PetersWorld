@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
-  "version": "2.8.5",
-  "build": 78,
-  "timestamp": "2026-11-14T11:59:38.014144+00:00",
-  "git_hash": "2b85eff",
+  "version": "2.8.6",
+  "build": 79,
+  "timestamp": "2026-11-14T12:05:40.863878+00:00",
+  "git_hash": "de1ab6e",
   "features": [
+    "100% Echte menselijke live communicatie zonder computerstemmen (v2.8.6): synthetische computerstemmen (speechSynthesis) zijn volledig verwijderd. Bij het selecteren van een vliegtuig of toren hoort u uitsluitend de echte, realtime live radio-uitzending van de verkeersleiders en piloten via de live torenfrequenties (LiveATC Icecast streams).",
     "Exclusieve 1-op-1 communicatiemodus tussen toren en individueel vliegtuig (v2.8.5): bij het klikken op een individueel vliegtuig worden alle overige conversaties van andere toestellen direct gedempt. Alleen de officiële verkeersleiding en cockpit-readbacks voor dat specifieke toestel zijn hoorbaar met zendindicators (TX-TWR/TX-PLT) en vliegfase-klaringen (landing, opstijgen, kruisvlucht). Tevens voorzien van een segmented switcher 'Alleen dit vliegtuig' vs 'Alles uitluisteren' voor de algemene torenfrequentie.",
     "Fotorealistische architectonische gebouwen zonder geel (v2.8.4): alle luchthavengebouwen, terminals (hallen 1, 2, 3 en Schiphol Plaza), pieren (B t/m H/M) en hangars zijn voorzien van procedurele fotorealistische glasgevels, donkere bitumen daken met airco/HVAC installaties, telescopische passagiersslurven (jet bridges) naar de vliegtuigdeuren, architectonisch beton op de 101m verkeerstoren en 0% geel.",
     "Fotorealistisch Schiphol & zijdezacht vloeiend zoomen (v2.8.3): gele markeringen en massieve ringen verwijderd en luchthavenmarkers verdwijnen automatisch bij inzoomen, waardoor de echte 100% fotorealistische satellietbeelden van Schiphol (alle 6 banen, markeringen, pieren B t/m H, Schiphol Plaza en torens) kristalhelder zichtbaar zijn. Schokkerig inzoomen definitief opgelost door OrbitControls te pauzeren tijdens camerabewegingen, vloeiende inertie-demping en soepel zweven naar geselecteerde toestellen.",

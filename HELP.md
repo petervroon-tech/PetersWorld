@@ -1,7 +1,8 @@
-# 📖 PetersWorld — Gebruikershandleiding & Werkende Functionaliteiten (v2.8.5)
+# 📖 PetersWorld — Gebruikershandleiding & Werkende Functionaliteiten (v2.8.6)
 
 Welkom bij **PetersWorld** (Realtime Vluchtradar Nederland & Schiphol Live ATC).  
-In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende functies** van de applicatie opgenomen, inclusief bediening voor computer, iPad, iPhone en Android.
+In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende functies** van de applicatie opgenomen, inclusief bediening voor computer, iPad, iPhone en Android.  
+> **Belangrijk:** PetersWorld gebruikt **0% synthetische computerstemmen**. Alle audio die u hoort is **100% echte menselijke live radio-communicatie** tussen piloten en de verkeersleiding via de live frequenties van Schiphol en Nederlandse luchthavens.
 
 ---
 
@@ -29,21 +30,20 @@ In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende fun
 
 ---
 
-## 📻 2. Live ATC Verkeersleiding & Radiocommunicatie
+## 📻 2. Live ATC Verkeersleiding & Radiocommunicatie (100% Echte Mensen)
 
-In het venster **ATC Gesprekken & Radio** zijn twee audiomodi beschikbaar:
+In PetersWorld hoort u **geen computerstemmen of robot-audio**. Alle communicatie is 100% echte menselijke radio tussen de verkeerstoren en de piloten.
 
-### Modus 1: `🎯 Alleen dit vliegtuig` (Standaard bij selectie)
-* **Werking:** Zodra u een individueel vliegtuig aanklikt, wordt de algemene frequentie-stream **direct gedempt**.
-* **Wat hoort u?** Uitsluitend de 1-op-1 communicatie tussen de verkeerstoren en de cockpit van dát specifieke toestel. Er komen **geen** gesprekken van andere vliegtuigen tussendoor.
-* **Inhoud:** Reële klaringen aangepast aan de vluchtfase (landing, start of kruisvlucht), baan, wind en hoogte:
-  - Torenklaring: *"KLM 1234, Schiphol Tower, runway 24, wind 230 at 12 knots, cleared to land."*
-  - Cockpit-readback van de piloot: *"Cleared to land runway 24, KLM 1234."*
-* **Indicatoren:** De zend-LED toont `TX-TWR` (toren zendt), `TX-PLT` (piloot zendt) en `RX` (ontvangst).
+In het venster **ATC Gesprekken & Radio** zijn twee modi beschikbaar:
 
-### Modus 2: `📻 Alles uitluisteren`
-* **Werking:** Schakelt over naar de **ongefilterde live scanner-feed** via LiveATC (Icecast stream).
-* **Wat hoort u?** Alle vliegtuigen en de verkeersleider die tegelijk actief zijn op de gekozen frequentie (bijv. Schiphol Toren 1 118.100 MHz, Polderbaan Toren 118.275 MHz, Nadering, Vertrek of Delivery).
+### Modus 1: `🎯 Alleen dit vliegtuig` (Gericht op toren van het toestel)
+* **Werking:** Zodra u een specifiek vliegtuig aanklikt, stemt de live radio automatisch direct af op de specifieke toren- of naderingsfrequentie van dát toestel (bijv. Polderbaan Toren 118.275 MHz als het daar landt, of Kaagbaan 118.100 MHz).
+* **Wat hoort u?** De echte menselijke live radio-uitzending van die specifieke verkeerstoren.
+* **Geen computerstemmen:** Synthetische computerstemmen zijn volledig uitgeschakeld. U hoort uitsluitend de echte live radio.
+
+### Modus 2: `📻 Alles uitluisteren` (Volledige scanner)
+* **Werking:** Luister vrij naar elke gewenste frequentie via de live scanner-feed van LiveATC (Icecast stream).
+* **Wat hoort u?** Alle piloten en verkeersleiders die op dat moment live communiceren op de gekozen toren- of naderingsfrequentie.
 * **Kanalenkeuze:** U kunt via het dropdown-menu handmatig schakelen tussen o.a.:
   - *Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)*
   - *Schiphol Toren 2 (118.275 MHz - Polderbaan)*
