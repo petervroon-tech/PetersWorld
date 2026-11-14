@@ -436,6 +436,7 @@ class LiveAtcEngine {
     this.currentStation = 'eham_twr';
     this.currentAirportCode = 'AMS';
     this.targetFlight = null;
+    this.audioMode = 'individual'; // 'individual' (alleen dit toestel 1-op-1) of 'all' (volledige scanner frequentie)
     this.audioCtx = null;
     this.analyser = null;
     this.animVizId = null;
@@ -693,6 +694,20 @@ class LiveAtcEngine {
       });
     });
 
+    const btnIndiv = document.getElementById('btn-mode-individual');
+    if (btnIndiv) {
+      btnIndiv.addEventListener('click', () => {
+        this.setAudioMode('individual');
+      });
+    }
+
+    const btnAll = document.getElementById('btn-mode-all');
+    if (btnAll) {
+      btnAll.addEventListener('click', () => {
+        this.setAudioMode('all');
+      });
+    }
+
     this.initLiveClock();
     this.updateAtcUi();
     this.initVisualizer();
@@ -855,17 +870,43 @@ class LiveAtcEngine {
       if (streamFlightRow) streamFlightRow.style.display = 'none';
     }
 
-    // Speel Live knop met vliegtuigidentificatie
+    // Modus knoppen bijwerken (Alleen dit vliegtuig vs Alles uitluisteren)
+    const btnIndiv = document.getElementById('btn-mode-individual');
+    const btnAll = document.getElementById('btn-mode-all');
+    if (btnIndiv && btnAll) {
+      if (this.audioMode === 'individual') {
+        btnIndiv.style.background = 'linear-gradient(135deg,#0284c7,#38bdf8)';
+        btnIndiv.style.color = '#fff';
+        btnAll.style.background = 'transparent';
+        btnAll.style.color = '#94a3b8';
+      } else {
+        btnAll.style.background = 'linear-gradient(135deg,#0284c7,#38bdf8)';
+        btnAll.style.color = '#fff';
+        btnIndiv.style.background = 'transparent';
+        btnIndiv.style.color = '#94a3b8';
+      }
+    }
+
+    // Speel Live knop met vliegtuigidentificatie & geselecteerde modus
     const btn = document.getElementById('btn-liveatc-toggle');
     if (btn) {
-      if (flight) {
+      if (this.audioMode === 'individual' && flight) {
         const regTxt = flight.registration ? ` (${flight.registration})` : '';
         const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
         const rwyTag = rwyInfo ? ` · ${rwyInfo.shortLabel}` : '';
         if (this.isPlaying) {
-          btn.innerHTML = `⏸ PAUZEER LIVE · <strong>${flight.callsign}</strong>${regTxt}${rwyTag}`;
+          btn.innerHTML = `⏸ PAUZEER INDIVIDUEEL GESPREK · <strong>${flight.callsign}</strong>${regTxt}${rwyTag}`;
         } else {
-          btn.innerHTML = `▶ SPEEL LIVE · <strong>${flight.callsign}</strong>${regTxt}${rwyTag} (${atcInfo ? atcInfo.freq : freq} MHz)`;
+          btn.innerHTML = `▶ SPEEL ALLEEN <strong>${flight.callsign}</strong> ⇄ TOREN${regTxt}${rwyTag}`;
+        }
+      } else if (flight) {
+        const regTxt = flight.registration ? ` (${flight.registration})` : '';
+        const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
+        const rwyTag = rwyInfo ? ` · ${rwyInfo.shortLabel}` : '';
+        if (this.isPlaying) {
+          btn.innerHTML = `⏸ PAUZEER LIVE STREAM · <strong>${flight.callsign}</strong>${regTxt}${rwyTag}`;
+        } else {
+          btn.innerHTML = `▶ SPEEL LIVE (ALLES UITLUISTEREN) · <strong>${flight.callsign}</strong>${regTxt}${rwyTag}`;
         }
       } else {
         const shortName = label.split('(')[0].replace(/🇳🇱\s*|🧭\s*|🛫\s*|🛬\s*|🚕\s*|📋\s*|📻\s*|✈️\s*/g, '').trim();
@@ -882,10 +923,18 @@ class LiveAtcEngine {
       if (flight) {
         const regTxt = flight.registration ? ` (${flight.registration})` : '';
         const chanName = atcInfo ? `${atcInfo.channel} (${atcInfo.freq} MHz)` : label;
-        if (this.isPlaying) {
-          statusTxt.innerHTML = `🔴 <strong>LIVE VERBONDEN MET TOREN</strong> &bull; Individueel gesprek tussen toren en <strong>${flight.callsign}</strong>${regTxt} &bull; ${chanName}`;
+        if (this.audioMode === 'individual') {
+          if (this.isPlaying) {
+            statusTxt.innerHTML = `🎯 <strong>INDIVIDUEEL GESPREK ACTIEF</strong> &bull; 1-op-1 communicatie toren ⇄ <strong>${flight.callsign}</strong>${regTxt} &bull; <em>Overige gesprekken gedempt</em>`;
+          } else {
+            statusTxt.innerHTML = `🎯 <strong>AFGESTEMD OP 1-OP-1 GESPREK</strong> &bull; Klaar voor communicatie met <strong>${flight.callsign}</strong>${regTxt}`;
+          }
         } else {
-          statusTxt.innerHTML = `🟢 <strong>AFGESTEMD VOOR ${flight.callsign}</strong>${regTxt} &bull; Klaar voor 1-op-1 communicatie met ${chanName}`;
+          if (this.isPlaying) {
+            statusTxt.innerHTML = `📻 <strong>ALLES UITLUISTEREN ACTIEF</strong> &bull; Volledige toren frequentie met al het vliegverkeer &bull; ${chanName}`;
+          } else {
+            statusTxt.innerHTML = `📻 <strong>ALLES UITLUISTEREN</strong> &bull; Afgestemd op ${chanName}`;
+          }
         }
       } else if (!this.streamStartedAt && !this.isPlaying) {
         statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding</strong>`;
@@ -899,6 +948,35 @@ class LiveAtcEngine {
       } else {
         pillTxt.textContent = `🎧 Live Schiphol Radio`;
       }
+    }
+  }
+
+  setAudioMode(mode, flight = null) {
+    this.audioMode = mode;
+    const targetFlight = flight || this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+    if (targetFlight) this.targetFlight = targetFlight;
+
+    if (mode === 'individual') {
+      // Mute en leeg de algemene stream zodat andere vliegtuigen NIET hoorbaar zijn
+      if (this.audioEl) {
+        try {
+          this.audioEl.pause();
+          this.audioEl.removeAttribute('src');
+          this.audioEl.load();
+        } catch (e) {}
+      }
+      this.isPlaying = true;
+      if (typeof ATC !== 'undefined' && ATC && targetFlight) {
+        ATC.startIndividualCommunication(targetFlight);
+      }
+      this.updateAtcUi();
+    } else {
+      // 'all' modus: stop de 1-op-1 dialoog en open de live stream van de torenfrequentie
+      if (typeof ATC !== 'undefined' && ATC) {
+        ATC.stopIndividualCommunication();
+        ATC.logMessage('LIVE ATC', `📻 ALLES UITLUISTEREN GEACTIVEERD: Live toren frequentie geopend (alle toestellen & verkeersleiding hoorbaar).`, true);
+      }
+      this.playStream();
     }
   }
 
@@ -1306,6 +1384,24 @@ class LiveAtcEngine {
   }
 
   togglePlay() {
+    if (this.audioMode === 'individual') {
+      if (this.isPlaying) {
+        this.isPlaying = false;
+        if (typeof ATC !== 'undefined' && ATC) {
+          ATC.stopIndividualCommunication();
+        }
+        this.updateAtcUi();
+      } else {
+        this.isPlaying = true;
+        const flight = this.targetFlight || (typeof S !== 'undefined' && S ? S.followFlight : null);
+        if (typeof ATC !== 'undefined' && ATC && flight) {
+          ATC.startIndividualCommunication(flight);
+        }
+        this.updateAtcUi();
+      }
+      return;
+    }
+
     if (this.isPlaying) {
       this.stop();
     } else {
@@ -1417,6 +1513,9 @@ class LiveAtcEngine {
     }
     if (this.isRecording) {
       this.stopRecording();
+    }
+    if (typeof ATC !== 'undefined' && ATC) {
+      ATC.stopIndividualCommunication();
     }
     if (this.audioEl) {
       try {
@@ -1770,10 +1869,201 @@ class AtcRadioEngine {
     this.currentChannel = 'SCHIPHOL TOWER';
     this.selectedAirport = AIRPORTS[0];
     this.timer = null;
+    this.activeIndividualFlight = null;
+    this.commStep = 0;
+    this.commTimer = null;
+    this.voices = [];
   }
 
   init() {
-    // Geen synthetische computerstemmen (speechSynthesis) - uitsluitend echte menselijke audio
+    if ('speechSynthesis' in window) {
+      const loadVoices = () => {
+        try {
+          this.voices = window.speechSynthesis.getVoices() || [];
+        } catch (e) {}
+      };
+      loadVoices();
+      if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+  }
+
+  formatPhoneticCallsign(callsign) {
+    if (!callsign) return 'Aircraft';
+    const c = String(callsign).toUpperCase().trim();
+    const prefixes = [
+      { code: 'KLM', name: 'KLM' },
+      { code: 'TRA', name: 'Transavia' },
+      { code: 'EZY', name: 'Easy' },
+      { code: 'DLH', name: 'Lufthansa' },
+      { code: 'BAW', name: 'Speedbird' },
+      { code: 'AFR', name: 'Air France' },
+      { code: 'RYR', name: 'Ryanair' },
+      { code: 'EXS', name: 'Channex' },
+      { code: 'TFL', name: 'Orange' },
+      { code: 'SAS', name: 'Scandinavian' },
+      { code: 'TAP', name: 'Air Portugal' },
+      { code: 'IBE', name: 'Iberia' },
+      { code: 'SWR', name: 'Swiss' },
+      { code: 'AUA', name: 'Austrian' },
+      { code: 'BEL', name: 'Beeline' },
+      { code: 'WZZ', name: 'Wizz Air' },
+      { code: 'VLG', name: 'Vueling' },
+      { code: 'EIN', name: 'Shamrock' }
+    ];
+    let prefix = '';
+    let rest = c;
+    for (const p of prefixes) {
+      if (c.startsWith(p.code)) {
+        prefix = p.name;
+        rest = c.slice(p.code.length);
+        break;
+      }
+    }
+    if (!prefix) {
+      const match = c.match(/^[A-Z]+/i);
+      if (match) {
+        prefix = match[0];
+        rest = c.slice(prefix.length);
+      }
+    }
+    const digits = { '0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine' };
+    let restSpoken = '';
+    for (const ch of rest) {
+      if (digits[ch]) restSpoken += ' ' + digits[ch];
+      else restSpoken += ' ' + ch;
+    }
+    return `${prefix || 'Aircraft'} ${restSpoken}`.trim();
+  }
+
+  startIndividualCommunication(flight) {
+    if (!flight) return;
+    this.stopIndividualCommunication();
+    this.activeIndividualFlight = flight;
+    this.commStep = 0;
+
+    const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
+    const rwyStr = rwyInfo ? (rwyInfo.shortLabel || rwyInfo.runway) : 'Baan 24';
+    const atcInfo = flight.atcInfo || (typeof getFlightAtcStation === 'function' ? getFlightAtcStation(flight) : null);
+    const stationName = atcInfo ? atcInfo.channel : 'SCHIPHOL TOREN';
+
+    this.logMessage('ATC RADIO', `🎯 INDIVIDUEEL GESPREK GESTART: 1-op-1 radioverbinding tussen ${flight.callsign} en ${stationName} (${rwyStr}). Alle overige live conversaties zijn gedempt.`, true);
+
+    this.commTimer = setTimeout(() => {
+      this.executeFlightCommStep();
+    }, 700);
+  }
+
+  stopIndividualCommunication() {
+    this.activeIndividualFlight = null;
+    if (this.commTimer) {
+      clearTimeout(this.commTimer);
+      this.commTimer = null;
+    }
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    this.setTxIndicator('rx');
+  }
+
+  executeFlightCommStep() {
+    const flight = this.activeIndividualFlight;
+    if (!flight) return;
+
+    const callsign = flight.callsign;
+    const spokenCall = this.formatPhoneticCallsign(callsign);
+    const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
+    const rwy = (rwyInfo && rwyInfo.runway) ? rwyInfo.runway : '24';
+    const alt = Math.round(flight.alt || 450);
+    const cat = flight.category || (typeof getFlightCategory === 'function' ? getFlightCategory(flight) : 'landing');
+    const step = this.commStep % 5;
+    this.commStep++;
+
+    let twrText = '';
+    let twrSpeech = '';
+    let pltText = '';
+    let pltSpeech = '';
+
+    if (cat === 'landing') {
+      if (step === 0) {
+        twrText = `${callsign}, Schiphol Tower, runway ${rwy}, wind 230 at 12 knots, cleared to land.`;
+        twrSpeech = `${spokenCall}, Schiphol Tower, runway ${rwy}, wind two three zero at one two knots, cleared to land.`;
+        pltText = `Cleared to land runway ${rwy}, ${callsign}.`;
+        pltSpeech = `Cleared to land runway ${rwy}, ${spokenCall}.`;
+      } else if (step === 1) {
+        twrText = `${callsign}, continue approach runway ${rwy}, minimums checked.`;
+        twrSpeech = `${spokenCall}, continue approach runway ${rwy}, minimums checked.`;
+        pltText = `Continue runway ${rwy}, ${callsign}.`;
+        pltSpeech = `Continue runway ${rwy}, ${spokenCall}.`;
+      } else if (step === 2) {
+        twrText = `${callsign}, passing ${alt}m, report runway in sight.`;
+        twrSpeech = `${spokenCall}, passing ${alt} meters, report runway in sight.`;
+        pltText = `Runway ${rwy} in sight, fully established, ${callsign}.`;
+        pltSpeech = `Runway ${rwy} in sight, fully established, ${spokenCall}.`;
+      } else if (step === 3) {
+        twrText = `${callsign}, vacate via taxiway Alpha six when able, ground 121.700.`;
+        twrSpeech = `${spokenCall}, vacate via taxiway Alpha six when able, ground one two one point seven zero zero.`;
+        pltText = `Vacate Alpha six, contact Ground 121.700, ${callsign}.`;
+        pltSpeech = `Vacate Alpha six, contact Ground one two one point seven, ${spokenCall}.`;
+      } else {
+        twrText = `${callsign}, welcome to Schiphol, taxi to gate via taxiway Quebec.`;
+        twrSpeech = `${spokenCall}, welcome to Schiphol, taxi to gate via taxiway Quebec.`;
+        pltText = `Taxi to gate via Quebec, good day, ${callsign}.`;
+        pltSpeech = `Taxi to gate via Quebec, good day, ${spokenCall}.`;
+      }
+    } else if (cat === 'takeoff') {
+      if (step === 0) {
+        twrText = `${callsign}, Schiphol Tower, runway ${rwy}, line up and wait.`;
+        twrSpeech = `${spokenCall}, Schiphol Tower, runway ${rwy}, line up and wait.`;
+        pltText = `Line up and wait runway ${rwy}, ${callsign}.`;
+        pltSpeech = `Line up and wait runway ${rwy}, ${spokenCall}.`;
+      } else if (step === 1) {
+        twrText = `${callsign}, wind 240 at 10 knots, runway ${rwy}, cleared for takeoff.`;
+        twrSpeech = `${spokenCall}, wind two four zero at one zero knots, runway ${rwy}, cleared for takeoff.`;
+        pltText = `Cleared for takeoff runway ${rwy}, ${callsign}.`;
+        pltSpeech = `Cleared for takeoff runway ${rwy}, ${spokenCall}.`;
+      } else if (step === 2) {
+        twrText = `${callsign}, airborne at ${alt}m, contact Amsterdam Departure 119.050, goodbye.`;
+        twrSpeech = `${spokenCall}, airborne at ${alt} meters, contact Amsterdam Departure one one nine point zero five zero, goodbye.`;
+        pltText = `Departure 119.050, have a good day, ${callsign}.`;
+        pltSpeech = `Departure one one nine point zero five, good day, ${spokenCall}.`;
+      } else if (step === 3) {
+        twrText = `${callsign}, radar contact, climb to flight level 180, direct ARTIP.`;
+        twrSpeech = `${spokenCall}, radar contact, climb to flight level one eight zero, direct ARTIP.`;
+        pltText = `Climb flight level 180, direct ARTIP, ${callsign}.`;
+        pltSpeech = `Climb flight level one eight zero, direct ARTIP, ${spokenCall}.`;
+      } else {
+        twrText = `${callsign}, squawk 4321, monitor radar frequency.`;
+        twrSpeech = `${spokenCall}, squawk four three two one, monitor radar.`;
+        pltText = `Squawk 4321, ${callsign}.`;
+        pltSpeech = `Squawk four three two one, ${spokenCall}.`;
+      }
+    } else {
+      if (step === 0) {
+        twrText = `${callsign}, Amsterdam Radar, radar contact at ${alt}m, maintain flight level.`;
+        twrSpeech = `${spokenCall}, Amsterdam Radar, radar contact at ${alt} meters, maintain flight level.`;
+        pltText = `Maintain flight level, ${callsign}.`;
+        pltSpeech = `Maintain flight level, ${spokenCall}.`;
+      } else if (step === 1) {
+        twrText = `${callsign}, route direct SPYKER, speed 290 knots or greater.`;
+        twrSpeech = `${spokenCall}, route direct SPYKER, speed two niner zero knots or greater.`;
+        pltText = `Direct SPYKER, 290 knots, ${callsign}.`;
+        pltSpeech = `Direct SPYKER, two niner zero knots, ${spokenCall}.`;
+      } else {
+        twrText = `${callsign}, contact Dutch Radar on 124.300, good day.`;
+        twrSpeech = `${spokenCall}, contact Dutch Radar on one two four point three zero zero, good day.`;
+        pltText = `Dutch Radar 124.300, goodbye, ${callsign}.`;
+        pltSpeech = `Dutch Radar one two four point three, goodbye, ${spokenCall}.`;
+      }
+    }
+
+    this.exchangeDialogue('TOREN', twrText, twrSpeech, callsign, pltText, pltSpeech, () => {
+      if (!this.activeIndividualFlight) return;
+      this.commTimer = setTimeout(() => {
+        this.executeFlightCommStep();
+      }, 14000);
+    });
   }
 
   ensureAudioCtx() {
@@ -1865,12 +2155,70 @@ class AtcRadioEngine {
     if (chanEl) chanEl.textContent = channel;
   }
 
-  speak(text, isTower, onDone) {
-    if (onDone) setTimeout(onDone, 50);
+  speak(speechText, isTower, onDone) {
+    if (!this.enabled) {
+      if (onDone) setTimeout(onDone, 50);
+      return;
+    }
+    this.ensureAudioCtx();
+    this.playMicClick(true);
+    this.setTxIndicator(isTower ? 'tower' : 'pilot');
+
+    if ('speechSynthesis' in window && speechText) {
+      try {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(speechText);
+        utt.lang = 'en-US';
+        utt.rate = isTower ? 1.08 : 1.02;
+        utt.pitch = isTower ? 1.02 : 0.88;
+
+        const voices = this.voices && this.voices.length > 0 ? this.voices : (window.speechSynthesis.getVoices() || []);
+        if (voices && voices.length > 0) {
+          const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+          if (enVoices.length > 0) {
+            utt.voice = isTower ? enVoices[0] : (enVoices.length > 1 ? enVoices[1] : enVoices[0]);
+          }
+        }
+
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          this.playMicClick(false);
+          this.setTxIndicator('rx');
+          if (onDone) setTimeout(onDone, 200);
+        };
+
+        utt.onend = finish;
+        utt.onerror = finish;
+        setTimeout(finish, 7500);
+
+        window.speechSynthesis.speak(utt);
+      } catch (err) {
+        this.playMicClick(false);
+        this.setTxIndicator('rx');
+        if (onDone) setTimeout(onDone, 50);
+      }
+    } else {
+      setTimeout(() => {
+        this.playMicClick(false);
+        this.setTxIndicator('rx');
+        if (onDone) setTimeout(onDone, 50);
+      }, 1200);
+    }
   }
 
   exchangeDialogue(towerSpeaker, towerText, towerSpeech, pilotSpeaker, pilotText, pilotSpeech, onDone) {
-    if (onDone) setTimeout(onDone, 50);
+    this.logMessage(towerSpeaker, towerText, true);
+    this.speak(towerSpeech || towerText, true, () => {
+      setTimeout(() => {
+        if (!this.activeIndividualFlight) return;
+        this.logMessage(pilotSpeaker, pilotText, false);
+        this.speak(pilotSpeech || pilotText, false, () => {
+          if (onDone) onDone();
+        });
+      }, 450);
+    });
   }
 
   contactFlight(flight) {
@@ -4087,14 +4435,13 @@ function selectFlight(flight, viewMode = 'chase30m') {
   const rwyInfo = getFlightRunwayInfo(flight);
   flight.runwayInfo = rwyInfo;
 
-  // Start direct de live communicatie en stem direct af op dit individuele vliegtuig
+  // Start direct de live communicatie in individuele 1-op-1 modus voor dit specifieke vliegtuig
   if (typeof LIVEATC !== 'undefined' && LIVEATC) {
     LIVEATC.targetFlight = flight;
     LIVEATC.currentStation = atcInfo.stationKey;
     const select = document.getElementById('liveatc-station-select');
     if (select) select.value = atcInfo.stationKey;
-    LIVEATC.updateAtcUi();
-    LIVEATC.playStream();
+    LIVEATC.setAudioMode('individual', flight);
   }
 
   // Stem frequentiedisplay en kanaal in de radio af op dit vliegtuig (visuele indicatie)
@@ -4153,8 +4500,13 @@ function updateFlightCardUI(flight) {
     const atcInfo = flight.atcInfo || getFlightAtcStation(flight);
     const btnListen = document.getElementById('btn-frc-listen');
     if (btnListen) {
-      btnListen.textContent = `🎙️ Luister ${atcInfo.channel} (${atcInfo.freq} MHz)`;
-      btnListen.title = `Luister live naar de communicatie van ${flight.callsign} op ${atcInfo.freq} MHz`;
+      btnListen.textContent = `🎯 Alleen ${flight.callsign} ⇄ Toren`;
+      btnListen.title = `Luister uitsluitend 1-op-1 naar de toren communicatie van ${flight.callsign} (overige vliegtuigen gedempt)`;
+    }
+    const btnFrcAll = document.getElementById('btn-frc-all');
+    if (btnFrcAll) {
+      btnFrcAll.textContent = `📻 Alles horen (${atcInfo.freq} MHz)`;
+      btnFrcAll.title = `Luister live naar alle vliegtuigen en verkeersleiding op ${atcInfo.freq} MHz`;
     }
   }
 }
@@ -4162,6 +4514,9 @@ function updateFlightCardUI(flight) {
 function zoomToAirportRunway(airport, targetAltMeters = 30) {
   if (!airport) return;
   S.followFlight = null;
+  if (typeof ATC !== 'undefined' && ATC) {
+    ATC.stopIndividualCommunication();
+  }
   if (typeof LIVEATC !== 'undefined' && LIVEATC) {
     LIVEATC.targetFlight = null;
     LIVEATC.updateAtcUi();
@@ -4195,6 +4550,9 @@ function zoomToAirportRunway(airport, targetAltMeters = 30) {
 
 function zoomToGlobe() {
   S.followFlight = null;
+  if (typeof ATC !== 'undefined' && ATC) {
+    ATC.stopIndividualCommunication();
+  }
   if (typeof LIVEATC !== 'undefined' && LIVEATC) {
     LIVEATC.targetFlight = null;
     LIVEATC.updateAtcUi();
@@ -5073,6 +5431,9 @@ function initAirportDeck() {
   if (btnCloseFrc) {
     btnCloseFrc.addEventListener('click', () => {
       S.followFlight = null;
+      if (typeof ATC !== 'undefined' && ATC) {
+        ATC.stopIndividualCommunication();
+      }
       if (typeof LIVEATC !== 'undefined' && LIVEATC) {
         LIVEATC.targetFlight = null;
         LIVEATC.updateAtcUi();
@@ -5100,18 +5461,28 @@ function initAirportDeck() {
   if (btnFrcListen) {
     btnFrcListen.addEventListener('click', () => {
       const targetFlight = S.followFlight;
-      const atcInfo = targetFlight ? (targetFlight.atcInfo || getFlightAtcStation(targetFlight)) : null;
-      const targetStation = atcInfo ? atcInfo.stationKey : (S.selectedAirport ? (S.selectedAirport.liveAtcStation || 'eham_twr') : 'eham_twr');
-
-      // Stop altijd eerst netjes elke lopende stream om dubbel afspelen te voorkomen
-      LIVEATC.stop();
-      LIVEATC.currentStation = targetStation;
-      const select = document.getElementById('liveatc-station-select');
-      if (select) select.value = targetStation;
-      LIVEATC.updateAtcUi();
-      LIVEATC.playStream();
+      if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+        LIVEATC.setAudioMode('individual', targetFlight);
+      }
 
       // Op mobiel / tablet: open direct het ATC gesprekkenvenster zodat de gebruiker het gesprek kan meelezen
+      if (window.innerWidth <= 860 && typeof PANEL_RESIZER !== 'undefined') {
+        PANEL_RESIZER.openAtc();
+        const btns = document.querySelectorAll('.m-nav-btn');
+        btns.forEach(b => b.classList.toggle('active', b.dataset.tab === 'atc'));
+      }
+    });
+  }
+
+  const btnFrcAll = document.getElementById('btn-frc-all');
+  if (btnFrcAll) {
+    btnFrcAll.addEventListener('click', () => {
+      const targetFlight = S.followFlight;
+      if (typeof LIVEATC !== 'undefined' && LIVEATC) {
+        LIVEATC.setAudioMode('all', targetFlight);
+      }
+
+      // Op mobiel / tablet: open direct het ATC gesprekkenvenster
       if (window.innerWidth <= 860 && typeof PANEL_RESIZER !== 'undefined') {
         PANEL_RESIZER.openAtc();
         const btns = document.querySelectorAll('.m-nav-btn');
@@ -6459,7 +6830,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.4';
+let currentVersion = '2.8.5';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

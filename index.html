@@ -1125,7 +1125,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.8.4</strong> beschikbaar &bull; <span id="upd-note">Fotorealistische gebouwen (glazen vliesgevels, pieren, slurven & torens) & 0% geel</span></span>
+      <span><strong id="upd-ver">v2.8.5</strong> beschikbaar &bull; <span id="upd-note">Exclusief individueel cockpit ⇄ toren gesprek (overige conversaties gedempt) & switch naar alles uitluisteren</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1161,7 +1161,7 @@
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.4</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.5</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1253,7 +1253,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.8.4</span>
+          <span class="hud-val" id="hud-wasm">v2.8.5</span>
         </div>
       </div>
 
@@ -1466,6 +1466,16 @@
             <span style="color:#94a3b8;">🛫 / 🛬 Actieve Baan:</span>
             <strong id="atc-target-runway" style="color:#facc15;">🛬 Polderbaan 18R</strong>
           </div>
+        </div>
+
+        <!-- Modus Selector: Alleen dit vliegtuig (1-op-1 cockpit ⇄ toren) vs Alles uitluisteren -->
+        <div id="liveatc-mode-selector" style="display:flex;gap:4px;margin-bottom:6px;background:rgba(0,0,0,0.45);padding:3px;border-radius:6px;border:1px solid rgba(56,189,248,0.25);">
+          <button id="btn-mode-individual" class="radio-mode-btn" style="flex:1;padding:7px 8px;font-size:0.73rem;font-weight:800;border:none;border-radius:5px;cursor:pointer;background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;" title="Alleen 1-op-1 communicatie tussen dit vliegtuig en de toren. Overige vliegtuigen worden gedempt!">
+            <span>🎯</span> Alleen dit vliegtuig
+          </button>
+          <button id="btn-mode-all" class="radio-mode-btn" style="flex:1;padding:7px 8px;font-size:0.73rem;font-weight:700;border:none;border-radius:5px;cursor:pointer;background:transparent;color:#94a3b8;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;" title="Luister live naar alle vliegtuigen en de toren op deze frequentie">
+            <span>📻</span> Alles uitluisteren
+          </button>
         </div>
 
         <!-- 100% Directe In-App Audio Speler Knop (Geen popups of externe websites!) -->
@@ -1711,7 +1721,8 @@
       <div class="frc-actions">
         <button class="btn frc-btn" id="btn-frc-zoom30">🔍 Volg tot 30m</button>
         <button class="btn frc-btn" id="btn-frc-cockpit">🛩️ Cockpit</button>
-        <button class="btn frc-btn" id="btn-frc-listen" style="background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;font-weight:700;">📻 Volg Gesprek</button>
+        <button class="btn frc-btn" id="btn-frc-listen" style="background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;font-weight:700;">🎯 Alleen dit gesprek</button>
+        <button class="btn frc-btn" id="btn-frc-all" style="background:rgba(15,23,42,0.8);border:1px solid rgba(56,189,248,0.4);color:#94a3b8;font-weight:700;">📻 Alles horen</button>
       </div>
     </div>
   </div>
@@ -1806,6 +1817,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.8.4"></script>
+  <script src="app.js?v=2.8.5"></script>
 </body>
 </html>
