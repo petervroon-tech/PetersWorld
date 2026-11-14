@@ -1160,6 +1160,10 @@
         <span>📐</span>
         <span id="txt-reset-layout">Scherm Ordenen</span>
       </div>
+      <div class="pill help-pill" id="btn-open-help" title="Bekijk de handleiding met alle werkende functionaliteiten (?)" style="border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.15);color:#7dd3fc;cursor:pointer;">
+        <span>❓</span>
+        <span>Help</span>
+      </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
       <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.5</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
@@ -1802,6 +1806,109 @@
       <span class="m-nav-label">Dag</span>
     </button>
   </nav>
+
+  <!-- Help & Werkende Functionaliteiten Modal -->
+  <div id="help-modal" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.85);backdrop-filter:blur(8px);z-index:9999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+    <div style="background:rgba(8,18,36,0.98);border:1px solid rgba(56,189,248,0.5);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.9),0 0 30px rgba(56,189,248,0.25);width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(15,23,42,0.95);border-bottom:1px solid rgba(56,189,248,0.25);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.4rem;">📖</span>
+          <div>
+            <h2 style="margin:0;font-size:1.08rem;font-weight:800;color:#fff;letter-spacing:0.5px;">PetersWorld — Gebruikershandleiding</h2>
+            <div style="font-size:0.72rem;color:var(--cyan);font-family:var(--mono);">Uitsluitend 100% actieve & geteste functies (v2.8.5)</div>
+          </div>
+        </div>
+        <button id="btn-close-help" style="background:transparent;border:none;color:#94a3b8;font-size:1.7rem;cursor:pointer;padding:0 6px;line-height:1;transition:color 0.2s;" title="Sluit help (ESC)">&times;</button>
+      </div>
+      <div style="padding:20px 24px;overflow-y:auto;font-size:0.86rem;line-height:1.65;display:flex;flex-direction:column;gap:16px;color:#cbd5e1;">
+        
+        <!-- Sectie 1: Vliegtuigen Volgen -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>✈️</span> 1. Vliegtuigen Volgen & Selecteren
+          </h3>
+          <p style="margin:0 0 6px 0;"><strong>Selecteren:</strong> Klik met de muis op een vliegtuig, of tik er op iPad/iPhone/Android direct met uw vinger op (voorzien van een ruime aanraaksfeer). U kunt ook in het <em>Luchthavenbord (FIDS)</em> op een vlucht klikken.</p>
+          <p style="margin:0 0 6px 0;"><strong>Vliegtuigkaart (Flightradar Card):</strong> Toont direct maatschappij, toesteltype, herkomst, bestemming, hoogte, snelheid én op <strong>welke baan</strong> het toestel stijgt of landt (bijv. <em>🛬 Polderbaan 18R</em>).</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.75rem;font-family:var(--mono);margin-top:6px;">
+            <span style="background:rgba(21,128,61,0.25);border:1px solid #15803d;color:#86efac;padding:2px 8px;border-radius:4px;">🟢 Groen: Dalend (Landing)</span>
+            <span style="background:rgba(202,138,4,0.25);border:1px solid #ca8a04;color:#fde047;padding:2px 8px;border-radius:4px;">🟡 Geel: Stijgend (Vertrek)</span>
+            <span style="background:rgba(107,33,168,0.25);border:1px solid #6b21a8;color:#d8b4fe;padding:2px 8px;border-radius:4px;">🟣 Paars: Kruishoogte</span>
+          </div>
+        </div>
+
+        <!-- Sectie 2: ATC Radio & 2 Modi -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>📻</span> 2. Live ATC Radio & Twee Audiomodi
+          </h3>
+          <p style="margin:0 0 6px 0;">In het radiopaneel kunt u direct kiezen tussen 2 heldere luistermodi:</p>
+          <ul style="margin:0 0 6px 0;padding-left:18px;">
+            <li><strong style="color:#fff;">🎯 Alleen dit vliegtuig:</strong> Dempt de algemene live stream direct volledig. U hoort <em>uitsluitend</em> de 1-op-1 communicatie tussen de toren en de cockpit van het geselecteerde vliegtuig (met callsign, baan, wind en klaring). Geen conversaties van andere vliegtuigen meer doorheen!</li>
+            <li><strong style="color:#fff;">📻 Alles uitluisteren:</strong> Opent de volledige, ongefilterde live scanner-feed van de torenfrequentie via LiveATC (Kaagbaan 118.100, Polderbaan 118.275, Approach, Departure of Delivery).</li>
+          </ul>
+        </div>
+
+        <!-- Sectie 3: WAV Opname -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>🎙️</span> 3. Gesprekken Opnemen (.wav)
+          </h3>
+          <p style="margin:0;">Klik op de rode knop <strong>🎙️ START OPNAME (WAV)</strong>. De app neemt de radio live op via directe Web Audio PCM en slaat het audiobestand bij het stoppen automatisch op als zuiver <code>.wav</code>-bestand op uw apparaat.</p>
+        </div>
+
+        <!-- Sectie 4: Camera & 30m Zoom -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>📷</span> 4. Camera & Zoommodi (Onderbalk)
+          </h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.8rem;">
+            <div><strong>🔍 30m Grond (toets 1):</strong> Zoomt in tot 30 meter boven de baan.</div>
+            <div><strong>🛬 300m Baan (toets 2):</strong> Overzicht op 300m hoogte.</div>
+            <div><strong>🛩️ Cockpit (toets C):</strong> Vlieg mee vanuit de cockpit.</div>
+            <div><strong>✈️ Volg Vliegtuig (toets F):</strong> Chase-cam op 30m achter het toestel.</div>
+            <div><strong>🛰️ Satelliet NL (toets 3):</strong> Satellietoverzicht van Nederland.</div>
+            <div><strong>☀️ Dag / Nacht:</strong> Realistisch zonlicht of dagzicht.</div>
+          </div>
+        </div>
+
+        <!-- Sectie 5: Fotorealistische Satelliet & Schiphol -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>🛰️</span> 5. Fotorealistische Satelliet & Schiphol (0% Geel)
+          </h3>
+          <p style="margin:0;">De bodem toont echte PDOK & Esri 25cm luchtfoto's. Alle 6 start- en landingsbanen van Schiphol liggen op hun exacte coördinaten. Terminals, pieren en slurven zijn voorzien van glazen gevels en bitumen daken. Alle gele markeringen en ringen zijn verwijderd.</p>
+        </div>
+
+        <!-- Sectie 6: Vensters Verplaatsen & Scherm Ordenen -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>📐</span> 6. Vensters Verplaatsen & Scherm Ordenen
+          </h3>
+          <p style="margin:0 0 4px 0;">Alle vensters (Radar HUD, Vluchtenbord en Gesprekken) zijn vrij versleepbaar (Drag & Drop) en aan alle 8 randen/hoeken te vergroten of te verkleinen.</p>
+          <p style="margin:0;">Klik op <strong>📐 Scherm Ordenen (toets X)</strong> in de menubalk om alle vensters met één klik netjes terug te zetten op hun standaardposities.</p>
+        </div>
+
+        <!-- Sectie 7: Sneltoetsen -->
+        <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
+          <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
+            <span>⌨️</span> 7. Sneltoetsen Overzicht
+          </h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.75rem;font-family:var(--mono);">
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>1</code>: 30m Zoom</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>2</code>: 300m Zoom</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>3</code>: Satelliet NL</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>C</code>: Cockpit</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>F</code>: Volg Vliegtuig</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>R</code>: Radio Openen</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>B</code>: Vluchtenbord</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>X</code>: Scherm Ordenen</span>
+            <span style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:3px 8px;border-radius:4px;"><code>ESC</code>: Sluiten</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
 
   <!-- Three.js en OrbitControls (lokaal gebundeld met CDN fallback) -->
   <script src="libs/three.min.js"></script>

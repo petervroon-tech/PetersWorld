@@ -5756,6 +5756,27 @@ function setupControls() {
     });
   }
 
+  // Help & Werkende Functies Handleiding Modal
+  const btnHelp = document.getElementById('btn-open-help');
+  const modalHelp = document.getElementById('help-modal');
+  const btnCloseHelp = document.getElementById('btn-close-help');
+
+  if (btnHelp && modalHelp) {
+    btnHelp.addEventListener('click', () => {
+      modalHelp.style.display = 'flex';
+    });
+  }
+  if (btnCloseHelp && modalHelp) {
+    btnCloseHelp.addEventListener('click', () => {
+      modalHelp.style.display = 'none';
+    });
+  }
+  if (modalHelp) {
+    modalHelp.addEventListener('click', (e) => {
+      if (e.target === modalHelp) modalHelp.style.display = 'none';
+    });
+  }
+
   // Start responsieve interface voor smartphones, tablets en laptops
   initResponsiveUI();
 }
@@ -6577,6 +6598,20 @@ class PanelResizerManager {
         return;
       }
       const key = e.key.toUpperCase();
+      if (key === 'ESCAPE') {
+        const modalHelp = document.getElementById('help-modal');
+        if (modalHelp && modalHelp.style.display === 'flex') {
+          modalHelp.style.display = 'none';
+          return;
+        }
+      }
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        const modalHelp = document.getElementById('help-modal');
+        if (modalHelp) {
+          modalHelp.style.display = modalHelp.style.display === 'flex' ? 'none' : 'flex';
+          return;
+        }
+      }
       if (key === 'B') {
         this.cycleDeckSize();
       } else if (key === 'R') {
