@@ -1,4 +1,4 @@
-# 📖 PetersWorld — Gebruikershandleiding & Werkende Functionaliteiten (v2.8.6)
+# 📖 PetersWorld — Gebruikershandleiding & Werkende Functionaliteiten (v2.8.7)
 
 Welkom bij **PetersWorld** (Realtime Vluchtradar Nederland & Schiphol Live ATC).  
 In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende functies** van de applicatie opgenomen, inclusief bediening voor computer, iPad, iPhone en Android.  
@@ -21,7 +21,7 @@ In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende fun
    - **Herkomst & Bestemming** met landenvlaggen.
    - **Hoogte in meters & voeten** en **grondsnelheid in km/u & knopen**.
    - **Baan-indicatie**: Toont exact op welke baan het toestel stijgt of landt (bijv. `🛬 Polderbaan 18R (3800m)` of `🛫 Kaagbaan 24 (3500m)`).
-3. De radio stemt direct af op de juiste toren- of naderingsfrequentie van dat toestel.
+3. De radio stemt direct af op de juiste toren- of naderingsfrequentie van dat specifieke toestel.
 
 ### Vliegtuigkleuren op de radar:
 * 🟢 **Donkergroen (`#15803d`):** Dalende toestellen (Approach / Landing).
@@ -30,27 +30,37 @@ In dit document zijn **uitsluitend de daadwerkelijk geteste en 100% werkende fun
 
 ---
 
-## 📻 2. Live ATC Verkeersleiding & Radiocommunicatie (100% Echte Mensen)
+## 📻 2. Live ATC Verkeersleiding & Gescheiden Frequenties (Landen vs Vertrek)
 
 In PetersWorld hoort u **geen computerstemmen of robot-audio**. Alle communicatie is 100% echte menselijke radio tussen de verkeerstoren en de piloten.
+
+### Waarom hoorde u voorheen vertrekkende vliegtuigen tijdens het landen?
+Op Schiphol is de Kaagbaan (118.100 MHz) de primaire startbaan voor vertrekkend verkeer. Als alle landende vliegtuigen standaard naar toren 1 (118.100 MHz) werden gestuurd, hoorde u piloten die startklaringen kregen op de Kaagbaan.
+
+### Oplossing in v2.8.7 (Strikte Scheiding):
+* **🛬 Landende Vliegtuigen:** Worden nu direct en strikt gekoppeld aan de officiële pure landingskanalen van Schiphol:
+  - **Polderbaan Toren 2 (118.275 MHz):** Dé landingsbaan van Schiphol (18R). Hier stijgen **nooit** vliegtuigen op, waardoor u uitsluitend landend verkeer en landing clearances hoort!
+  - **Final Director (124.875 MHz):** De naderingsverkeersleider die alle inkomende vliegtuigen oplijnt voor de ILS-landing (uitsluitend naderend en landend verkeer).
+* **🛫 Vertrekkende Vliegtuigen:** Worden gekoppeld aan **Kaagbaan Toren 1 (118.100 MHz)** en **Schiphol Departure (121.200 MHz)** waar uitsluitend stijgend verkeer te horen is.
+* **Statusindicator:** In de statusbalk en op de radioknop ziet u direct: `🛬 Uitsluitend Landingen (geen vertrek)` of `🛫 Stijgend & Vertrekkend Verkeer`.
 
 In het venster **ATC Gesprekken & Radio** zijn twee modi beschikbaar:
 
 ### Modus 1: `🎯 Alleen dit vliegtuig` (Gericht op toren van het toestel)
-* **Werking:** Zodra u een specifiek vliegtuig aanklikt, stemt de live radio automatisch direct af op de specifieke toren- of naderingsfrequentie van dát toestel (bijv. Polderbaan Toren 118.275 MHz als het daar landt, of Kaagbaan 118.100 MHz).
+* **Werking:** Zodra u een specifiek vliegtuig aanklikt, stemt de live radio automatisch direct af op de specifieke toren- of naderingsfrequentie van dát toestel (bijv. Polderbaan Toren 118.275 MHz als het daar landt, of Final Director 124.875 MHz).
 * **Wat hoort u?** De echte menselijke live radio-uitzending van die specifieke verkeerstoren.
-* **Geen computerstemmen:** Synthetische computerstemmen zijn volledig uitgeschakeld. U hoort uitsluitend de echte live radio.
+* **Geen computerstemmen:** Synthetische computerstemmen zijn 100% uitgeschakeld. U hoort uitsluitend de echte live radio.
 
 ### Modus 2: `📻 Alles uitluisteren` (Volledige scanner)
 * **Werking:** Luister vrij naar elke gewenste frequentie via de live scanner-feed van LiveATC (Icecast stream).
 * **Wat hoort u?** Alle piloten en verkeersleiders die op dat moment live communiceren op de gekozen toren- of naderingsfrequentie.
 * **Kanalenkeuze:** U kunt via het dropdown-menu handmatig schakelen tussen o.a.:
-  - *Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)*
-  - *Schiphol Toren 2 (118.275 MHz - Polderbaan)*
-  - *Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan)*
-  - *Schiphol Approach N/O/Z/W (119.050 / 121.200 / 118.075 / 131.150 MHz)*
-  - *Schiphol Final Director (124.875 MHz - ILS Oplijning)*
-  - *Schiphol Delivery (121.980 MHz - Vluchtklaringen)*
+  - *🛬 Schiphol Toren 2 (118.275 MHz - Polderbaan 18R · Alleen Landen)*
+  - *🛬 Schiphol Final Director (124.875 MHz - ILS Landingen)*
+  - *🛬 Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan/Buitenveldert)*
+  - *🛫 Schiphol Toren 1 (118.100 MHz - Kaagbaan Starts & Vertrek)*
+  - *🛫 Schiphol Vertrek NOORD (121.200 MHz - Alleen Stijgend Verkeer)*
+  - *🧭 Schiphol Inkomend NOORD/OOST/ZUID/WEST (119.050 / 121.200 / 118.075 / 131.150 MHz)*
   - *Rotterdam The Hague, Eindhoven, Maastricht Aachen, Eelde, Lelystad, Teuge, Texel*.
 
 ---
@@ -154,4 +164,4 @@ Op mobiele apparaten past de interface zich automatisch aan:
 * **Handmatig forceren:** Klik op het **🔄** verversicoon rechtsboven om direct de cache te wissen en de nieuwste WebAssembly engine te laden.
 
 ---
-*Versie: **v2.8.5** • Live URL: **[https://petervroon-tech.github.io/PetersWorld/](https://petervroon-tech.github.io/PetersWorld/)***
+*Versie: **v2.8.7** • Live URL: **[https://petervroon-tech.github.io/PetersWorld/](https://petervroon-tech.github.io/PetersWorld/)***

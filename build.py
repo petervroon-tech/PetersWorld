@@ -13,7 +13,7 @@ import subprocess
 from datetime import datetime, timezone
 
 APP_NAME = "PetersWorld"
-DEFAULT_VERSION = "2.8.6"
+DEFAULT_VERSION = "2.8.7"
 
 def leb_u(v: int) -> bytes:
     """Encodeert een unsigned integer naar LEB128 (WebAssembly specificatie)."""
@@ -114,8 +114,8 @@ def build_wasm(output_path: str):
     # 5. Code Section (ID 10)
     # -------------------------------------------------------------
     
-    # Func 0: get_version() -> i32 (286 voor v2.8.6)
-    code0 = bytes([0]) + i32_const(286) + bytes([0x0B])
+    # Func 0: get_version() -> i32 (287 voor v2.8.7)
+    code0 = bytes([0]) + i32_const(287) + bytes([0x0B])
 
     # Func 1: get_state_ptr() -> i32 (basisadres 0)
     code1 = bytes([0]) + i32_const(0) + bytes([0x0B])
@@ -253,6 +253,7 @@ def update_version_file(version_path: str, forced_sha=None, forced_build=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "git_hash": forced_sha or get_git_hash(),
         "features": [
+            "Gescheiden landings- en vertrekfrequenties (v2.8.7): bij het volgen van een landend vliegtuig stemt de radio nu uitsluitend af op de pure landingsfrequenties van Schiphol (Polderbaan Toren 118.275 MHz en Final Director 124.875 MHz waar vliegtuigen NOOIT opstijgen). Hierdoor hoort u tijdens het kijken naar landende vliegtuigen geen stijgende of vertrekkende toestellen meer door de radio.",
             "100% Echte menselijke live communicatie zonder computerstemmen (v2.8.6): synthetische computerstemmen (speechSynthesis) zijn volledig verwijderd. Bij het selecteren van een vliegtuig of toren hoort u uitsluitend de echte, realtime live radio-uitzending van de verkeersleiders en piloten via de live torenfrequenties (LiveATC Icecast streams).",
             "Exclusieve 1-op-1 communicatiemodus tussen toren en individueel vliegtuig (v2.8.5): bij het klikken op een individueel vliegtuig worden alle overige conversaties van andere toestellen direct gedempt. Alleen de officiële verkeersleiding en cockpit-readbacks voor dat specifieke toestel zijn hoorbaar met zendindicators (TX-TWR/TX-PLT) en vliegfase-klaringen (landing, opstijgen, kruisvlucht). Tevens voorzien van een segmented switcher 'Alleen dit vliegtuig' vs 'Alles uitluisteren' voor de algemene torenfrequentie.",
             "Fotorealistische architectonische gebouwen zonder geel (v2.8.4): alle luchthavengebouwen, terminals (hallen 1, 2, 3 en Schiphol Plaza), pieren (B t/m H/M) en hangars zijn voorzien van procedurele fotorealistische glasgevels, donkere bitumen daken met airco/HVAC installaties, telescopische passagiersslurven (jet bridges) naar de vliegtuigdeuren, architectonisch beton op de 101m verkeerstoren en 0% geel.",
@@ -324,7 +325,7 @@ def verify_wasm_locally(wasm_path: str):
             var bytes = read('{wasm_path}', 'binary');
             var module = new WebAssembly.Module(bytes);
             var inst = new WebAssembly.Instance(module, {{}});
-            if (inst.exports.get_version() !== 286) throw new Error('Versie mismatch in WASM');
+            if (inst.exports.get_version() !== 287) throw new Error('Versie mismatch in WASM');
             inst.exports.init_world(42);
             var tick = inst.exports.update(16, 1);
             if (tick !== 1) throw new Error('Simulatie update faalde');

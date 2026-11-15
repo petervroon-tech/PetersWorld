@@ -513,20 +513,20 @@ class LiveAtcEngine {
       ehkd_app: 'eham_twr_042218l36r'
     };
     this.stationLabels = {
-      // 🇳🇱 Schiphol Torens & Banen
-      eham_twr: '🇳🇱 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan)',
-      eham_twr2: '🇳🇱 Schiphol Toren 2 (118.275 MHz - Polderbaan)',
-      eham_twr3: '🇳🇱 Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan/Buitenveldert)',
+      // 🇳🇱 Schiphol Torens & Banen (Gescheiden Landen vs Vertrek)
+      eham_twr2: '🛬 Schiphol Toren 2 (118.275 MHz - Polderbaan 18R · Alleen Landen)',
+      eham_app_fin: '🛬 Schiphol Final Director (124.875 MHz - ILS Landingen)',
+      eham_twr3: '🛬 Schiphol Toren 3 (119.900 MHz - Zwanenburgerbaan/Buitenveldert)',
+      eham_twr: '🛫 Schiphol Toren 1 (118.100 MHz - Kaagbaan/Aalsmeerbaan Starts & Vertrek)',
+      eham_dep_n: '🛫 Schiphol Vertrek (121.200 MHz - Alleen Stijgend Verkeer)',
       
       // 🇳🇱 Schiphol Inkomend Verkeer (Arrival / Nadering)
       eham_app_n: '🧭 Schiphol Inkomend NOORD (119.050 MHz - Approach ARTIP)',
       eham_app_e: '🧭 Schiphol Inkomend OOST (121.200 MHz - Approach EELDE)',
       eham_app_s: '🧭 Schiphol Inkomend ZUID (118.075 MHz - Approach RIVER)',
       eham_app_w: '🧭 Schiphol Inkomend WEST (131.150 MHz - Approach SUGOL)',
-      eham_app_fin: '🛬 Schiphol Final Director (124.875 MHz - ILS Baanoplijning)',
 
       // 🇳🇱 Schiphol Vertrekkend Verkeer (Departure / Vertrek)
-      eham_dep_n: '🛫 Schiphol Vertrek NOORD (121.200 MHz - Departure ANDIK)',
       eham_dep_e: '🛫 Schiphol Vertrek OOST (119.050 MHz - Departure ARNEM)',
       eham_dep_s: '🛫 Schiphol Vertrek ZUID (118.075 MHz - Departure VALKO)',
       eham_dep_w: '🛫 Schiphol Vertrek WEST (124.300 MHz - Departure BERGI)',
@@ -923,21 +923,17 @@ class LiveAtcEngine {
       if (flight) {
         const regTxt = flight.registration ? ` (${flight.registration})` : '';
         const chanName = atcInfo ? `${atcInfo.channel} (${atcInfo.freq} MHz)` : label;
-        if (this.audioMode === 'individual') {
-          if (this.isPlaying) {
-            statusTxt.innerHTML = `🎯 <strong>INDIVIDUEEL GESPREK ACTIEF</strong> &bull; 1-op-1 communicatie toren ⇄ <strong>${flight.callsign}</strong>${regTxt} &bull; <em>Overige gesprekken gedempt</em>`;
-          } else {
-            statusTxt.innerHTML = `🎯 <strong>AFGESTEMD OP 1-OP-1 GESPREK</strong> &bull; Klaar voor communicatie met <strong>${flight.callsign}</strong>${regTxt}`;
-          }
+        const isLand = (flight.category && flight.category.type === 'landing');
+        const isTakeoff = (flight.category && flight.category.type === 'takeoff');
+        const trafficType = isLand ? '🛬 Uitsluitend Landingen (geen vertrek)' : (isTakeoff ? '🛫 Stijgend & Vertrekkend Verkeer' : '✈️ Luchtruim');
+
+        if (this.isPlaying) {
+          statusTxt.innerHTML = `🔴 <strong>LIVE TOREN RADIO ACTIEF</strong> &bull; <strong>${flight.callsign}</strong>${regTxt} &bull; ${chanName} &bull; <em>${trafficType}</em>`;
         } else {
-          if (this.isPlaying) {
-            statusTxt.innerHTML = `📻 <strong>ALLES UITLUISTEREN ACTIEF</strong> &bull; Volledige toren frequentie met al het vliegverkeer &bull; ${chanName}`;
-          } else {
-            statusTxt.innerHTML = `📻 <strong>ALLES UITLUISTEREN</strong> &bull; Afgestemd op ${chanName}`;
-          }
+          statusTxt.innerHTML = `🟢 <strong>AFGESTEMD OP ${flight.callsign}</strong>${regTxt} &bull; ${chanName} &bull; <em>${trafficType}</em>`;
         }
       } else if (!this.streamStartedAt && !this.isPlaying) {
-        statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding</strong>`;
+        statusTxt.innerHTML = `🟢 100% In-app live radio &bull; <strong>Directe Live Verbinding met Verkeersleiding (Geen computerstemmen)</strong>`;
       }
     }
 
@@ -4030,22 +4026,39 @@ function getFlightAtcStation(flight) {
     return { stationKey: 'ehgg_twr', freq: '118.700', channel: 'Groningen Toren' };
   }
 
-  // Schiphol & Hoofdluchtruim
+  // Schiphol & Hoofdluchtruim (Strikte Scheiding Landen vs Vertrek)
   if (cat.type === 'landing') {
     const alt = flight.altitude || 0;
+    const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
+    const rwy = (rwyInfo && rwyInfo.runway) ? rwyInfo.runway : '';
+
     if (alt < 1400) {
-      return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1' };
-    } else if (alt < 3200) {
-      return { stationKey: 'eham_app_fin', freq: '124.875', channel: 'Schiphol Final Director' };
+      // Polderbaan 18R / 36L: Dé hoofdlandingsbaan van Schiphol (100% PURE LANDINGEN, NOOIT VERTREK)
+      if (rwy.includes('Polderbaan') || rwy.includes('18R') || rwy.includes('36L') || !rwy) {
+        return { stationKey: 'eham_twr2', freq: '118.275', channel: 'Schiphol Toren 2 (Polderbaan 18R · Alleen Landen)' };
+      }
+      // Zwanenburgerbaan 18C / Buitenveldertbaan 27
+      if (rwy.includes('Zwanenburgerbaan') || rwy.includes('18C') || rwy.includes('Buitenveldert') || rwy.includes('27')) {
+        return { stationKey: 'eham_twr3', freq: '119.900', channel: 'Schiphol Toren 3 (Baan 18C/27 · Landingen)' };
+      }
+      // Kaagbaan 06 (Landingen)
+      if (rwy.includes('Kaagbaan') || rwy.includes('06')) {
+        return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1 (Kaagbaan 06 Landingen)' };
+      }
+      return { stationKey: 'eham_twr2', freq: '118.275', channel: 'Schiphol Toren 2 (Polderbaan 18R · Alleen Landen)' };
+    } else if (alt < 3500) {
+      // Final Director: ILS Oplijning voor landend verkeer (uitsluitend landingen, nul vertrek!)
+      return { stationKey: 'eham_app_fin', freq: '124.875', channel: 'Schiphol Final Director (Uitsluitend Landen)' };
     } else {
-      return { stationKey: 'eham_app_n', freq: '119.050', channel: 'Schiphol Approach' };
+      // Approach: Inkomend naderingsverkeer
+      return { stationKey: 'eham_app_n', freq: '119.050', channel: 'Schiphol Approach (Inkomend Verkeer)' };
     }
   } else if (cat.type === 'takeoff') {
     const alt = flight.altitude || 0;
-    if (alt < 1500) {
-      return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1' };
+    if (alt < 1200) {
+      return { stationKey: 'eham_twr', freq: '118.100', channel: 'Schiphol Toren 1 (Kaagbaan 24 · Vertrek & Starts)' };
     } else {
-      return { stationKey: 'eham_dep_n', freq: '121.200', channel: 'Schiphol Departure' };
+      return { stationKey: 'eham_dep_n', freq: '121.200', channel: 'Schiphol Departure (Alleen Stijgend Verkeer)' };
     }
   }
 
@@ -4454,15 +4467,25 @@ function updateFlightCardUI(flight) {
     if (elRwy) elRwy.innerHTML = rwyInfo.badgeHtml;
 
     const atcInfo = flight.atcInfo || getFlightAtcStation(flight);
+    const isLand = (flight.category && flight.category.type === 'landing');
+    const isTakeoff = (flight.category && flight.category.type === 'takeoff');
     const btnListen = document.getElementById('btn-frc-listen');
     if (btnListen) {
-      btnListen.textContent = `🎯 Alleen ${flight.callsign} ⇄ Toren`;
-      btnListen.title = `Luister uitsluitend 1-op-1 naar de toren communicatie van ${flight.callsign} (overige vliegtuigen gedempt)`;
+      if (isLand) {
+        btnListen.textContent = `🛬 Luister Landingen (${atcInfo.freq} MHz)`;
+        btnListen.title = `Afgestemd op ${atcInfo.channel} - uitsluitend landend verkeer (${flight.callsign}), geen vertrekkend verkeer`;
+      } else if (isTakeoff) {
+        btnListen.textContent = `🛫 Luister Vertrek (${atcInfo.freq} MHz)`;
+        btnListen.title = `Afgestemd op ${atcInfo.channel} - stijgend en vertrekkend verkeer (${flight.callsign})`;
+      } else {
+        btnListen.textContent = `🎯 Alleen ${flight.callsign} (${atcInfo.freq} MHz)`;
+        btnListen.title = `Luister naar ${flight.callsign} op ${atcInfo.freq} MHz (${atcInfo.channel})`;
+      }
     }
     const btnFrcAll = document.getElementById('btn-frc-all');
     if (btnFrcAll) {
       btnFrcAll.textContent = `📻 Alles horen (${atcInfo.freq} MHz)`;
-      btnFrcAll.title = `Luister live naar alle vliegtuigen en verkeersleiding op ${atcInfo.freq} MHz`;
+      btnFrcAll.title = `Luister live naar alle verkeer op ${atcInfo.freq} MHz (${atcInfo.channel})`;
     }
   }
 }
@@ -6821,7 +6844,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.6';
+let currentVersion = '2.8.7';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');

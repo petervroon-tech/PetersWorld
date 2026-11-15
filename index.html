@@ -1125,7 +1125,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.8.6</strong> beschikbaar &bull; <span id="upd-note">100% Echte menselijke live verkeersleiding (computerstemmen volledig verwijderd) & toren feeds</span></span>
+      <span><strong id="upd-ver">v2.8.7</strong> beschikbaar &bull; <span id="upd-note">Gescheiden landings- & vertrekfrequenties (geen starts meer tijdens het kijken naar landingen)</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1165,7 +1165,7 @@
         <span>Help</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.6</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.7</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1257,7 +1257,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.8.6</span>
+          <span class="hud-val" id="hud-wasm">v2.8.7</span>
         </div>
       </div>
 
@@ -1815,7 +1815,7 @@
           <span style="font-size:1.4rem;">📖</span>
           <div>
             <h2 style="margin:0;font-size:1.08rem;font-weight:800;color:#fff;letter-spacing:0.5px;">PetersWorld — Gebruikershandleiding</h2>
-            <div style="font-size:0.72rem;color:var(--cyan);font-family:var(--mono);">Uitsluitend 100% actieve & geteste functies (v2.8.6)</div>
+            <div style="font-size:0.72rem;color:var(--cyan);font-family:var(--mono);">Uitsluitend 100% actieve & geteste functies (v2.8.7)</div>
           </div>
         </div>
         <button id="btn-close-help" style="background:transparent;border:none;color:#94a3b8;font-size:1.7rem;cursor:pointer;padding:0 6px;line-height:1;transition:color 0.2s;" title="Sluit help (ESC)">&times;</button>
@@ -1839,12 +1839,14 @@
         <!-- Sectie 2: ATC Radio & 2 Modi -->
         <div style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:12px 14px;">
           <h3 style="margin:0 0 6px 0;font-size:0.92rem;color:#38bdf8;display:flex;align-items:center;gap:6px;">
-            <span>📻</span> 2. Live ATC Radio & Twee Audiomodi
+            <span>📻</span> 2. Live ATC Radio & Gescheiden Frequenties (Landen vs Vertrek)
           </h3>
-          <p style="margin:0 0 6px 0;">In het radiopaneel kunt u direct kiezen tussen 2 heldere luistermodi:</p>
+          <p style="margin:0 0 6px 0;">In PetersWorld hoort u <strong>100% echte menselijke live radio</strong> (0% computerstemmen):</p>
           <ul style="margin:0 0 6px 0;padding-left:18px;">
-            <li><strong style="color:#fff;">🎯 Alleen dit vliegtuig:</strong> Dempt de algemene live stream direct volledig. U hoort <em>uitsluitend</em> de 1-op-1 communicatie tussen de toren en de cockpit van het geselecteerde vliegtuig (met callsign, baan, wind en klaring). Geen conversaties van andere vliegtuigen meer doorheen!</li>
-            <li><strong style="color:#fff;">📻 Alles uitluisteren:</strong> Opent de volledige, ongefilterde live scanner-feed van de torenfrequentie via LiveATC (Kaagbaan 118.100, Polderbaan 118.275, Approach, Departure of Delivery).</li>
+            <li><strong style="color:#fff;">🛬 Strikte Landingsfrequenties:</strong> Als u een landend vliegtuig volgt, stemt de radio uitsluitend af op pure landingsfrequenties (zoals <em>Polderbaan Toren 2 118.275 MHz</em> en <em>Final Director 124.875 MHz</em>). Hier stijgen <strong>nooit</strong> vliegtuigen op, zodat u geen verwarrende startklaringen hoort.</li>
+            <li><strong style="color:#fff;">🛫 Strikte Vertrekfrequenties:</strong> Bij een stijgend toestel stemt de radio af op vertrekfrequenties (<em>Departure 121.200 MHz</em> of Kaagbaan starttoren).</li>
+            <li><strong style="color:#fff;">🎯 Alleen dit vliegtuig:</strong> Richt de radio en transcriptie direct op het geselecteerde toestel.</li>
+            <li><strong style="color:#fff;">📻 Alles uitluisteren:</strong> Vrij schakelen tussen alle torens en naderingsfrequenties via het dropdown-menu.</li>
           </ul>
         </div>
 
@@ -1924,6 +1926,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.8.6"></script>
+  <script src="app.js?v=2.8.7"></script>
 </body>
 </html>
