@@ -599,13 +599,13 @@ class LiveAtcEngine {
   getLiveStreamUrl(stationKey) {
     const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
     const nocache = Date.now();
-    return `https://s1-bos.liveatc.net/${mount}?nocache=${nocache}`;
+    return `https://s1-fmt2.liveatc.net/${mount}?nocache=${nocache}`;
   }
 
   getBackupStreamUrl(stationKey) {
     const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
     const nocache = Date.now();
-    return `https://s1-fmt2.liveatc.net/${mount}?nocache=${nocache}`;
+    return `https://s1-bos.liveatc.net/${mount}?nocache=${nocache}`;
   }
 
   init() {

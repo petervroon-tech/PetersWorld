@@ -1,9 +1,9 @@
 {
   "app_name": "PetersWorld",
   "version": "2.8.7",
-  "build": 81,
-  "timestamp": "2026-11-27T22:15:34.030096+00:00",
-  "git_hash": "c47e3be",
+  "build": 82,
+  "timestamp": "2026-11-27T22:54:36.483857+00:00",
+  "git_hash": "accfdf5",
   "features": [
     "Geen nep-data: alleen echt live vliegverkeer (Flightradar24 ADS-B). Verzonnen simulatievluchten, nep-ATC-gesprekken, nep-golfvorm/S-meter, Regie-simulatieknoppen en vaste windwaarden zijn verwijderd. Zonder data toont de app eerlijk 'Wachten op live ADS-B-feed…', 'Live feed niet bereikbaar' of 'Geen vluchten ontvangen'. Radio = echte LiveATC-stream van de dichtstbijzijnde toren.",
     "Gescheiden landings- en vertrekfrequenties (v2.8.7): bij het volgen van een landend vliegtuig stemt de radio nu uitsluitend af op de pure landingsfrequenties van Schiphol (Polderbaan Toren 118.275 MHz en Final Director 124.875 MHz waar vliegtuigen NOOIT opstijgen). Hierdoor hoort u tijdens het kijken naar landende vliegtuigen geen stijgende of vertrekkende toestellen meer door de radio.",
