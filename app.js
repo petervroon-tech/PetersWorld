@@ -599,13 +599,12 @@ class LiveAtcEngine {
   getLiveStreamUrl(stationKey) {
     const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
     const nocache = Date.now();
-    return `https://s1-fmt2.liveatc.net/${mount}?nocache=${nocache}`;
+    return `https://d.liveatc.net/${mount}?nocache=${nocache}`;
   }
 
   getBackupStreamUrl(stationKey) {
     const mount = (this.liveMounts && this.liveMounts[stationKey]) || 'eham_twr_0624';
-    const nocache = Date.now();
-    return `https://s1-bos.liveatc.net/${mount}?nocache=${nocache}`;
+    return `https://d.liveatc.net/${mount}`;
   }
 
   init() {
@@ -1023,7 +1022,6 @@ class LiveAtcEngine {
     const canvas = document.getElementById('atc-audio-visualizer');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    let analyser = null, buf = null, tried = false;
 
     const draw = () => {
       this.animVizId = requestAnimationFrame(draw);
@@ -1032,33 +1030,16 @@ class LiveAtcEngine {
       ctx.fillRect(0, 0, w, h);
 
       const smeter = document.getElementById('liveatc-smeter');
-      if (smeter) smeter.textContent = this.isPlaying ? '▶ Audio speelt' : '—';
+      if (smeter) smeter.textContent = this.isPlaying ? '▶ Live radio actief (wachten op transmissie)' : '—';
 
-      // Echte AnalyserNode (alleen als de stream meetbaar is; CORS kan dit blokkeren)
-      if (this.isPlaying && !tried && this.audioCtx) {
-        tried = true;
-        try {
-          const stream = this.getAudioStream();
-          if (stream && this.audioCtx.createMediaStreamSource) {
-            const src = this.audioCtx.createMediaStreamSource(stream);
-            analyser = this.audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            buf = new Uint8Array(analyser.fftSize);
-            src.connect(analyser);
-          }
-        } catch (e) { analyser = null; }
-      }
-      if (!this.isPlaying) tried = false;
-
-      ctx.lineWidth = this.isPlaying && analyser ? 1.5 : 1;
-      ctx.strokeStyle = this.isPlaying && analyser ? '#38bdf8' : 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = this.isPlaying ? 1.5 : 1;
+      ctx.strokeStyle = this.isPlaying ? '#38bdf8' : 'rgba(56, 189, 248, 0.25)';
       ctx.beginPath();
-      if (this.isPlaying && analyser) {
-        analyser.getByteTimeDomainData(buf);
-        const step = w / (buf.length - 1);
-        for (let i = 0; i < buf.length; i++) {
-          const y = (buf[i] / 255) * h;
-          if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * step, y);
+      if (this.isPlaying) {
+        const t = Date.now() * 0.006;
+        for (let x = 0; x < w; x++) {
+          const y = (h / 2) + Math.sin(x * 0.07 + t) * (h * 0.22) * Math.sin(t * 0.4 + x * 0.01);
+          if (x === 0) ctx.moveTo(0, y); else ctx.lineTo(x, y);
         }
       } else {
         ctx.moveTo(0, h / 2);
@@ -1091,11 +1072,13 @@ class LiveAtcEngine {
     }
 
     if (this.audioCtx) {
-      if (!this.mediaSourceNode) {
+      if (!this.mediaSourceNode && this.audioEl) {
         try {
           this.mediaSourceNode = this.audioCtx.createMediaElementSource(this.audioEl);
           this.mediaDestNode = this.audioCtx.createMediaStreamDestination();
-          // Geen dubbele connectie naar destination; native <audio> speelt al direct af via luidsprekers
+          // BELANGRIJK: Bij createMediaElementSource MOET de node ook naar destination verbonden zijn
+          // zodat het geluid hoorbaar blijft via de luidsprekers!
+          this.mediaSourceNode.connect(this.audioCtx.destination);
           this.mediaSourceNode.connect(this.mediaDestNode);
         } catch (err) {
           console.warn('Web Audio createMediaElementSource error:', err);
@@ -6396,15 +6379,15 @@ function initResponsiveUI() {
     });
   }
 
-  // Eerste aanraking op iPad / iPhone / Android ontgrendelt audio direct (Safari & Chrome audio policy)
-  const unlockMobileAudio = () => {
+  // Eerste interactie op desktop, iPad, iPhone of Android ontgrendelt audio direct (Safari, Chrome & Edge audio policy)
+  const unlockAudio = () => {
     ATC.ensureAudioCtx();
     LIVEATC.ensureAudioCtx();
-    window.removeEventListener('touchstart', unlockMobileAudio);
-    window.removeEventListener('touchend', unlockMobileAudio);
+    const evts = ['touchstart', 'touchend', 'click', 'pointerdown', 'mousedown', 'keydown'];
+    evts.forEach(evt => window.removeEventListener(evt, unlockAudio));
   };
-  window.addEventListener('touchstart', unlockMobileAudio, { passive: true });
-  window.addEventListener('touchend', unlockMobileAudio, { passive: true });
+  const evts = ['touchstart', 'touchend', 'click', 'pointerdown', 'mousedown', 'keydown'];
+  evts.forEach(evt => window.addEventListener(evt, unlockAudio, { passive: true }));
 
   // Reset display stijlen bij venster resize (bijv. van smartphone naar tablet/desktop)
   window.addEventListener('resize', () => {
