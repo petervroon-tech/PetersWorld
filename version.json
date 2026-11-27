@@ -1,10 +1,11 @@
 {
   "app_name": "PetersWorld",
   "version": "2.8.7",
-  "build": 80,
-  "timestamp": "2026-11-15T15:43:01.197753+00:00",
-  "git_hash": "80b7085",
+  "build": 81,
+  "timestamp": "2026-11-27T22:15:34.030096+00:00",
+  "git_hash": "c47e3be",
   "features": [
+    "Geen nep-data: alleen echt live vliegverkeer (Flightradar24 ADS-B). Verzonnen simulatievluchten, nep-ATC-gesprekken, nep-golfvorm/S-meter, Regie-simulatieknoppen en vaste windwaarden zijn verwijderd. Zonder data toont de app eerlijk 'Wachten op live ADS-B-feed…', 'Live feed niet bereikbaar' of 'Geen vluchten ontvangen'. Radio = echte LiveATC-stream van de dichtstbijzijnde toren.",
     "Gescheiden landings- en vertrekfrequenties (v2.8.7): bij het volgen van een landend vliegtuig stemt de radio nu uitsluitend af op de pure landingsfrequenties van Schiphol (Polderbaan Toren 118.275 MHz en Final Director 124.875 MHz waar vliegtuigen NOOIT opstijgen). Hierdoor hoort u tijdens het kijken naar landende vliegtuigen geen stijgende of vertrekkende toestellen meer door de radio.",
     "100% Echte menselijke live communicatie zonder computerstemmen (v2.8.6): synthetische computerstemmen (speechSynthesis) zijn volledig verwijderd. Bij het selecteren van een vliegtuig of toren hoort u uitsluitend de echte, realtime live radio-uitzending van de verkeersleiders en piloten via de live torenfrequenties (LiveATC Icecast streams).",
     "Exclusieve 1-op-1 communicatiemodus tussen toren en individueel vliegtuig (v2.8.5): bij het klikken op een individueel vliegtuig worden alle overige conversaties van andere toestellen direct gedempt. Alleen de officiële verkeersleiding en cockpit-readbacks voor dat specifieke toestel zijn hoorbaar met zendindicators (TX-TWR/TX-PLT) en vliegfase-klaringen (landing, opstijgen, kruisvlucht). Tevens voorzien van een segmented switcher 'Alleen dit vliegtuig' vs 'Alles uitluisteren' voor de algemene torenfrequentie.",

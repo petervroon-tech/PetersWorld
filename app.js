@@ -1023,6 +1023,7 @@ class LiveAtcEngine {
     const canvas = document.getElementById('atc-audio-visualizer');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    let analyser = null, buf = null, tried = false;
 
     const draw = () => {
       this.animVizId = requestAnimationFrame(draw);
@@ -1030,33 +1031,40 @@ class LiveAtcEngine {
       ctx.fillStyle = 'rgba(6, 15, 30, 0.4)';
       ctx.fillRect(0, 0, w, h);
 
-      if (this.isPlaying) {
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = '#38bdf8';
-        ctx.beginPath();
-        const slices = 40;
-        const sliceW = w / slices;
-        for (let i = 0; i < slices; i++) {
-          const noise = (Math.random() - 0.5) * (h * 0.7);
-          const y = (h / 2) + Math.sin(Date.now() * 0.01 + i * 0.4) * (h * 0.28) + noise * 0.3;
-          if (i === 0) ctx.moveTo(0, y);
-          else ctx.lineTo(i * sliceW, y);
-        }
-        ctx.stroke();
+      const smeter = document.getElementById('liveatc-smeter');
+      if (smeter) smeter.textContent = this.isPlaying ? '▶ Audio speelt' : '—';
 
-        const smeter = document.getElementById('liveatc-smeter');
-        if (smeter && Math.random() > 0.8) {
-          const sVals = ['S8 +5dB', 'S9 +10dB', 'S9 +20dB', 'S9 +15dB'];
-          smeter.textContent = `S-METER: ${sVals[Math.floor(Math.random() * sVals.length)]}`;
+      // Echte AnalyserNode (alleen als de stream meetbaar is; CORS kan dit blokkeren)
+      if (this.isPlaying && !tried && this.audioCtx) {
+        tried = true;
+        try {
+          const stream = this.getAudioStream();
+          if (stream && this.audioCtx.createMediaStreamSource) {
+            const src = this.audioCtx.createMediaStreamSource(stream);
+            analyser = this.audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            buf = new Uint8Array(analyser.fftSize);
+            src.connect(analyser);
+          }
+        } catch (e) { analyser = null; }
+      }
+      if (!this.isPlaying) tried = false;
+
+      ctx.lineWidth = this.isPlaying && analyser ? 1.5 : 1;
+      ctx.strokeStyle = this.isPlaying && analyser ? '#38bdf8' : 'rgba(56, 189, 248, 0.25)';
+      ctx.beginPath();
+      if (this.isPlaying && analyser) {
+        analyser.getByteTimeDomainData(buf);
+        const step = w / (buf.length - 1);
+        for (let i = 0; i < buf.length; i++) {
+          const y = (buf[i] / 255) * h;
+          if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * step, y);
         }
       } else {
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
-        ctx.beginPath();
         ctx.moveTo(0, h / 2);
         ctx.lineTo(w, h / 2);
-        ctx.stroke();
       }
+      ctx.stroke();
     };
     draw();
   }
@@ -1590,10 +1598,21 @@ class LiveRadarManager {
     this.liveFlightsMap = new Map();
     this.timerId = null;
     this.hasReceivedLive = false;
+    this.lastError = false;
+  }
+
+  setStatus(text, color) {
+    const pillLive = document.getElementById('pill-live');
+    if (pillLive) pillLive.innerHTML = `<span class="dot ${color || 'gold'}"></span>${text}`;
+    const hudFlights = document.getElementById('hud-flights');
+    if (hudFlights && this.liveFlightsMap.size === 0) hudFlights.textContent = '0';
+    const tab = document.getElementById('tab-btn-allflights');
+    if (tab && this.liveFlightsMap.size === 0) tab.textContent = '✈️ Live Vluchten (0)';
   }
 
   init() {
     window.handleLiveFlightradarFeed = (data) => this.onDataReceived(data);
+    this.setStatus('Wachten op live ADS-B-feed…', 'gold');
 
     // Eerste live radar peiling na 1.2 seconde
     setTimeout(() => this.fetchFeed(), 1200);
@@ -1601,6 +1620,9 @@ class LiveRadarManager {
     // Continue live polling
     this.timerId = setInterval(() => {
       if (this.enabled && !document.hidden) {
+        if (this.lastFetchTime && Date.now() - this.lastFetchTime > 45000) {
+          this.setStatus('Live feed niet bereikbaar', 'red');
+        }
         this.fetchFeed();
       }
     }, this.fetchIntervalMs);
@@ -1619,7 +1641,9 @@ class LiveRadarManager {
     script.src = `https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds=53.7,50.7,3.2,7.2&callback=handleLiveFlightradarFeed&_=${Date.now()}`;
     script.onerror = () => {
       this.isFetching = false;
-      console.warn('[LiveRadar] Live datafeed tijdelijk niet bereikbaar, fallback actief.');
+      console.warn('[LiveRadar] Live datafeed niet bereikbaar.');
+      this.lastError = true;
+      this.setStatus('Live feed niet bereikbaar', 'red');
     };
 
     document.head.appendChild(script);
@@ -1632,7 +1656,11 @@ class LiveRadarManager {
   onDataReceived(data) {
     this.isFetching = false;
     this.lastFetchTime = Date.now();
-    if (!data || typeof data !== 'object') return;
+    this.lastError = false;
+    if (!data || typeof data !== 'object') {
+      this.setStatus('Geen vluchten ontvangen', 'red');
+      return;
+    }
 
     const now = Date.now();
     let countInNl = 0;
@@ -1796,22 +1824,13 @@ class LiveRadarManager {
       }
     }
 
-    // Eerste keer live data succesvol ontvangen: ruim eventuele dummy simulatievluchten op
-    if (!this.hasReceivedLive && this.liveFlightsMap.size >= 8) {
+    if (!this.hasReceivedLive && this.liveFlightsMap.size >= 1) {
       this.hasReceivedLive = true;
-      const simFlights = S.flights.filter(f => !f.isLive);
-      for (const sf of simFlights) {
-        if (S.followFlight === sf) continue;
-        if (sf.planeMesh) S.flightsGroup.remove(sf.planeMesh);
-        if (sf.arcLine) S.trailsGroup.remove(sf.arcLine);
-        const idx = S.flights.indexOf(sf);
-        if (idx !== -1) S.flights.splice(idx, 1);
-      }
-      ATC.logMessage('RADAR', `📡 Live ADS-B radarfeed actief: ${this.liveFlightsMap.size} echte vliegtuigen live boven Nederland!`, false);
+      ATC.logMessage('RADAR', `📡 Live ADS-B radarfeed actief: ${this.liveFlightsMap.size} echte vliegtuigen boven Nederland (bron: Flightradar24).`, false);
     }
 
     // UI Counters bijwerken (Totaal & Categorieën)
-    const count = this.liveFlightsMap.size || S.flights.length;
+    const count = this.liveFlightsMap.size;
     const hudFlights = document.getElementById('hud-flights');
     if (hudFlights) hudFlights.textContent = `${count}`;
 
@@ -1832,7 +1851,9 @@ class LiveRadarManager {
     if (elOver) elOver.textContent = `${countOverflight}`;
 
     const pillLive = document.getElementById('pill-live');
-    if (pillLive) pillLive.innerHTML = `<span class="dot green"></span>LIVE ADS-B (${count})`;
+    if (pillLive) pillLive.innerHTML = count > 0
+      ? `<span class="dot green"></span>LIVE ADS-B (${count})`
+      : `<span class="dot red"></span>Geen vluchten ontvangen`;
 
     const tabBtnAllFlights = document.getElementById('tab-btn-allflights');
     if (tabBtnAllFlights) tabBtnAllFlights.textContent = `✈️ Live Vluchten (${count})`;
@@ -1943,11 +1964,7 @@ class AtcRadioEngine {
     const atcInfo = flight.atcInfo || (typeof getFlightAtcStation === 'function' ? getFlightAtcStation(flight) : null);
     const stationName = atcInfo ? atcInfo.channel : 'SCHIPHOL TOREN';
 
-    this.logMessage('ATC RADIO', `🎯 INDIVIDUEEL GESPREK GESTART: 1-op-1 radioverbinding tussen ${flight.callsign} en ${stationName} (${rwyStr}). Alle overige live conversaties zijn gedempt.`, true);
-
-    this.commTimer = setTimeout(() => {
-      this.executeFlightCommStep();
-    }, 700);
+    this.logMessage('ATC RADIO', `📻 Live toren-stream van ${stationName} geopend bij ${flight.callsign}. Let op: dit is de dichtstbijzijnde tower-feed, niet noodzakelijk het gesprek van deze vlucht.`, false);
   }
 
   stopIndividualCommunication() {
@@ -1963,102 +1980,7 @@ class AtcRadioEngine {
   }
 
   executeFlightCommStep() {
-    const flight = this.activeIndividualFlight;
-    if (!flight) return;
-
-    const callsign = flight.callsign;
-    const spokenCall = this.formatPhoneticCallsign(callsign);
-    const rwyInfo = flight.runwayInfo || (typeof getFlightRunwayInfo === 'function' ? getFlightRunwayInfo(flight) : null);
-    const rwy = (rwyInfo && rwyInfo.runway) ? rwyInfo.runway : '24';
-    const alt = Math.round(flight.alt || 450);
-    const cat = flight.category || (typeof getFlightCategory === 'function' ? getFlightCategory(flight) : 'landing');
-    const step = this.commStep % 5;
-    this.commStep++;
-
-    let twrText = '';
-    let twrSpeech = '';
-    let pltText = '';
-    let pltSpeech = '';
-
-    if (cat === 'landing') {
-      if (step === 0) {
-        twrText = `${callsign}, Schiphol Tower, runway ${rwy}, wind 230 at 12 knots, cleared to land.`;
-        twrSpeech = `${spokenCall}, Schiphol Tower, runway ${rwy}, wind two three zero at one two knots, cleared to land.`;
-        pltText = `Cleared to land runway ${rwy}, ${callsign}.`;
-        pltSpeech = `Cleared to land runway ${rwy}, ${spokenCall}.`;
-      } else if (step === 1) {
-        twrText = `${callsign}, continue approach runway ${rwy}, minimums checked.`;
-        twrSpeech = `${spokenCall}, continue approach runway ${rwy}, minimums checked.`;
-        pltText = `Continue runway ${rwy}, ${callsign}.`;
-        pltSpeech = `Continue runway ${rwy}, ${spokenCall}.`;
-      } else if (step === 2) {
-        twrText = `${callsign}, passing ${alt}m, report runway in sight.`;
-        twrSpeech = `${spokenCall}, passing ${alt} meters, report runway in sight.`;
-        pltText = `Runway ${rwy} in sight, fully established, ${callsign}.`;
-        pltSpeech = `Runway ${rwy} in sight, fully established, ${spokenCall}.`;
-      } else if (step === 3) {
-        twrText = `${callsign}, vacate via taxiway Alpha six when able, ground 121.700.`;
-        twrSpeech = `${spokenCall}, vacate via taxiway Alpha six when able, ground one two one point seven zero zero.`;
-        pltText = `Vacate Alpha six, contact Ground 121.700, ${callsign}.`;
-        pltSpeech = `Vacate Alpha six, contact Ground one two one point seven, ${spokenCall}.`;
-      } else {
-        twrText = `${callsign}, welcome to Schiphol, taxi to gate via taxiway Quebec.`;
-        twrSpeech = `${spokenCall}, welcome to Schiphol, taxi to gate via taxiway Quebec.`;
-        pltText = `Taxi to gate via Quebec, good day, ${callsign}.`;
-        pltSpeech = `Taxi to gate via Quebec, good day, ${spokenCall}.`;
-      }
-    } else if (cat === 'takeoff') {
-      if (step === 0) {
-        twrText = `${callsign}, Schiphol Tower, runway ${rwy}, line up and wait.`;
-        twrSpeech = `${spokenCall}, Schiphol Tower, runway ${rwy}, line up and wait.`;
-        pltText = `Line up and wait runway ${rwy}, ${callsign}.`;
-        pltSpeech = `Line up and wait runway ${rwy}, ${spokenCall}.`;
-      } else if (step === 1) {
-        twrText = `${callsign}, wind 240 at 10 knots, runway ${rwy}, cleared for takeoff.`;
-        twrSpeech = `${spokenCall}, wind two four zero at one zero knots, runway ${rwy}, cleared for takeoff.`;
-        pltText = `Cleared for takeoff runway ${rwy}, ${callsign}.`;
-        pltSpeech = `Cleared for takeoff runway ${rwy}, ${spokenCall}.`;
-      } else if (step === 2) {
-        twrText = `${callsign}, airborne at ${alt}m, contact Amsterdam Departure 119.050, goodbye.`;
-        twrSpeech = `${spokenCall}, airborne at ${alt} meters, contact Amsterdam Departure one one nine point zero five zero, goodbye.`;
-        pltText = `Departure 119.050, have a good day, ${callsign}.`;
-        pltSpeech = `Departure one one nine point zero five, good day, ${spokenCall}.`;
-      } else if (step === 3) {
-        twrText = `${callsign}, radar contact, climb to flight level 180, direct ARTIP.`;
-        twrSpeech = `${spokenCall}, radar contact, climb to flight level one eight zero, direct ARTIP.`;
-        pltText = `Climb flight level 180, direct ARTIP, ${callsign}.`;
-        pltSpeech = `Climb flight level one eight zero, direct ARTIP, ${spokenCall}.`;
-      } else {
-        twrText = `${callsign}, squawk 4321, monitor radar frequency.`;
-        twrSpeech = `${spokenCall}, squawk four three two one, monitor radar.`;
-        pltText = `Squawk 4321, ${callsign}.`;
-        pltSpeech = `Squawk four three two one, ${spokenCall}.`;
-      }
-    } else {
-      if (step === 0) {
-        twrText = `${callsign}, Amsterdam Radar, radar contact at ${alt}m, maintain flight level.`;
-        twrSpeech = `${spokenCall}, Amsterdam Radar, radar contact at ${alt} meters, maintain flight level.`;
-        pltText = `Maintain flight level, ${callsign}.`;
-        pltSpeech = `Maintain flight level, ${spokenCall}.`;
-      } else if (step === 1) {
-        twrText = `${callsign}, route direct SPYKER, speed 290 knots or greater.`;
-        twrSpeech = `${spokenCall}, route direct SPYKER, speed two niner zero knots or greater.`;
-        pltText = `Direct SPYKER, 290 knots, ${callsign}.`;
-        pltSpeech = `Direct SPYKER, two niner zero knots, ${spokenCall}.`;
-      } else {
-        twrText = `${callsign}, contact Dutch Radar on 124.300, good day.`;
-        twrSpeech = `${spokenCall}, contact Dutch Radar on one two four point three zero zero, good day.`;
-        pltText = `Dutch Radar 124.300, goodbye, ${callsign}.`;
-        pltSpeech = `Dutch Radar one two four point three, goodbye, ${spokenCall}.`;
-      }
-    }
-
-    this.exchangeDialogue('TOREN', twrText, twrSpeech, callsign, pltText, pltSpeech, () => {
-      if (!this.activeIndividualFlight) return;
-      this.commTimer = setTimeout(() => {
-        this.executeFlightCommStep();
-      }, 14000);
-    });
+    // Verwijderd: geen verzonnen radio-chatter. Alleen echte LiveATC-audio.
   }
 
   ensureAudioCtx() {
@@ -2162,15 +2084,8 @@ class AtcRadioEngine {
     if ('speechSynthesis' in window) {
       try { window.speechSynthesis.cancel(); } catch (e) {}
     }
-    if (towerText) this.logMessage(towerSpeaker, towerText, true);
-    if (pilotText) {
-      setTimeout(() => {
-        this.logMessage(pilotSpeaker, pilotText, false);
-        if (onDone) onDone();
-      }, 500);
-    } else if (onDone) {
-      setTimeout(onDone, 50);
-    }
+    // Geen verzonnen dialoog meer tonen.
+    if (onDone) setTimeout(onDone, 50);
   }
 
   contactFlight(flight) {
@@ -3864,109 +3779,9 @@ function createAirplaneMesh(colorHex) {
   return group;
 }
 
-function spawnFlight(origin, dest, airline, startProgress = 0) {
-  const aircraft = airline.types[Math.floor(Math.random() * airline.types.length)];
-  const oVec = latLonToVector3(origin.lat, origin.lon, 0.05);
-  const dVec = latLonToVector3(dest.lat, dest.lon, 0.05);
-
-  const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
-  const isGA = (airline.code === 'TGE' || airline.code === 'VTE');
-  const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
-
-  // 3D Bezier curve
-  const p0 = oVec;
-  const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
-  const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
-  const p3 = dVec;
-
-  const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
-  const points = curve.getPoints(36);
-  const arcGeo = new THREE.BufferGeometry().setFromPoints(points);
-
-  const initialStatus = startProgress === 0 ? 'Opstijgen' : (startProgress > 0.88 ? 'Final Approach' : 'Kruissnelheid');
-  const cat = getFlightCategory({ origin, dest, airline, progress: startProgress, status: initialStatus });
-
-  const arcMat = new THREE.LineBasicMaterial({
-    color: cat.colorHex,
-    transparent: true,
-    opacity: 0.40,
-    linewidth: 1
-  });
-  const arcLine = new THREE.Line(arcGeo, arcMat);
-  S.trailsGroup.add(arcLine);
-
-  const planeMesh = createAirplaneMesh(cat.colorHex);
-  planeMesh.userData = { isFlight: true };
-  S.flightsGroup.add(planeMesh);
-
-  const speedKmh = isGA ? (220 + Math.floor(Math.random() * 80)) : (720 + Math.floor(Math.random() * 180));
-  const durationH = Math.max(0.08, distKm / speedKmh);
-
-  const id = S.flights.length + 1;
-  const flightNum = isGA ? (airline.code === 'TGE' ? 'FST' : 'TGE') : `${Math.floor(Math.random() * 9000) + 1000}`;
-  const callsign = isGA ? `${airline.code === 'TGE' ? 'SKYDIVE1' : 'PH-TGE'}` : `${airline.code}${flightNum}`;
-
-  const flight = {
-    id,
-    callsign,
-    airline,
-    aircraft,
-    origin,
-    dest,
-    distKm,
-    altitude: Math.round(cruiseAltKm * 1000), // meters
-    speedKmh,
-    durationH,
-    progress: startProgress,
-    progressRate: 1 / (durationH * 3600 * 60),
-    curve,
-    arcLine,
-    planeMesh,
-    category: cat,
-    hovered: false,
-    status: initialStatus
-  };
-
-  planeMesh.userData.flight = flight;
-  S.flights.push(flight);
-  return flight;
-}
-
 function build3DFlights() {
-  const count = CFG.flightCount;
+  // Geen gesimuleerde vluchten: alleen echte live ADS-B (Flightradar24) vult S.flights.
   S.flights = [];
-
-  // Vaste vluchten voor Vliegveld Teuge
-  const tgeAp = AIRPORTS.find(a => a.code === 'TGE') || AIRPORTS[1];
-  const amsAp = AIRPORTS.find(a => a.code === 'AMS') || AIRPORTS[0];
-  const txeAp = AIRPORTS.find(a => a.code === 'TXE') || AIRPORTS[7];
-  const leyAp = AIRPORTS.find(a => a.code === 'LEY') || AIRPORTS[5];
-  const grqAp = AIRPORTS.find(a => a.code === 'GRQ') || AIRPORTS[4];
-
-  const tgeAir = AIRLINES.find(a => a.code === 'TGE') || AIRLINES[3];
-  const vteAir = AIRLINES.find(a => a.code === 'VTE') || AIRLINES[4];
-
-  // 1. Skydive Teuge (PH-FST Supervan)
-  spawnFlight(tgeAp, tgeAp, tgeAir, 0.35);
-  // 2. Vliegschool Teuge (PH-TGE Diamond DA40) Teuge -> Texel
-  spawnFlight(tgeAp, txeAp, vteAir, 0.55);
-  // 3. Vliegschool Teuge Lelystad -> Teuge
-  spawnFlight(leyAp, tgeAp, vteAir, 0.20);
-  // 4. Zakenvlucht Teuge -> Schiphol
-  spawnFlight(tgeAp, amsAp, vteAir, 0.70);
-
-  // Overige vluchten boven Nederland
-  for (let i = 4; i < count; i++) {
-    const oIdx = Math.floor(Math.random() * AIRPORTS.length);
-    let dIdx = Math.floor(Math.random() * AIRPORTS.length);
-    while (dIdx === oIdx) dIdx = Math.floor(Math.random() * AIRPORTS.length);
-
-    const origin = AIRPORTS[oIdx];
-    const dest = AIRPORTS[dIdx];
-    const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
-
-    spawnFlight(origin, dest, airline, Math.random());
-  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4422,7 +4237,7 @@ function selectFlight(flight, viewMode = 'chase30m') {
   // Eén duidelijke, enkele statusmelding in het ATC venster inclusief baan en frequentie
   const airName = flight.airline ? (flight.airline.name || flight.airline.code || '') : '';
   const regTxt = flight.registration ? ` (${flight.registration})` : '';
-  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) afgestemd op ${atcInfo.channel} (${atcInfo.freq} MHz) &bull; ${rwyInfo.label} — Live radio actief!`, true);
+  ATC.logMessage('RADIO', `🎯 Vliegtuig ${flight.callsign}${regTxt} (${airName}) — dichtstbijzijnde toren-stream: ${atcInfo.channel} (${atcInfo.freq} MHz) &bull; live radio actief (niet noodzakelijk het gesprek van dit toestel)`, true);
 }
 
 function updateFlightCardUI(flight) {
@@ -4624,7 +4439,7 @@ function animate(now) {
             if (!f._landedLogged) {
               f._landedLogged = true;
               const rwy = f.runwayInfo ? f.runwayInfo.shortLabel : 'landingsbaan';
-              ATC.logMessage('STATUS', `🛬 Toestel ${f.callsign} veilig geland op ${rwy}.`, true);
+              // (geen verzonnen landingsbericht: positie is geëxtrapoleerd)
             }
           } else {
             f.altitude = Math.max(0, Math.round(f.currentPos.y * 1000));
@@ -4659,59 +4474,6 @@ function animate(now) {
         const m = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
         f.planeMesh.quaternion.slerp(new THREE.Quaternion().setFromRotationMatrix(m), 0.08);
       }
-    } else {
-      if (!S.paused) {
-        f.progress += f.progressRate * dtSim;
-        if (f.progress >= 1.0) {
-          // Realistische omkeer naar retourvlucht (geen abrupte sprong)
-          const oldOrig = f.origin;
-          f.origin = f.dest;
-          f.dest = oldOrig;
-          f.progress = 0;
-
-          const oVec = latLonToVector3(f.origin.lat, f.origin.lon, 0.05);
-          const dVec = latLonToVector3(f.dest.lat, f.dest.lon, 0.05);
-          const distKm = Math.hypot(dVec.x - oVec.x, dVec.z - oVec.z);
-          const isGA = (f.airline.code === 'TGE' || f.airline.code === 'VTE');
-          const cruiseAltKm = isGA ? (1.5 + Math.random() * 2.0) : Math.min(10.5, Math.max(3.2, distKm * 0.05 + 2.8));
-
-          const p0 = oVec;
-          const p1 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.22, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.22);
-          const p2 = new THREE.Vector3(oVec.x + (dVec.x - oVec.x) * 0.78, cruiseAltKm, oVec.z + (dVec.z - oVec.z) * 0.78);
-          const p3 = dVec;
-          f.curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
-
-          const pts = f.curve.getPoints(36);
-          f.arcLine.geometry.setFromPoints(pts);
-          f.status = 'Klimmen na vertrek';
-
-          if (S.followFlight === f) {
-            updateFlightCardUI(f);
-          }
-        }
-      }
-
-      const p = f.curve.getPointAt(f.progress);
-      f.planeMesh.position.copy(p);
-      // Synchroniseer altijd dynamisch de vlieghoogte in meters
-      f.altitude = Math.max(0, Math.round(p.y * 1000));
-      if (f.progress > 0.96) {
-        f.status = 'Touchdown / Geland';
-      } else if (f.progress > 0.86) {
-        f.status = 'Final Approach';
-      } else if (f.progress < 0.12) {
-        f.status = 'Klimmen na vertrek';
-      } else {
-        f.status = 'Kruishoogte';
-      }
-
-      const tangent = f.curve.getTangentAt(f.progress).normalize();
-      const up = new THREE.Vector3(0, 1, 0);
-      const right = new THREE.Vector3().crossVectors(up, tangent).normalize();
-      const correctedUp = new THREE.Vector3().crossVectors(tangent, right).normalize();
-
-      const m = new THREE.Matrix4().makeBasis(right, correctedUp, tangent);
-      f.planeMesh.quaternion.setFromRotationMatrix(m);
     }
   }
 
@@ -4923,7 +4685,7 @@ function setupInteraction(container) {
         document.getElementById('tt-from').textContent    = `IATA: ${ap.code}`;
         document.getElementById('tt-to').textContent      = `Baan: ${ap.activeRunway}`;
         document.getElementById('tt-alt').textContent     = `TWR: ${ap.freqs.twr} MHz`;
-        document.getElementById('tt-spd').textContent     = `Wind: ${ap.weather.wind}`;
+        document.getElementById('tt-spd').textContent     = 'Wind: —';
         document.getElementById('tt-pct').textContent     = `Klik om in te zoomen (300m)`;
         document.getElementById('tt-bar').style.width     = `100%`;
 
@@ -5080,7 +4842,7 @@ function selectAirport(ap) {
   const localH = (utcHours + Math.floor(ap.utcOffset) + 24) % 24;
   const localM = String(now.getUTCMinutes()).padStart(2, '0');
   if (apTime) apTime.textContent = `🕐 ${String(localH).padStart(2,'0')}:${localM} Lokale tijd (UTC${ap.utcOffset >= 0 ? '+' : ''}${ap.utcOffset})`;
-  if (apWeather) apWeather.textContent = `🌦️ Baan ${ap.activeRunway} · ${ap.weather.wind}`;
+  if (apWeather) apWeather.textContent = `Baan ${ap.activeRunway}`;
 
   const rwySelect = document.getElementById('regie-runway-select');
   if (rwySelect) {
@@ -5114,47 +4876,14 @@ function renderAirportFlightBoard() {
 
   if (!depView || !arrView) return;
 
-  let departures = S.flights.filter(f => f.origin.code === ap.code);
-  let arrivals   = S.flights.filter(f => f.dest.code === ap.code);
-
-  if (departures.length < 6) {
-    for (let k = 0; k < (6 - departures.length); k++) {
-      let destAp = AIRPORTS[(AIRPORTS.indexOf(ap) + k + 1) % AIRPORTS.length];
-      const airl = AIRLINES[(k + 3) % AIRLINES.length];
-      departures.push({
-        callsign: `${airl.code}${1400 + k * 12}`,
-        airline: airl,
-        aircraft: airl.types[k % airl.types.length],
-        origin: ap,
-        dest: destAp,
-        progress: (k * 0.15),
-        status: k === 0 ? 'Boarding Gate D4' : (k === 1 ? 'Taxiën naar baan' : 'Gereed voor vertrek'),
-        isSlot: true
-      });
-    }
-  }
-
-  if (arrivals.length < 6) {
-    for (let k = 0; k < (6 - arrivals.length); k++) {
-      let origAp = AIRPORTS[(AIRPORTS.indexOf(ap) + k + 4) % AIRPORTS.length];
-      const airl = AIRLINES[(k + 6) % AIRLINES.length];
-      arrivals.push({
-        callsign: `${airl.code}${2300 + k * 18}`,
-        airline: airl,
-        aircraft: airl.types[k % airl.types.length],
-        origin: origAp,
-        dest: ap,
-        progress: 0.80 + (k * 0.03),
-        status: k === 0 ? 'Final Approach' : (k === 1 ? 'Daling ingezet' : 'Nadering 4000ft'),
-        isSlot: true
-      });
-    }
-  }
+  let departures = S.flights.filter(f => (f.origin && f.origin.code === ap.code));
+  let arrivals   = S.flights.filter(f => (f.dest && f.dest.code === ap.code));
 
   if (countDep) countDep.textContent = departures.length;
   if (countArr) countArr.textContent = arrivals.length;
 
   depView.innerHTML = '';
+  if (departures.length === 0) depView.innerHTML = '<div class="fids-row" style="color:var(--muted);">Geen live vluchten (bron: live ADS-B / Flightradar24)</div>';
   for (const f of departures) {
     const row = document.createElement('div');
     row.className = 'fids-row';
@@ -5185,14 +4914,7 @@ function renderAirportFlightBoard() {
           LIVEATC.tuneToAirport(targetAirport, false);
         }
 
-        // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
         let liveFlight = f;
-        if (f.isSlot) {
-          liveFlight = spawnFlight(f.origin, f.dest, f.airline, f.progress || 0.05);
-          liveFlight.callsign = f.callsign;
-          liveFlight.status = f.status;
-          f.isSlot = false;
-        }
 
         // 3. Volg het vliegtuig direct met de 3D camera
         S.followFlight = liveFlight;
@@ -5214,6 +4936,7 @@ function renderAirportFlightBoard() {
   }
 
   arrView.innerHTML = '';
+  if (arrivals.length === 0) arrView.innerHTML = '<div class="fids-row" style="color:var(--muted);">Geen live vluchten (bron: live ADS-B / Flightradar24)</div>';
   for (const f of arrivals) {
     const row = document.createElement('div');
     row.className = 'fids-row';
@@ -5244,14 +4967,7 @@ function renderAirportFlightBoard() {
           LIVEATC.tuneToAirport(targetAirport, false);
         }
 
-        // 2. Als dit een ingeroosterde vlucht is, creëer een actief 3D vliegtuig in de wereld
         let liveFlight = f;
-        if (f.isSlot) {
-          liveFlight = spawnFlight(f.origin, f.dest, f.airline, f.progress || 0.85);
-          liveFlight.callsign = f.callsign;
-          liveFlight.status = f.status;
-          f.isSlot = false;
-        }
 
         // 3. Volg het vliegtuig direct met de 3D camera
         S.followFlight = liveFlight;
@@ -5276,97 +4992,11 @@ function renderAirportFlightBoard() {
 // ═══════════════════════════════════════════════════════
 //  REGIE COMMANDO'S (STARTEN, LANDEN, GO-AROUND)
 // ═══════════════════════════════════════════════════════
-function regieActionTakeoff() {
-  const ap = S.selectedAirport;
-  if (!ap) return;
-
-  let dIdx = Math.floor(Math.random() * AIRPORTS.length);
-  while (AIRPORTS[dIdx] === ap) dIdx = Math.floor(Math.random() * AIRPORTS.length);
-  const dest = AIRPORTS[dIdx];
-  const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
-
-  const flight = spawnFlight(ap, dest, airline, 0.0);
-  flight.status = 'Opstijgen';
-  S.followFlight = flight;
-
-  ATC.logMessage('STATUS', `Toestel ${flight.callsign} vertrekt vanaf baan ${ap.activeRunway}.`, false);
-  renderAirportFlightBoard();
-}
-
-function regieActionLand() {
-  const ap = S.selectedAirport;
-  if (!ap) return;
-
-  let inbound = S.flights.find(f => f.dest && f.dest.code === ap.code && f.progress > 0.70);
-  if (!inbound) {
-    let oIdx = Math.floor(Math.random() * AIRPORTS.length);
-    while (AIRPORTS[oIdx] === ap) oIdx = Math.floor(Math.random() * AIRPORTS.length);
-    const origin = AIRPORTS[oIdx];
-    const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
-    inbound = spawnFlight(origin, ap, airline, 0.88);
-  }
-
-  inbound.status = 'Geland & Baan Vrij';
-  S.followFlight = inbound;
-
-  ATC.logMessage('STATUS', `Toestel ${inbound.callsign} geland op baan ${ap.activeRunway}.`, false);
-  renderAirportFlightBoard();
-}
-
-function regieActionGoAround() {
-  const ap = S.selectedAirport;
-  if (!ap) return;
-
-  let inbound = S.flights.find(f => f.dest && f.dest.code === ap.code) || S.flights[0];
-  if (inbound) {
-    inbound.status = 'GO-AROUND!';
-    S.followFlight = inbound;
-    ATC.logMessage('STATUS', `Doorstart (Go-Around) geactiveerd voor ${inbound.callsign}.`, false);
-  }
-
-  renderAirportFlightBoard();
-}
-
-function regieActionEmergency() {
-  const ap = S.selectedAirport;
-  if (!ap) return;
-
-  const inbound = S.flights.find(f => f.dest && f.dest.code === ap.code) || S.flights[1];
-  if (inbound) {
-    inbound.status = 'SQUAWK 7700';
-    S.followFlight = inbound;
-    ATC.logMessage('ALARM', `Squawk 7700 ingesteld voor ${inbound.callsign} op baan ${ap.activeRunway}.`, true);
-  }
-
-  renderAirportFlightBoard();
-}
-
-function regieApplyWeatherAndRunway() {
-  const ap = S.selectedAirport;
-  if (!ap) return;
-  ATC.ensureAudioCtx();
-
-  const rwySel = document.getElementById('regie-runway-select');
-  const wthSel = document.getElementById('regie-weather-select');
-
-  if (rwySel) ap.activeRunway = rwySel.value;
-  if (wthSel) {
-    const val = wthSel.value;
-    if (val === 'cavok') ap.weather = { cond:'cavok', wind:'220° 10kt', qnh:'1015' };
-    else if (val === 'rain') ap.weather = { cond:'rain', wind:'270° 20kt', qnh:'1008' };
-    else if (val === 'fog') ap.weather = { cond:'fog', wind:'180° 04kt', qnh:'1012' };
-    else if (val === 'storm') ap.weather = { cond:'storm', wind:'320° 28kt G40', qnh:'1002' };
-  }
-
-  const apWeather = document.getElementById('ap-disp-weather');
-  if (apWeather) apWeather.textContent = `🌦️ Baan ${ap.activeRunway} · ${ap.weather.wind}`;
-
-  ATC.logMessage(`${ap.code} TWR`, `${ap.name} Tower: Runway in use ${ap.activeRunway}, wind ${ap.weather.wind}. Active for all arrivals and departures.`, true);
-  ATC.playMicClick(true);
-  if (LIVEATC) {
-    LIVEATC.tuneToAirport(ap, false);
-  }
-}
+function regieActionTakeoff() {}
+function regieActionLand() {}
+function regieActionGoAround() {}
+function regieActionEmergency() {}
+function regieApplyWeatherAndRunway() {}
 
 // ═══════════════════════════════════════════════════════
 //  UI INITIALISATIE & EVENT LISTENERS
@@ -5494,6 +5124,7 @@ function initAirportDeck() {
     btnCockpit.addEventListener('click', () => {
       const fl = S.followFlight || S.flights[0];
       if (fl) selectFlight(fl, 'cockpit');
+      else ATC.logMessage('SYSTEEM', 'Geen live vluchten beschikbaar om te volgen.', false);
     });
   }
 
@@ -5502,6 +5133,7 @@ function initAirportDeck() {
     btnFollowFlight.addEventListener('click', () => {
       const fl = S.followFlight || S.flights[0];
       if (fl) selectFlight(fl, 'chase30m');
+      else ATC.logMessage('SYSTEEM', 'Geen live vluchten beschikbaar om te volgen.', false);
     });
   }
 
@@ -5572,29 +5204,25 @@ function initAirportDeck() {
   subBtnRegie.addEventListener('click', () => setSubTab('regie'));
 
   // Regie Knoppen
-  document.getElementById('btn-regie-takeoff').addEventListener('click', regieActionTakeoff);
-  document.getElementById('btn-regie-land').addEventListener('click', regieActionLand);
-  document.getElementById('btn-regie-goaround').addEventListener('click', regieActionGoAround);
-  document.getElementById('btn-regie-emergency').addEventListener('click', regieActionEmergency);
   document.getElementById('btn-regie-apply-weather').addEventListener('click', regieApplyWeatherAndRunway);
 
   // Frequentie wissel knoppen
   document.getElementById('btn-freq-twr').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
-    ATC.logMessage(`${ap.code} TWR`, `${ap.name} Tower on ${ap.freqs.twr}, radar monitor active.`, true);
+    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.twr} (${ap.code} TWR) ingesteld.`, false);
     ATC.speak('', true);
   });
   document.getElementById('btn-freq-gnd').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.gnd, `${ap.code} GROUND`);
-    ATC.logMessage(`${ap.code} GND`, `${ap.name} Ground on ${ap.freqs.gnd}, taxi instructions standby.`, true);
+    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.gnd} (${ap.code} GND) ingesteld.`, false);
     ATC.speak('', true);
   });
   document.getElementById('btn-freq-app').addEventListener('click', () => {
     const ap = S.selectedAirport;
     ATC.setFrequency(ap.freqs.app, `${ap.code} APPROACH`);
-    ATC.logMessage(`${ap.code} APP`, `${ap.name} Radar Approach on ${ap.freqs.app}, squawk ident.`, true);
+    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.app} (${ap.code} APP) ingesteld.`, false);
     ATC.speak('', true);
   });
 
@@ -5613,6 +5241,10 @@ function updateGlobalFlightListUI() {
   if (!list) return;
 
   list.innerHTML = '';
+  if (!S.flights.length) {
+    list.innerHTML = '<div class="flight-item" style="color:var(--muted);">Geen live vluchten (wachten op live ADS-B-feed of feed niet bereikbaar)</div>';
+    return;
+  }
   const activeFlow = S.trafficFlow || 'all';
   const activeSector = S.trafficSector || 'ALL';
   const ap = S.selectedAirport || AIRPORTS[0];
@@ -6706,6 +6338,7 @@ function initResponsiveUI() {
   if (btnTarget) {
     btnTarget.addEventListener('click', () => {
       const fl = S.followFlight || (S.flights && S.flights[0]);
+      if (!fl) ATC.logMessage('SYSTEEM', 'Geen live vluchten beschikbaar om te volgen.', false);
       if (fl) {
         if (!S.followFlight) selectFlight(fl, 'chase30m');
         if (flightCard) {

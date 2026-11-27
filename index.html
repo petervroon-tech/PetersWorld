@@ -1164,7 +1164,7 @@
         <span>❓</span>
         <span>Help</span>
       </div>
-      <div class="pill" id="pill-live"><span class="dot green"></span>LIVE ADS-B</div>
+      <div class="pill" id="pill-live"><span class="dot gold"></span>Wachten op live ADS-B-feed…</div>
       <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.7</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
@@ -1233,7 +1233,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">Vluchten</span>
-          <span class="hud-val cy" id="hud-flights">60</span>
+          <span class="hud-val cy" id="hud-flights">0</span>
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">Sector stroom</span>
@@ -1583,7 +1583,7 @@
         </div>
         <div class="ap-meta-row">
           <span id="ap-disp-time">🕐 20:30 Lokale tijd</span>
-          <span class="ap-weather-tag" id="ap-disp-weather">🌦️ Baan 24 · Wind 220° 12kt</span>
+          <span class="ap-weather-tag" id="ap-disp-weather">Baan 24</span>
         </div>
         <div class="ap-zoom-action-bar">
           <span class="ap-alt-display" id="ap-disp-altitude">📷 Hoogte: 300 m (Kaagbaan)</span>
@@ -1598,7 +1598,7 @@
       <div class="board-sub-nav">
         <button class="board-sub-btn active" id="sub-btn-dep">🛫 Vertrek (<span id="count-dep">0</span>)</button>
         <button class="board-sub-btn" id="sub-btn-arr">🛬 Aankomst (<span id="count-arr">0</span>)</button>
-        <button class="board-sub-btn" id="sub-btn-regie">🎛️ Luchthaven Regie</button>
+        <button class="board-sub-btn" id="sub-btn-regie">📻 Frequenties</button>
       </div>
 
       <!-- Tab Content: Departures -->
@@ -1613,42 +1613,6 @@
 
       <!-- Tab Content: Regie / Operations Control -->
       <div id="view-regie" class="regie-box" style="display:none;">
-        <!-- Snelle Operationele Acties -->
-        <div class="regie-section">
-          <div class="regie-sec-title">⚡ Bepaal wat hier gebeurt (Direct uitvoeren)</div>
-          <div class="regie-grid">
-            <button class="regie-btn primary" id="btn-regie-takeoff" title="Laat een gereedstaand vliegtuig opstijgen met torenklaring">
-              🚀 Start Vlucht
-            </button>
-            <button class="regie-btn primary" id="btn-regie-land" title="Zet een naderende vlucht in op final approach met landing clearance">
-              🛬 Laat Landen
-            </button>
-            <button class="regie-btn danger full-width" id="btn-regie-goaround" title="Toren beveelt een onmiddellijke doorstart (Go-Around!) wegens baanbezetting">
-              🔄 Beveel Doorstart (Go-Around!)
-            </button>
-            <button class="regie-btn danger full-width" id="btn-regie-emergency" title="Piloot verklaart noodsituatie (Squawk 7700) met directe voorrang op de baan">
-              🚨 Noodlanding (Squawk 7700)
-            </button>
-          </div>
-        </div>
-
-        <!-- Baan- & Weerconfiguratie -->
-        <div class="regie-section">
-          <div class="regie-sec-title">🌦️ Baan & Weersituatie</div>
-          <div style="display:flex;flex-direction:column;gap:5px;">
-            <select id="regie-runway-select" class="regie-select" title="Actieve start-/landingsbaan"></select>
-            <select id="regie-weather-select" class="regie-select" title="Weersomstandigheden">
-              <option value="cavok">☀️ Helder & Zicht >10km (CAVOK)</option>
-              <option value="rain">🌧️ Regen & Zijwind 18kt</option>
-              <option value="fog">🌫️ Dichte Mist (CAT III ILS 75m)</option>
-              <option value="storm">⚡ Onweersbuien & Turbulente wind</option>
-            </select>
-            <button class="regie-btn" id="btn-regie-apply-weather" style="justify-content:center;">
-              📢 Pas Baan & Weer Toe (Toren Update)
-            </button>
-          </div>
-        </div>
-
         <!-- ATC Frequentie Wissel -->
         <div class="regie-section">
           <div class="regie-sec-title">📻 Frequentie & Verkeersleider</div>
