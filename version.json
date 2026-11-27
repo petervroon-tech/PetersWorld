@@ -1,9 +1,9 @@
 {
   "app_name": "PetersWorld",
   "version": "2.8.8",
-  "build": 83,
-  "timestamp": "2026-11-27T23:14:52.415310+00:00",
-  "git_hash": "e75517e",
+  "build": 84,
+  "timestamp": "2026-11-27T23:24:50.841178+00:00",
+  "git_hash": "99ef2ec",
   "features": [
     "Live ATC radio hersteld via d.liveatc.net (v2.8.8): onbereikbare streamservers vervangen door de officiële, actieve Schiphol LiveATC cluster d.liveatc.net (200 OK audio/mpeg voor Kaagbaan, Polderbaan, Zwanenburgerbaan en Delivery). WebAudio routing hersteld naar luidsprekers en audio-ontgrendeling uitgebreid naar alle desktop muiskliks en aanrakingen.",
     "Geen nep-data: alleen echt live vliegverkeer (Flightradar24 ADS-B). Verzonnen simulatievluchten, nep-ATC-gesprekken, nep-golfvorm/S-meter, Regie-simulatieknoppen en vaste windwaarden zijn verwijderd. Zonder data toont de app eerlijk 'Wachten op live ADS-B-feed…', 'Live feed niet bereikbaar' of 'Geen vluchten ontvangen'. Radio = echte LiveATC-stream van de dichtstbijzijnde toren.",

@@ -5182,32 +5182,41 @@ function initAirportDeck() {
     viewRegie.style.display = tab === 'regie' ? 'flex' : 'none';
   };
 
-  subBtnDep.addEventListener('click', () => setSubTab('dep'));
-  subBtnArr.addEventListener('click', () => setSubTab('arr'));
-  subBtnRegie.addEventListener('click', () => setSubTab('regie'));
+  if (subBtnDep) subBtnDep.addEventListener('click', () => setSubTab('dep'));
+  if (subBtnArr) subBtnArr.addEventListener('click', () => setSubTab('arr'));
+  if (subBtnRegie) subBtnRegie.addEventListener('click', () => setSubTab('regie'));
 
-  // Regie Knoppen
-  document.getElementById('btn-regie-apply-weather').addEventListener('click', regieApplyWeatherAndRunway);
+  // Regie Knoppen (indien aanwezig)
+  const btnWeather = document.getElementById('btn-regie-apply-weather');
+  if (btnWeather && typeof regieApplyWeatherAndRunway === 'function') {
+    btnWeather.addEventListener('click', regieApplyWeatherAndRunway);
+  }
 
   // Frequentie wissel knoppen
-  document.getElementById('btn-freq-twr').addEventListener('click', () => {
-    const ap = S.selectedAirport;
-    ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
-    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.twr} (${ap.code} TWR) ingesteld.`, false);
-    ATC.speak('', true);
-  });
-  document.getElementById('btn-freq-gnd').addEventListener('click', () => {
-    const ap = S.selectedAirport;
-    ATC.setFrequency(ap.freqs.gnd, `${ap.code} GROUND`);
-    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.gnd} (${ap.code} GND) ingesteld.`, false);
-    ATC.speak('', true);
-  });
-  document.getElementById('btn-freq-app').addEventListener('click', () => {
-    const ap = S.selectedAirport;
-    ATC.setFrequency(ap.freqs.app, `${ap.code} APPROACH`);
-    ATC.logMessage('RADIO', `Frequentie ${ap.freqs.app} (${ap.code} APP) ingesteld.`, false);
-    ATC.speak('', true);
-  });
+  const btnFreqTwr = document.getElementById('btn-freq-twr');
+  if (btnFreqTwr) {
+    btnFreqTwr.addEventListener('click', () => {
+      const ap = S.selectedAirport;
+      ATC.setFrequency(ap.freqs.twr, `${ap.code} TOWER`);
+      ATC.logMessage('RADIO', `Frequentie ${ap.freqs.twr} (${ap.code} TWR) ingesteld.`, false);
+    });
+  }
+  const btnFreqGnd = document.getElementById('btn-freq-gnd');
+  if (btnFreqGnd) {
+    btnFreqGnd.addEventListener('click', () => {
+      const ap = S.selectedAirport;
+      ATC.setFrequency(ap.freqs.gnd, `${ap.code} GROUND`);
+      ATC.logMessage('RADIO', `Frequentie ${ap.freqs.gnd} (${ap.code} GND) ingesteld.`, false);
+    });
+  }
+  const btnFreqApp = document.getElementById('btn-freq-app');
+  if (btnFreqApp) {
+    btnFreqApp.addEventListener('click', () => {
+      const ap = S.selectedAirport;
+      ATC.setFrequency(ap.freqs.app, `${ap.code} APPROACH`);
+      ATC.logMessage('RADIO', `Frequentie ${ap.freqs.app} (${ap.code} APP) ingesteld.`, false);
+    });
+  }
 
   // Start direct met het laatst bezochte vliegveld uit localStorage
   let savedCode = null;
@@ -6460,7 +6469,7 @@ function setDaylightMode(enabled) {
 // ═══════════════════════════════════════════════════════
 //  VERSIE CONTROLE & DIRECTE FORCE-UPDATE
 // ═══════════════════════════════════════════════════════
-let currentVersion = '2.8.7';
+let currentVersion = '2.8.8';
 
 async function forceAppUpdate() {
   const btnRefresh = document.getElementById('btn-refresh');
@@ -6560,15 +6569,15 @@ async function applyUpdate() {
 //  INITIALISATIE BIJ START
 // ═══════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
-  initThree();
-  setupControls();
-  ATC.init();
-  RUNWAY_CAM.init();
-  LIVE_RADAR.init();
-  PANEL_RESIZER.init();
+  try { initThree(); } catch (e) { console.error('[PetersWorld] initThree error:', e); }
+  try { setupControls(); } catch (e) { console.error('[PetersWorld] setupControls error:', e); }
+  try { ATC.init(); } catch (e) { console.error('[PetersWorld] ATC.init error:', e); }
+  try { RUNWAY_CAM.init(); } catch (e) { console.error('[PetersWorld] RUNWAY_CAM.init error:', e); }
+  try { LIVE_RADAR.init(); } catch (e) { console.error('[PetersWorld] LIVE_RADAR.init error:', e); }
+  try { PANEL_RESIZER.init(); } catch (e) { console.error('[PetersWorld] PANEL_RESIZER.init error:', e); }
 
-  await loadWasm();
-  await checkVersion(true);
+  try { await loadWasm(); } catch (e) { console.error('[PetersWorld] loadWasm error:', e); }
+  try { await checkVersion(true); } catch (e) { console.error('[PetersWorld] checkVersion error:', e); }
 
   setInterval(() => checkVersion(true), CFG.pollMs);
 

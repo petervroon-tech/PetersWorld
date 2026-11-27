@@ -25,14 +25,6 @@
         for (var name of names) caches.delete(name);
       });
     }
-    // 2. Als de pagina niet met de nieuwste versie-query is geopend, forceer directe netwerklading
-    var TARGET_VER = '2.0.1';
-    var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('v') !== TARGET_VER) {
-      urlParams.set('v', TARGET_VER);
-      urlParams.set('t', Date.now().toString());
-      window.location.replace(window.location.pathname + '?' + urlParams.toString());
-    }
   </script>
   <style>
     :root {
@@ -1125,7 +1117,7 @@
   <div id="update-banner">
     <div class="upd-left">
       <span>🚀</span>
-      <span><strong id="upd-ver">v2.8.7</strong> beschikbaar &bull; <span id="upd-note">Gescheiden landings- & vertrekfrequenties (geen starts meer tijdens het kijken naar landingen)</span></span>
+      <span><strong id="upd-ver">v2.8.8</strong> beschikbaar &bull; <span id="upd-note">Live ATC radio & ADS-B hersteld</span></span>
     </div>
     <div class="upd-right">
       <button class="btn-upd" id="btn-apply-upd">Nu bijwerken</button>
@@ -1165,7 +1157,7 @@
         <span>Help</span>
       </div>
       <div class="pill" id="pill-live"><span class="dot gold"></span>Wachten op live ADS-B-feed…</div>
-      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.7</span></div>
+      <div class="pill" id="pill-ver" title="Klik om direct handmatig te controleren op updates en cache te legen"><span class="dot green" id="ver-dot"></span><span id="ver-txt">v2.8.8</span></div>
       <button class="btn-icon" id="btn-refresh" title="Handmatig direct updaten en cache wissen (force update)">🔄</button>
     </div>
   </header>
@@ -1257,7 +1249,7 @@
         </div>
         <div class="hud-grid-cell">
           <span class="hud-label">WASM engine</span>
-          <span class="hud-val" id="hud-wasm">v2.8.7</span>
+          <span class="hud-val" id="hud-wasm">v2.8.8</span>
         </div>
       </div>
 
@@ -1890,6 +1882,6 @@
     }
   </script>
 
-  <script src="app.js?v=2.8.7"></script>
+  <script src="app.js?v=2.8.8"></script>
 </body>
 </html>
