@@ -12,7 +12,7 @@
 
 ## 📋 Overzicht & Functionaliteiten
 
-**PetersWorld** is een complete, cross-platform WebAssembly applicatie die een interactieve 3D planeet toont met realtime baansatellieten (de getoonde vluchten zijn uitsluitend echte live ADS-B-data van Flightradar24, geen simulatie), landmarks (zoals *Peter's Citadel*), seismische energiepulsen en dag/nacht-verlichting.
+**PetersWorld** is een complete, cross-platform WebAssembly applicatie die een interactieve 3D planeet simuleert met realtime baansatellieten, landmarks (zoals *Peter's Citadel*), seismische energiepulsen en dag/nacht-verlichting.
 
 ### 🌟 Belangrijkste Eigenschappen:
 1. **Cross-Platform WebAssembly Engine**:
